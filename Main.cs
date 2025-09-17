@@ -51,7 +51,7 @@ namespace fingerPressure
         private System.Windows.Forms.Timer refreshTimer;
         private int logSampleCounter = 0;
         private int flashCounter = 0;
-        private const int LogSampleRate = 30; // 每50包打印一次
+        private const int LogSampleRate = 1; // 每50包打印一次
         //private const int FlashRate = 5;
         private double[] tempValues = new double[64];
         private double[] pressureValues = new double[64];
@@ -137,67 +137,6 @@ namespace fingerPressure
             public double[] TempValues;
             public double[] PressureValues;
         }
-        #region 模拟
-
-        /// <summary>
-        /// 启动模拟器
-        /// </summary>
-        private void StartSimulation()
-        {
-            simulationTimer = new System.Windows.Forms.Timer();
-            simulationTimer.Interval = 10; // 每 200ms 产生一帧（5Hz）
-            simulationTimer.Tick += SimulationTimer_Tick;
-            simulationTimer.Start();
-        }
-
-        /// <summary>
-        /// 停止模拟器
-        /// </summary>
-        private void StopSimulation()
-        {
-            if (simulationTimer != null)
-            {
-                simulationTimer.Stop();
-                simulationTimer.Dispose();
-                simulationTimer = null;
-            }
-        }
-
-        /// <summary>
-        /// 每次 Tick 生成一帧模拟数据
-        /// </summary>
-        private void SimulationTimer_Tick(object sender, EventArgs e)
-        {
-            List<string> lines = new List<string>();
-
-            // 第一行：计时器
-            lines.Add(packetIndex.ToString());
-
-            // 剩下 8 行：64 通道，每行 8 个通道（温度、压力）
-            for (int row = 0; row < 8; row++)
-            {
-                StringBuilder sb = new StringBuilder();
-                for (int col = 0; col < 8; col++)
-                {
-                    int temp = rand.Next(20, 50);       // 模拟温度 (20~50)
-                    int pressure = rand.Next(200, 400); // 模拟压力 (200~400)
-
-                    // 插入模拟毛刺：例如每行随机 1 个点加一个大偏差
-                    if (rand.NextDouble() < 0.1) // 10% 概率生成毛刺
-                    {
-                        pressure += rand.Next(1000, 2000); // 毛刺值远高于正常值
-                    }
-
-                    sb.AppendFormat("{0,6}{1,6}", temp, pressure);
-                }
-                lines.Add(sb.ToString());
-            }
-
-            // 调用和串口接收一致的处理逻辑
-            ProcessPacket(lines);
-        }
-
-        #endregion
 
 
         public Main()
@@ -262,7 +201,7 @@ namespace fingerPressure
                 fileWriterThread.IsBackground = true;
                 fileWriterThread.Start();
 
-                TestDraw();
+                //TestDraw();
             }
             catch (Exception ex)
             {
@@ -364,6 +303,7 @@ namespace fingerPressure
                     int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
                     if (bytesRead > 0)
                     {
+                        string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                         lock (serialLock)
                         {
                             // 加入缓存
@@ -843,9 +783,13 @@ namespace fingerPressure
                         int pos = dataOffset + i * 4;
                         if (pos + 3 >= packet.Length) break;
 
+                        // 取 4 个字节
                         byte[] tmp = { packet[pos], packet[pos + 1], packet[pos + 2], packet[pos + 3] };
-                        Array.Reverse(tmp); // 翻转
-                        values[i] = BitConverter.ToInt32(tmp, 0);
+
+                        // 或者用 BitConverter
+                        values[i] = BitConverter.ToInt32(tmp, 0); // 但不要 Array.Reverse
+
+
                     }
                 }
                 else
@@ -1393,7 +1337,7 @@ namespace fingerPressure
             fileRawQueue.CompleteAdding();
 
             // 等待写线程结束
-            //fileWriterThread.Join();
+            fileWriterThread.Join();
 
             // 最后 flush & close
             packetWriter?.Flush();

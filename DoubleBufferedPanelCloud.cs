@@ -150,12 +150,26 @@ namespace fingerPressure
 
         private Color GetColorFromValue(double value)
         {
-            value = Math.Max(0, Math.Min(value, 100000));
-            int r = (int)(value / 100000.0 * 255);
-            int g = 0;
-            int b = 255 - r;
-            return Color.FromArgb(r, g, b);
+            double min = -20000;
+            double max = 20000;
+
+            value = Math.Max(min, Math.Min(max, value));
+            if (value >= 0)
+            {
+                int r = (int)(value / max * 255);
+                int g = 0;
+                int b = 0;
+                return Color.FromArgb(r, g, b);
+            }
+            else
+            {
+                int r = 0;
+                int g = 0;
+                int b = (int)(-value / -min * 255);
+                return Color.FromArgb(r, g, b);
+            }
         }
+
 
     }
 }
