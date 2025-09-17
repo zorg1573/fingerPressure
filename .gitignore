@@ -1,0 +1,12 @@
+# 忽略编译输出文件夹
+bin/
+obj/
+
+# 忽略 Visual Studio 临时目录
+.vs/
+
+# 忽略发布的压缩包和可执行文件
+*.zip
+*.exe
+*.dll
+*.pdb
