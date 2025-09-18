@@ -124,6 +124,7 @@ namespace fingerPressure
         private string chuanGanQiType = "";
         private System.Windows.Forms.Timer timer;
 
+        string portName = "";
 
         class GraphUpdate
         {
@@ -158,6 +159,10 @@ namespace fingerPressure
             if (comboBox2.SelectedText == null || comboBox2.SelectedText == "")
             {
                 comboBox2.SelectedIndex = 0;
+            }
+            if (comboBox5.SelectedText == null || comboBox5.SelectedText == "")
+            {
+                comboBox5.SelectedIndex = 0;
             }
             this.ControlBox = false;
             this.MaximizeBox = false;
@@ -1171,11 +1176,18 @@ namespace fingerPressure
                     MessageBox.Show("配置文件数据为空");
                     return;
                 }
-
+                if(comboBox5.SelectedIndex == 0)
+                {
+                    portName = "COMPort_left";
+                }
+                else
+                {
+                    portName = "COMPort_right";
+                }
                 // 构建 SerialConfig 对象
                 try
                 {
-                    string comPort = data.ContainsKey("COMPort") ? data["COMPort"].ToString() : throw new Exception("缺少 COMPort 配置");
+                    string comPort = data.ContainsKey(portName) ? data[portName].ToString() : throw new Exception("缺少 COMPort 配置");
                     int baudRate = data.ContainsKey("BaudRate") ? int.Parse(data["BaudRate"].ToString()) : throw new Exception("缺少 BaudRate 配置");
                     int dataBits = data.ContainsKey("DataBits") ? int.Parse(data["DataBits"].ToString()) : throw new Exception("缺少 DataBits 配置");
                     Parity parity = data.ContainsKey("Parity") ? Enum.Parse<Parity>(data["Parity"].ToString(), true) : throw new Exception("缺少 Parity 配置");
@@ -1552,6 +1564,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox2.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1589,13 +1602,23 @@ namespace fingerPressure
                 comboBox1.SelectedIndex = int.Parse(value4.ToString());
                 updateSaveRate(); // 更新保存频率
             }
+
             if (data.TryGetValue("comboBox2", out object value5))
             {
-                comboBox2.SelectedIndex = int.Parse(value4.ToString());
+                comboBox2.SelectedIndex = int.Parse(value5.ToString());
                 if (comboBox2.SelectedIndex == 0)
                     chuanGanQiType = "MEMS";
                 else
                     chuanGanQiType = "Yingbianhua";
+            }
+
+            if (data.TryGetValue("comboBox5", out object value6))
+            {
+                comboBox5.SelectedIndex = int.Parse(value6.ToString());
+                if (comboBox5.SelectedIndex == 0)
+                    portName = "COMPort_left";
+                else
+                    portName = "COMPort_right";
             }
         }
 
@@ -1608,6 +1631,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox2.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1644,6 +1668,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox2.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1683,6 +1708,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox2.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1696,20 +1722,20 @@ namespace fingerPressure
         private void button8_Click(object sender, EventArgs e)
         {
             // 1. 加载 ONNX 模型
-            using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\exp1\\model.onnx");
+            using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\fingerApp\\pymode\\model1.onnx");
 
             // 2. 准备输入数据：25 个 float
-            float[] inputData = new float[25]
+            float[] inputData = new float[27]
             {
             0.1f, 0.2f, 0.3f, 0.4f, 0.5f,
             0.6f, 0.7f, 0.8f, 0.9f, 1.0f,
             1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
             1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
-            2.1f, 2.2f, 2.3f, 2.4f, 2.5f
+            2.1f, 2.2f, 2.3f, 2.4f, 2.5f, 2.4f, 2.5f
             };
 
             // 3. 构建 Tensor（形状 [1, 25]，batch=1）
-            var inputTensor = new DenseTensor<float>(inputData, new int[] { 1, 25 });
+            var inputTensor = new DenseTensor<float>(inputData, new int[] { 1, 27 });
 
             // 获取模型输入名（假设只有一个输入）
             string inputName = session.InputMetadata.Keys.First();
@@ -1722,11 +1748,13 @@ namespace fingerPressure
             // 4. 运行推理
             using var results = session.Run(inputs);
 
-            // 获取模型输出名（假设只有一个输出）
-            string outputName = session.OutputMetadata.Keys.First();
+            /*            // 获取模型输出名（假设只有一个输出）
+                        string outputName = session.OutputMetadata.Keys.First();
 
-            // 5. 取结果：形状 [1, 3]
-            var outputTensor = results.First(x => x.Name == outputName).AsTensor<float>();
+                        // 5. 取结果：形状 [1, 3]
+                        var outputTensor = results.First(x => x.Name == outputName).AsTensor<float>();
+                        float[] outputData = outputTensor.ToArray();*/
+            var outputTensor = results.First(x => x.Name == "y").AsTensor<float>();
             float[] outputData = outputTensor.ToArray();
 
             LogToConsole("模型输出：");
@@ -1743,6 +1771,121 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox2.SelectedIndex;
+
+            string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText("ExcelPath.json", json);
+        }
+
+        /*        private void button10_Click(object sender, EventArgs e)
+                {
+                    using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\fingerApp\\pymode\\model2_new.onnx");
+
+                    // 假设只推理一条数据：27 个 float
+                    float[] inputData = new float[27]
+                    {
+                    0.1f, 0.2f, 0.3f, 0.4f, 0.5f,
+                    0.6f, 0.7f, 0.8f, 0.9f, 1.0f,
+                    1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
+                    1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
+                    2.1f, 2.2f, 2.3f, 2.4f, 2.5f, 2.6f, 2.7f
+                    };
+
+                    var inputTensor = new DenseTensor<float>(inputData, new int[] { 1, 27 });
+                    var inputs = new List<NamedOnnxValue>
+                    {
+                        NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), inputTensor)
+                    };
+
+                    using var results = session.Run(inputs);
+
+                    // label 输出为 Int64
+                    var labelTensor = results.First(x => x.Name == "label").AsTensor<long>();
+                    long[] labels = labelTensor.ToArray();
+
+                    // probabilities 输出为 float
+                    var probTensor = results.First(x => x.Name == "probabilities").AsTensor<float>();
+                    float[] probs = probTensor.ToArray();
+
+                    LogToConsole("预测标签 (label): " + labels[0].ToString());
+                    LogToConsole("最大概率类别索引: " + Array.IndexOf(probs, probs.Max()) + ", 概率=" + probs.Max());
+                }*/
+        private void button10_Click(object sender, EventArgs e)
+        {
+            using var session = new InferenceSession(@"C:\Users\Administrator\Desktop\fingerApp\pymode\model2_new.onnx");
+
+            // batch=2，每条样本 27 个特征，总共 54 个 float
+            float[] inputData = new float[54]
+            {
+        // 样本1
+        0.1f, 0.2f, 0.3f, 0.4f, 0.5f,
+        0.6f, 0.7f, 0.8f, 0.9f, 1.0f,
+        1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
+        1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
+        2.1f, 2.2f, 2.3f, 2.4f, 2.5f, 2.6f, 2.7f,
+
+        // 样本2
+        1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
+        1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
+        2.1f, 2.2f, 2.3f, 2.4f, 2.5f,
+        2.6f, 2.7f, 2.8f, 2.9f, 3.0f,
+        3.1f, 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f
+            };
+
+            int batch = 2;
+            int numFeatures = 27;
+            int numClasses = 81;
+
+            var inputTensor = new DenseTensor<float>(inputData, new int[] { batch, numFeatures });
+
+            var inputs = new List<NamedOnnxValue>
+    {
+        NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), inputTensor)
+    };
+
+            using var results = session.Run(inputs);
+
+            // label 输出为 Int64，每条样本一个值
+            var labelTensor = results.First(x => x.Name == "label").AsTensor<long>();
+            long[] labels = labelTensor.ToArray(); // 长度 = batch
+
+            // probabilities 输出为 float，每条样本 numClasses 个概率
+            var probTensor = results.First(x => x.Name == "probabilities").AsTensor<float>();
+            float[] flatProbs = probTensor.ToArray();
+            float[,] probs = new float[batch, numClasses];
+            for (int b = 0; b < batch; b++)
+                for (int i = 0; i < numClasses; i++)
+                    probs[b, i] = flatProbs[b * numClasses + i];
+
+            // 输出每条样本的预测结果
+            for (int b = 0; b < batch; b++)
+            {
+                float[] rowProbs = GetRow(probs, b);
+                int predictedClass = Array.IndexOf(rowProbs, rowProbs.Max());
+                LogToConsole($"样本 {b + 1}: label={labels[b]}, 预测类别索引={predictedClass}, 最大概率={rowProbs.Max():F4}");
+            }
+        }
+
+        // 辅助函数：获取二维数组某行
+        private float[] GetRow(float[,] array, int row)
+        {
+            int cols = array.GetLength(1);
+            float[] result = new float[cols];
+            for (int i = 0; i < cols; i++)
+                result[i] = array[row, i];
+            return result;
+        }
+
+        private void comboBox5_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var data = new Dictionary<string, object>();
+
+            data[textBox1.Name] = textBox1.Text;
+            data[textBox2.Name] = textBox2.Text;
+            data[textBox3.Name] = textBox3.Text;
+            data[comboBox1.Name] = comboBox1.SelectedIndex;
+            data[comboBox2.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox2.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);

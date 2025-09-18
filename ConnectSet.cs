@@ -21,9 +21,9 @@ namespace fingerPressure
         }
         private void LoadPorts()
         {
-            COMPort.Items.AddRange(SerialPort.GetPortNames());
-            if (COMPort.Items.Count > 0)
-                COMPort.SelectedIndex = 0;
+            COMPort_left.Items.AddRange(SerialPort.GetPortNames());
+            if (COMPort_left.Items.Count > 0)
+                COMPort_left.SelectedIndex = 0;
         }
         private IEnumerable<Control> GetAllControls(Control parent)
         {
