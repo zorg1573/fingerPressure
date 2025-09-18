@@ -125,7 +125,7 @@ namespace fingerPressure
         private System.Windows.Forms.Timer timer;
 
         string portName = "";
-
+        private TabPage hiddenPage = null;
         class GraphUpdate
         {
             public int Channel;
@@ -633,13 +633,32 @@ namespace fingerPressure
                     }
 
                     // 更新云图 Panel
-                    var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud; // 假设你有 FingerCloudPanel
+                    var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
                     if (panelCloud != null)
                     {
                         double[] values = new double[8];
                         Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
                         panelCloud.Values = values;
                         panelCloud.Invalidate();
+                    }
+
+                    var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
+                    if (panelPoint2 != null)
+                    {
+                        double[] values = new double[8];
+                        Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
+                        panelPoint2.Values = values;
+                        panelPoint2.Invalidate();
+                    }
+
+                    // 更新云图 Panel
+                    var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                    if (panelCloud2 != null)
+                    {
+                        double[] values = new double[8];
+                        Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
+                        panelCloud2.Values = values;
+                        panelCloud2.Invalidate();
                     }
                 }
             }
@@ -749,104 +768,112 @@ namespace fingerPressure
 
         private void EnqueuePacket(byte[] packet)
         {
-            try
+            if(chuanGanQiType == "MEMS")
             {
-                // 基本校验
-                if (packet.Length < 10) return;
-
-                int length = packet[2];     // 长度字段
-                byte addr = packet[3];      // 地址
-                byte type = packet[4];      // 类型 (F4/F5)
-
-                // 占位4字节 + 序列号4字节
-                byte[] serialBytes = packet.Skip(9).Take(4).ToArray();
-                Array.Reverse(serialBytes);
-                int serial = BitConverter.ToInt32(serialBytes, 0);
-
-                // 数据区
-                int dataOffset = 13; // 2包头 +1长度 +1地址 +1类型 +4占位 +4序列号 = 13
-                int dataLength = length - (1 + 1 + 4 + 4); // 去掉地址/类型/占位/序列号，剩下就是数据+校验和
-
-                double[] values = new double[8];
-
-                if (type == 0xF4) // 温度：8通道*2字节
+                try
                 {
+                    // 基本校验
+                    if (packet.Length < 10) return;
+
+                    int length = packet[2];     // 长度字段
+                    byte addr = packet[3];      // 地址
+                    byte type = packet[4];      // 类型 (F4/F5)
+
+                    // 占位4字节 + 序列号4字节
+                    byte[] serialBytes = packet.Skip(9).Take(4).ToArray();
+                    Array.Reverse(serialBytes);
+                    int serial = BitConverter.ToInt32(serialBytes, 0);
+
+                    // 数据区
+                    int dataOffset = 13; // 2包头 +1长度 +1地址 +1类型 +4占位 +4序列号 = 13
+                    int dataLength = length - (1 + 1 + 4 + 4); // 去掉地址/类型/占位/序列号，剩下就是数据+校验和
+
+                    double[] values = new double[8];
+
+                    if (type == 0xF4) // 温度：8通道*2字节
+                    {
+                        for (int i = 0; i < 8; i++)
+                        {
+                            int pos = dataOffset + i * 2;
+                            if (pos + 1 >= packet.Length) break;
+
+                            byte[] tmp = { packet[pos], packet[pos + 1] };
+                            Array.Reverse(tmp); // 翻转
+                            values[i] = BitConverter.ToInt16(tmp, 0);
+                        }
+                    }
+                    else if (type == 0xF5) // 压力：8通道*4字节
+                    {
+                        for (int i = 0; i < 8; i++)
+                        {
+                            int pos = dataOffset + i * 4;
+                            if (pos + 3 >= packet.Length) break;
+
+                            // 取 4 个字节
+                            byte[] tmp = { packet[pos], packet[pos + 1], packet[pos + 2], packet[pos + 3] };
+
+                            // 或者用 BitConverter
+                            values[i] = BitConverter.ToInt32(tmp, 0); // 但不要 Array.Reverse
+
+
+                        }
+                    }
+                    else
+                    {
+                        LogToConsole($"未知包类型: {type:X2}");
+                        return;
+                    }
+
+                    // 容错（校验成功的包才覆盖）
+                    lastValidPacket = packet;
+
+                    // 构造 List<string>
+                    var uiData = new List<string>(10);
+                    uiData.Add(addr.ToString());        // [0] 地址
+                    uiData.Add(type.ToString("X2"));    // [1] 类型 (16进制显示更直观，比如 F4/F5)
                     for (int i = 0; i < 8; i++)
                     {
-                        int pos = dataOffset + i * 2;
-                        if (pos + 1 >= packet.Length) break;
-
-                        byte[] tmp = { packet[pos], packet[pos + 1] };
-                        Array.Reverse(tmp); // 翻转
-                        values[i] = BitConverter.ToInt16(tmp, 0);
+                        uiData.Add(values[i].ToString()); // [2] ~ [9] 八个通道值
                     }
-                }
-                else if (type == 0xF5) // 压力：8通道*4字节
-                {
-                    for (int i = 0; i < 8; i++)
+
+                    // 入UI队列（清空旧的，只保留最新）
+                    while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                    uiQueue.Add(uiData);
+
+                    // 存储节流
+                    var now = HighResDateTime.Now;
+                    if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
                     {
-                        int pos = dataOffset + i * 4;
-                        if (pos + 3 >= packet.Length) break;
+                        lastSaveTime = now;
 
-                        // 取 4 个字节
-                        byte[] tmp = { packet[pos], packet[pos + 1], packet[pos + 2], packet[pos + 3] };
-
-                        // 或者用 BitConverter
-                        values[i] = BitConverter.ToInt32(tmp, 0); // 但不要 Array.Reverse
-
-
+                        if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                        fileRawQueue.Add(uiData);
                     }
-                }
-                else
-                {
-                    LogToConsole($"未知包类型: {type:X2}");
-                    return;
-                }
 
-                // 容错（校验成功的包才覆盖）
-                lastValidPacket = packet;
-
-                // 构造 List<string>
-                var uiData = new List<string>(10);
-                uiData.Add(addr.ToString());        // [0] 地址
-                uiData.Add(type.ToString("X2"));    // [1] 类型 (16进制显示更直观，比如 F4/F5)
-                for (int i = 0; i < 8; i++)
-                {
-                    uiData.Add(values[i].ToString()); // [2] ~ [9] 八个通道值
-                }
-
-                // 入UI队列（清空旧的，只保留最新）
-                while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                uiQueue.Add(uiData);
-
-                // 存储节流
-                var now = HighResDateTime.Now;
-                if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
-                {
-                    lastSaveTime = now;
-
-                    if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                    fileRawQueue.Add(uiData);
-                }
-
-                // 包总数 + UI更新
-                long newCount = Interlocked.Increment(ref totalPacketCount);
-                if (packetCountLabel.InvokeRequired)
-                {
-                    packetCountLabel.BeginInvoke(new Action(() =>
+                    // 包总数 + UI更新
+                    long newCount = Interlocked.Increment(ref totalPacketCount);
+                    if (packetCountLabel.InvokeRequired)
+                    {
+                        packetCountLabel.BeginInvoke(new Action(() =>
+                        {
+                            packetCountLabel.Text = $"接收包数: {newCount}";
+                        }));
+                    }
+                    else
                     {
                         packetCountLabel.Text = $"接收包数: {newCount}";
-                    }));
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    packetCountLabel.Text = $"接收包数: {newCount}";
+                    LogToConsole("EnqueuePacket 异常: " + ex.Message);
                 }
             }
-            catch (Exception ex)
+            else if(chuanGanQiType == "Yingbianhua")
             {
-                LogToConsole("EnqueuePacket 异常: " + ex.Message);
+                
             }
+
         }
 
 
@@ -1397,135 +1424,27 @@ namespace fingerPressure
             zedGraphControl2.Invalidate();
         }
 
-        private void DrawDotMatrix(Graphics g, double[] values, Panel panel)
-        {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-            int totalPoints = values.Length;
-
-            // 自动计算行列数
-            int cols = (int)Math.Ceiling(Math.Sqrt(totalPoints));
-            int rows = (int)Math.Ceiling((double)totalPoints / cols);
-
-            // 先预留最小间距
-            int minPaddingX = 5;
-            int minPaddingY = 5;
-
-            // 根据 Panel 尺寸计算圆直径和实际间距
-            int diameterX = (panel.Width - (cols + 1) * minPaddingX) / cols;
-            int diameterY = (panel.Height - (rows + 1) * minPaddingY) / rows;
-            int diameter = Math.Min(diameterX, diameterY);
-
-            // 重新计算行列间距，让圆形铺满 Panel
-            float paddingX = (panel.Width - cols * diameter) / (cols + 1f);
-            float paddingY = (panel.Height - rows * diameter) / (rows + 1f);
-
-            for (int i = 0; i < totalPoints; i++)
-            {
-                int row = i / cols;
-                int col = i % cols;
-
-                float x = paddingX + col * (diameter + paddingX);
-                float y = paddingY + row * (diameter + paddingY);
-
-                double value = values[i];
-                Color color = GetColorFromValue(value);
-
-                using (Brush brush = new SolidBrush(color))
-                {
-                    g.FillEllipse(brush, x, y, diameter, diameter);
-                }
-
-                // 绘制数值
-                string text = value.ToString("F1");
-                SizeF textSize = g.MeasureString(text, this.Font);
-                g.DrawString(text, this.Font, Brushes.White,
-                    x + (diameter - textSize.Width) / 2,
-                    y + (diameter - textSize.Height) / 2);
-            }
-        }
-
-
-        private void DrawDotMatrix2(Graphics g, double[] values, Panel panel)
-        {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-            int totalPoints = values.Length;
-
-            // 自动计算行列数
-            int cols = (int)Math.Ceiling(Math.Sqrt(totalPoints));
-            int rows = (int)Math.Ceiling((double)totalPoints / cols);
-
-            // 先预留最小间距
-            int minPaddingX = 5;
-            int minPaddingY = 5;
-
-            // 根据 Panel 尺寸计算圆直径和实际间距
-            int diameterX = (panel.Width - (cols + 1) * minPaddingX) / cols;
-            int diameterY = (panel.Height - (rows + 1) * minPaddingY) / rows;
-            int diameter = Math.Min(diameterX, diameterY);
-
-            // 重新计算行列间距，让圆形铺满 Panel
-            float paddingX = (panel.Width - cols * diameter) / (cols + 1f);
-            float paddingY = (panel.Height - rows * diameter) / (rows + 1f);
-
-            for (int i = 0; i < totalPoints; i++)
-            {
-                int row = i / cols;
-                int col = i % cols;
-
-                float x = paddingX + col * (diameter + paddingX);
-                float y = paddingY + row * (diameter + paddingY);
-
-                double value = values[i];
-                Color color = GetColorFromValue2(value);
-
-                using (Brush brush = new SolidBrush(color))
-                {
-                    g.FillEllipse(brush, x, y, diameter, diameter);
-                }
-
-                // 绘制数值
-                string text = value.ToString("F1");
-                SizeF textSize = g.MeasureString(text, this.Font);
-                g.DrawString(text, this.Font, Brushes.White,
-                    x + (diameter - textSize.Width) / 2,
-                    y + (diameter - textSize.Height) / 2);
-            }
-        }
-
-
-
-        private Color GetColorFromValue(double value)
-        {
-            // 假设值范围0~100，可根据实际调整
-            value = Math.Max(0, Math.Min(100, value));
-            int r = (int)(value / 100.0 * 255);
-            int g = 0;
-            int b = 255 - r;
-            return Color.FromArgb(r, g, b);
-        }
-
-        private Color GetColorFromValue2(double value)
-        {
-            // 假设值范围0~100，可根据实际调整
-            value = Math.Max(0, Math.Min(1000, value));
-            int r = (int)(value / 1000.0 * 255);
-            int g = 0;
-            int b = 255 - r;
-            return Color.FromArgb(r, g, b);
-        }
 
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
             if (checkBox2.Checked)
             {
                 yalitu = true;
+                if (hiddenPage != null && !tabControl1.TabPages.Contains(hiddenPage))
+                {
+                    tabControl1.TabPages.Add(hiddenPage);
+                }
             }
             else
             {
                 yalitu = false;
+                if (tabControl1.TabPages.Contains(tabPage2))
+                {
+                    hiddenPage = tabPage2;
+                    tabControl1.TabPages.Remove(tabPage2);
+                }
             }
+
         }
 
         private void checkBox3_CheckedChanged(object sender, EventArgs e)
