@@ -126,12 +126,21 @@ namespace fingerPressure
 
         string portName = "";
         private TabPage hiddenPage = null;
-        class GraphUpdate
+        /*        class GraphUpdate
+                {
+                    public int Channel;
+                    public double Pressure;  // 曲线值
+                    public int Index;
+                }*/
+        public class GraphUpdate
         {
-            public int Channel;
-            public double Pressure;  // 曲线值
-            public int Index;
+            public int SensorIndex { get; set; }     // 传感器编号 (0~4)
+            public int Channel { get; set; }         // 压力通道编号 (0~26)
+            public long Index { get; set; }          // 包序号
+            public double Pressure { get; set; }     // 当前压力值
+            public double[] GyroValues { get; set; } // 当前传感器的6个陀螺仪值
         }
+
 
         class DotMatrixUpdate
         {
@@ -305,55 +314,134 @@ namespace fingerPressure
             {
                 try
                 {
-                    int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
+                    if(chuanGanQiType == "MEMS")
                     {
-                        string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                        lock (serialLock)
+                        int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                        if (bytesRead > 0)
                         {
-                            // 加入缓存
-                            for (int i = 0; i < bytesRead; i++)
-                                recvBuffer.Add(buffer[i]);
-
-                            // 解析缓存中的完整包
-                            while (recvBuffer.Count >= 6) // 至少包含 包头2+长度1+其他字段
+                            string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                            lock (serialLock)
                             {
-                                // 查找包头 0x42 0x54
-                                if (!(recvBuffer[0] == 0x42 && recvBuffer[1] == 0x54))
+                                // 加入缓存
+                                for (int i = 0; i < bytesRead; i++)
+                                    recvBuffer.Add(buffer[i]);
+
+                                // 解析缓存中的完整包
+                                while (recvBuffer.Count >= 6) // 至少包含 包头2+长度1+其他字段
                                 {
-                                    recvBuffer.RemoveAt(0);
-                                    continue;
-                                }
+                                    // 查找包头 0x42 0x54
+                                    if (!(recvBuffer[0] == 0x42 && recvBuffer[1] == 0x54))
+                                    {
+                                        recvBuffer.RemoveAt(0);
+                                        continue;
+                                    }
 
-                                int length = recvBuffer[2]; // 长度字段（字节数）
+                                    int length = recvBuffer[2]; // 长度字段（字节数）
 
-                                if (recvBuffer.Count < length)
-                                    break; // 数据未收完
+                                    if (recvBuffer.Count < length)
+                                        break; // 数据未收完
 
-                                // 拿出完整包
-                                byte[] packet = recvBuffer.GetRange(0, length).ToArray();
-                                recvBuffer.RemoveRange(0, length);
+                                    // 拿出完整包
+                                    byte[] packet = recvBuffer.GetRange(0, length).ToArray();
+                                    recvBuffer.RemoveRange(0, length);
 
-                                // 校验和（最后1字节）
-                                byte checksum = 0;
-                                for (int i = 2; i < length - 1; i++)
-                                    checksum += packet[i];
-                                checksum = (byte)(checksum & 0xFF);
+                                    // 校验和（最后1字节）
+                                    byte checksum = 0;
+                                    for (int i = 2; i < length - 1; i++)
+                                        checksum += packet[i];
+                                    checksum = (byte)(checksum & 0xFF);
 
-                                byte checksumInPacket = packet[length - 1];
+                                    byte checksumInPacket = packet[length - 1];
 
-                                if (checksum == checksumInPacket)
-                                {
-                                    // 校验成功 → 入队
-                                    EnqueuePacket(packet);
-                                }
-                                else
-                                {
-                                    LogToConsole("校验失败，丢弃数据包");
+                                    if (checksum == checksumInPacket)
+                                    {
+                                        // 校验成功 → 入队
+                                        EnqueuePacket(packet);
+                                    }
+                                    else
+                                    {
+                                        LogToConsole("校验失败，丢弃数据包");
+                                    }
                                 }
                             }
                         }
                     }
+                    else if(chuanGanQiType == "Yingbianhua")
+                    {
+                        // 定义固定的头尾
+                        byte[] PACKET_HEADER = { 0xAA, 0xAA, 0xAA, 0xAA };
+                        byte[] PACKET_TAIL = { 0xBB, 0xBB, 0xBB, 0xBB };
+                        int PACKET_LENGTH = 343;
+
+                        int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                        if (bytesRead > 0)
+                        {
+                            lock (serialLock)
+                            {
+                                // 添加到缓存
+                                for (int i = 0; i < bytesRead; i++)
+                                    recvBuffer.Add(buffer[i]);
+
+                                // 解析缓存中的完整包
+                                while (recvBuffer.Count >= PACKET_LENGTH)
+                                {
+                                    // 查找包头
+                                    int headerIndex = -1;
+                                    for (int i = 0; i <= recvBuffer.Count - 4; i++)
+                                    {
+                                        if (recvBuffer[i] == PACKET_HEADER[0] &&
+                                            recvBuffer[i + 1] == PACKET_HEADER[1] &&
+                                            recvBuffer[i + 2] == PACKET_HEADER[2] &&
+                                            recvBuffer[i + 3] == PACKET_HEADER[3])
+                                        {
+                                            headerIndex = i;
+                                            break;
+                                        }
+                                    }
+
+                                    if (headerIndex == -1)
+                                    {
+                                        // 没找到包头，清空无效数据
+                                        recvBuffer.Clear();
+                                        break;
+                                    }
+
+                                    // 移除包头前的无效数据
+                                    if (headerIndex > 0)
+                                        recvBuffer.RemoveRange(0, headerIndex);
+
+                                    // 检查是否有完整包
+                                    if (recvBuffer.Count < PACKET_LENGTH)
+                                        break;
+
+                                    // 检查包尾
+                                    bool validTail = true;
+                                    for (int i = 0; i < 4; i++)
+                                    {
+                                        if (recvBuffer[PACKET_LENGTH - 4 + i] != PACKET_TAIL[i])
+                                        {
+                                            validTail = false;
+                                            break;
+                                        }
+                                    }
+
+                                    if (validTail)
+                                    {
+                                        // 拿到完整包
+                                        byte[] packet = recvBuffer.GetRange(0, PACKET_LENGTH).ToArray();
+                                        EnqueuePacket(packet);
+                                        recvBuffer.RemoveRange(0, PACKET_LENGTH);
+                                    }
+                                    else
+                                    {
+                                        // 包尾不对，丢弃当前头，继续查找下一个
+                                        recvBuffer.RemoveAt(0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                 }
                 catch (TimeoutException)
                 {
@@ -444,106 +532,193 @@ namespace fingerPressure
 
         private void ProcessPacketForUI(List<string> uiData)
         {
-            try
+            if(chuanGanQiType == "MEMS")
             {
-                // uiData 格式：
-                // [0] 地址 (1~5)
-                // [1] 类型 ("F4"=温度, "F5"=压力)
-                // [2]~[9] 8个通道的值
-
-                if (!int.TryParse(uiData[0], out int addr)) return;
-                string type = uiData[1];
-
-                // === 校零采集逻辑 ===
-                if (isZeroing)
+                try
                 {
+                    // uiData 格式：
+                    // [0] 地址 (1~5)
+                    // [1] 类型 ("F4"=温度, "F5"=压力)
+                    // [2]~[9] 8个通道的值
+
+                    if (!int.TryParse(uiData[0], out int addr)) return;
+                    string type = uiData[1];
+
+                    // === 校零采集逻辑 ===
+                    if (isZeroing)
+                    {
+                        for (int i = 0; i < 8; i++)
+                        {
+                            int channelIndex = (addr - 1) * 8 + i; // 根据地址计算全局通道索引
+
+                            if (channelIndex < 0 || channelIndex >= 64) continue;
+
+                            if (!pressureCalibBuffers.ContainsKey(channelIndex))
+                                pressureCalibBuffers[channelIndex] = new List<double>();
+
+                            if (double.TryParse(uiData[2 + i], out double pressure))
+                                pressureCalibBuffers[channelIndex].Add(pressure);
+                        }
+
+                        zeroingPacketCount++;
+
+                        if (zeroingPacketCount >= ZeroingTargetPackets)
+                        {
+                            for (int channel = 0; channel < channelZeroOffsets.Length; channel++)
+                            {
+                                if (pressureCalibBuffers.ContainsKey(channel) && pressureCalibBuffers[channel].Count > 0)
+                                    channelZeroOffsets[channel] = pressureCalibBuffers[channel].Average();
+                            }
+
+                            isZeroing = false;
+
+                            if (console_textBox.InvokeRequired)
+                            {
+                                console_textBox.BeginInvoke(new Action(() =>
+                                {
+                                    MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                }));
+                            }
+                            else
+                            {
+                                MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }
+
+                        return;
+                    }
+
+                    // === 日志输出 ===
+                    StringBuilder logBuilder = new StringBuilder();
+                    if (logSampleCounter % LogSampleRate == 0)
+                    {
+                        logBuilder.AppendLine($"接收到完整数据包：地址={addr}, 类型={type}");
+                        for (int i = 2; i < uiData.Count; i++)
+                        {
+                            logBuilder.AppendLine($"通道 {i - 2 + 1}: {uiData[i]}");
+                        }
+                        LogToConsole(logBuilder.ToString());
+                    }
+                    logSampleCounter++;
+
+                    // === 数据更新 ===
+                    DotMatrixUpdate dotUpdate = new DotMatrixUpdate
+                    {
+                        TempValues = new double[64],
+                        PressureValues = new double[64]
+                    };
+
                     for (int i = 0; i < 8; i++)
                     {
-                        int channelIndex = (addr - 1) * 8 + i; // 根据地址计算全局通道索引
+                        int channelIndex = (addr - 1) * 8 + i;
 
                         if (channelIndex < 0 || channelIndex >= 64) continue;
 
-                        if (!pressureCalibBuffers.ContainsKey(channelIndex))
-                            pressureCalibBuffers[channelIndex] = new List<double>();
-
-                        if (double.TryParse(uiData[2 + i], out double pressure))
-                            pressureCalibBuffers[channelIndex].Add(pressure);
-                    }
-
-                    zeroingPacketCount++;
-
-                    if (zeroingPacketCount >= ZeroingTargetPackets)
-                    {
-                        for (int channel = 0; channel < channelZeroOffsets.Length; channel++)
+                        if (double.TryParse(uiData[2 + i], out double value))
                         {
-                            if (pressureCalibBuffers.ContainsKey(channel) && pressureCalibBuffers[channel].Count > 0)
-                                channelZeroOffsets[channel] = pressureCalibBuffers[channel].Average();
-                        }
-
-                        isZeroing = false;
-
-                        if (console_textBox.InvokeRequired)
-                        {
-                            console_textBox.BeginInvoke(new Action(() =>
+                            if (type == "F4") // 温度
                             {
-                                MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            }));
-                        }
-                        else
-                        {
-                            MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                    }
-
-                    return;
-                }
-
-                // === 日志输出 ===
-                StringBuilder logBuilder = new StringBuilder();
-                if (logSampleCounter % LogSampleRate == 0)
-                {
-                    logBuilder.AppendLine($"接收到完整数据包：地址={addr}, 类型={type}");
-                    for (int i = 2; i < uiData.Count; i++)
-                    {
-                        logBuilder.AppendLine($"通道 {i - 2 + 1}: {uiData[i]}");
-                    }
-                    LogToConsole(logBuilder.ToString());
-                }
-                logSampleCounter++;
-
-                // === 数据更新 ===
-                DotMatrixUpdate dotUpdate = new DotMatrixUpdate
-                {
-                    TempValues = new double[64],
-                    PressureValues = new double[64]
-                };
-
-                for (int i = 0; i < 8; i++)
-                {
-                    int channelIndex = (addr - 1) * 8 + i;
-
-                    if (channelIndex < 0 || channelIndex >= 64) continue;
-
-                    if (double.TryParse(uiData[2 + i], out double value))
-                    {
-                        if (type == "F4") // 温度
-                        {
-                            double temp = value / 10.0;
-                            dotUpdate.TempValues[channelIndex] = temp;
-                        }
-                        else if (type == "F5") // 压力
-                        {
-                            double pressure = value - channelZeroOffsets[channelIndex];
-                            dotUpdate.PressureValues[channelIndex] = pressure;
-
-                            if (yalitu)
+                                double temp = value / 10.0;
+                                dotUpdate.TempValues[channelIndex] = temp;
+                            }
+                            else if (type == "F5") // 压力
                             {
-                                double correctedPressure = DenoiseByMedian(channelIndex, pressure);
+                                double pressure = value - channelZeroOffsets[channelIndex];
+                                dotUpdate.PressureValues[channelIndex] = pressure;
+
+                                if (yalitu)
+                                {
+                                    double correctedPressure = DenoiseByMedian(channelIndex, pressure);
+                                    var graphUpdate = new GraphUpdate
+                                    {
+                                        Channel = channelIndex,
+                                        Index = packetIndex,
+                                        Pressure = correctedPressure
+                                    };
+
+                                    if (graphQueue.Count >= MaxQueueSize)
+                                        graphQueue.TryDequeue(out _);
+                                    graphQueue.Enqueue(graphUpdate);
+                                }
+                            }
+                        }
+                    }
+
+                    if (diantu)
+                    {
+                        if (dotQueue.Count >= MaxQueueSize)
+                            dotQueue.TryDequeue(out _);
+                        dotQueue.Enqueue(dotUpdate);
+                    }
+
+                    Interlocked.Increment(ref packetIndex);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("ProcessPacketForUI error: " + ex.Message);
+                }
+            }
+            else if(chuanGanQiType == "Yingbianhua")
+            {
+                try
+                {
+                    int sensorCount = 5;
+                    int pressureCount = 27;
+
+                    // === DotMatrixUpdate ===
+                    DotMatrixUpdate dotUpdate = new DotMatrixUpdate
+                    {
+                        TempValues = new double[sensorCount],
+                        PressureValues = new double[sensorCount * pressureCount]
+                    };
+
+                    int index = 0;
+                    for (int s = 0; s < sensorCount; s++)
+                    {
+                        string sensorLabel = uiData[index++]; // "S1", "S2"...
+
+                        // 压力值
+                        double[] pressures = new double[pressureCount];
+                        for (int p = 0; p < pressureCount; p++)
+                        {
+                            if (double.TryParse(uiData[index++], out double rawPressure))
+                            {
+                                int channelIndex = s * pressureCount + p;
+                                double pressure = rawPressure - channelZeroOffsets[channelIndex];
+                                dotUpdate.PressureValues[channelIndex] = pressure;
+                                pressures[p] = pressure;
+                            }
+                        }
+
+                        // 温度值
+                        if (double.TryParse(uiData[index++], out double rawTemp))
+                        {
+                            dotUpdate.TempValues[s] = rawTemp / 10.0;
+                        }
+
+                        // 陀螺仪值 (6个)
+                        double[] gyros = new double[6];
+                        for (int g = 0; g < 6; g++)
+                        {
+                            if (double.TryParse(uiData[index++], out double gyro))
+                                gyros[g] = gyro;
+                        }
+
+                        // === GraphUpdate：每个压力通道绑定该传感器的6轴值 ===
+                        if (yalitu)
+                        {
+                            for (int p = 0; p < pressureCount; p++)
+                            {
+                                int channelIndex = s * pressureCount + p;
+                                double correctedPressure = DenoiseByMedian(channelIndex, pressures[p]);
+
                                 var graphUpdate = new GraphUpdate
                                 {
-                                    Channel = channelIndex,
+                                    SensorIndex = s,
+                                    Channel = p,
                                     Index = packetIndex,
-                                    Pressure = correctedPressure
+                                    Pressure = correctedPressure,
+                                    GyroValues = gyros
                                 };
 
                                 if (graphQueue.Count >= MaxQueueSize)
@@ -552,21 +727,23 @@ namespace fingerPressure
                             }
                         }
                     }
-                }
 
-                if (diantu)
+                    // === UI更新 ===
+                    if (diantu)
+                    {
+                        if (dotQueue.Count >= MaxQueueSize)
+                            dotQueue.TryDequeue(out _);
+                        dotQueue.Enqueue(dotUpdate);
+                    }
+
+                    Interlocked.Increment(ref packetIndex);
+                }
+                catch (Exception ex)
                 {
-                    if (dotQueue.Count >= MaxQueueSize)
-                        dotQueue.TryDequeue(out _);
-                    dotQueue.Enqueue(dotUpdate);
+                    MessageBox.Show("ProcessPacketForUI error: " + ex.Message);
                 }
-
-                Interlocked.Increment(ref packetIndex);
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("ProcessPacketForUI error: " + ex.Message);
-            }
+            
         }
 
 
@@ -871,7 +1048,107 @@ namespace fingerPressure
             }
             else if(chuanGanQiType == "Yingbianhua")
             {
-                
+                try
+                {
+                    if (packet.Length != 343)
+                    {
+                        LogToConsole($"无效包长度: {packet.Length}");
+                        return;
+                    }
+
+                    // 校验包头和包尾
+                    if (!(packet[0] == 0xAA && packet[1] == 0xAA && packet[2] == 0xAA && packet[3] == 0xAA &&
+                          packet[339] == 0xBB && packet[340] == 0xBB && packet[341] == 0xBB && packet[342] == 0xBB))
+                    {
+                        LogToConsole("包头或包尾错误，丢弃数据包");
+                        return;
+                    }
+
+                    int dataOffset = 4; // 数据从第5个字节开始
+                    int sensorCount = 5;
+
+                    // 压力值：每个传感器 27 个 2 字节 = 54 字节
+                    int pressureCount = 27;
+                    short[][] pressureValues = new short[sensorCount][];
+                    for (int s = 0; s < sensorCount; s++)
+                    {
+                        pressureValues[s] = new short[pressureCount];
+                        for (int i = 0; i < pressureCount; i++)
+                        {
+                            int pos = dataOffset + s * (pressureCount * 2 + 1 + 12) + i * 2; // 每个传感器块偏移
+                            byte[] tmp = { packet[pos + 1], packet[pos] }; // 高低字节翻转
+                            pressureValues[s][i] = BitConverter.ToInt16(tmp, 0);
+                        }
+                    }
+
+                    // 温度值：每个传感器 1 个字节
+                    byte[] temperatureValues = new byte[sensorCount];
+                    for (int s = 0; s < sensorCount; s++)
+                    {
+                        int pos = dataOffset + s * (pressureCount * 2 + 1 + 12) + pressureCount * 2;
+                        temperatureValues[s] = packet[pos];
+                    }
+
+                    // 陀螺仪值：每个传感器 6 个 2 字节 = 12 字节
+                    short[][] gyroValues = new short[sensorCount][];
+                    for (int s = 0; s < sensorCount; s++)
+                    {
+                        gyroValues[s] = new short[6];
+                        int gyroOffset = dataOffset + s * (pressureCount * 2 + 1 + 12) + pressureCount * 2 + 1;
+                        for (int i = 0; i < 6; i++)
+                        {
+                            int pos = gyroOffset + i * 2;
+                            byte[] tmp = { packet[pos + 1], packet[pos] }; // 高低字节翻转
+                            gyroValues[s][i] = BitConverter.ToInt16(tmp, 0);
+                        }
+                    }
+
+                    // 容错（校验成功的包才覆盖）
+                    lastValidPacket = packet;
+
+                    // 构造 UI 数据
+                    var uiData = new List<string>();
+                    for (int s = 0; s < sensorCount; s++)
+                    {
+                        uiData.Add($"S{s + 1}");
+                        for (int i = 0; i < pressureValues[s].Length; i++)
+                            uiData.Add(pressureValues[s][i].ToString());
+                        uiData.Add($"Temp{temperatureValues[s]}");
+                        for (int i = 0; i < gyroValues[s].Length; i++)
+                            uiData.Add(gyroValues[s][i].ToString());
+                    }
+
+                    // 入UI队列（只保留最新）
+                    while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                    uiQueue.Add(uiData);
+
+                    // 存储节流
+                    var now = HighResDateTime.Now;
+                    if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                    {
+                        lastSaveTime = now;
+                        if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                        fileRawQueue.Add(uiData);
+                    }
+
+                    // 包总数 + UI更新
+                    long newCount = Interlocked.Increment(ref totalPacketCount);
+                    if (packetCountLabel.InvokeRequired)
+                    {
+                        packetCountLabel.BeginInvoke(new Action(() =>
+                        {
+                            packetCountLabel.Text = $"接收包数: {newCount}";
+                        }));
+                    }
+                    else
+                    {
+                        packetCountLabel.Text = $"接收包数: {newCount}";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogToConsole("EnqueuePacket 异常: " + ex.Message);
+                }
             }
 
         }
@@ -1227,7 +1504,7 @@ namespace fingerPressure
                     serialPort.Parity = parity;
                     serialPort.StopBits = stopBits;
                     serialPort.Handshake = handshake;
-                    serialPort.Encoding = System.Text.Encoding.ASCII;
+                    //serialPort.Encoding = System.Text.Encoding.ASCII;
                     /*                    serialPort.DataReceived -= SerialPort_DataReceived; // 先移除旧的绑定
                                         serialPort.DataReceived += SerialPort_DataReceived;
                                         serialPort.Open();*/
@@ -1483,7 +1760,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
-            data[comboBox5.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox5.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1550,7 +1827,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
-            data[comboBox5.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox5.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1587,7 +1864,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
-            data[comboBox5.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox5.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1627,7 +1904,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
-            data[comboBox5.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox5.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1683,6 +1960,14 @@ namespace fingerPressure
 
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if(comboBox2.SelectedIndex == 0)
+            {
+                chuanGanQiType = "MEMS";
+            }
+            else
+            {
+                chuanGanQiType = "Yingbianhua";
+            }
             var data = new Dictionary<string, object>();
 
             data[textBox1.Name] = textBox1.Text;
@@ -1690,7 +1975,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
-            data[comboBox5.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox5.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
@@ -1804,7 +2089,7 @@ namespace fingerPressure
             data[textBox3.Name] = textBox3.Text;
             data[comboBox1.Name] = comboBox1.SelectedIndex;
             data[comboBox2.Name] = comboBox2.SelectedIndex;
-            data[comboBox5.Name] = comboBox2.SelectedIndex;
+            data[comboBox5.Name] = comboBox5.SelectedIndex;
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
