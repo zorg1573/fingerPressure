@@ -1,16 +1,18 @@
 using fingerPressure.MODEL;
-using System.Text.Json;
-using System.Windows.Forms;
-using System.IO.Ports;
-using System.Text.RegularExpressions;
-using ZedGraph;
 using MetroFramework.Forms;
-using System.Text;
-using System.Diagnostics;
-using System.Collections.Concurrent;
-using System.Diagnostics.Metrics;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.IO.Ports;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using ZedGraph;
 
 namespace fingerPressure
 {
@@ -39,7 +41,7 @@ namespace fingerPressure
         private int selectedRealtimeChannel = 0;
 
         //校零
-        private double[] channelZeroOffsets = new double[64]; // 默认全为 0.0
+        private double[] channelZeroOffsets = new double[162]; // 默认全为 0.0
         private double[] channelZeroOffsets2 = new double[64]; // 默认全为 0.0
         private double xielv;
         // 用于暂存每个通道的前5个电压值
@@ -125,7 +127,9 @@ namespace fingerPressure
         private System.Windows.Forms.Timer timer;
 
         string portName = "";
-        private TabPage hiddenPage = null;
+        // 保存所有的 TabPage 引用，避免丢失
+        private TabPage tp1, tp2, tp3, tp4;
+
         /*        class GraphUpdate
                 {
                     public int Channel;
@@ -148,6 +152,29 @@ namespace fingerPressure
             public double[] PressureValues;
         }
 
+        /// <summary> 计算环形缓冲区可用字节数 </summary>
+        private static int GetAvailableBytes(int head, int tail, int capacity)
+        {
+            return (tail - head + capacity) % capacity;
+        }
+
+        /// <summary> 从环形缓冲区读取一个字节 </summary>
+        private static byte PeekByte(byte[] buffer, int head, int offset, int capacity)
+        {
+            return buffer[(head + offset) % capacity];
+        }
+
+        /// <summary> 拷贝环形缓冲区到数组 </summary>
+        private static void CopyFromRingBuffer(byte[] ring, int head, byte[] dest, int length, int capacity)
+        {
+            int firstPart = Math.Min(length, capacity - head);
+            Buffer.BlockCopy(ring, head, dest, 0, firstPart);
+            if (length > firstPart)
+            {
+                Buffer.BlockCopy(ring, 0, dest, firstPart, length - firstPart);
+            }
+        }
+
 
         public Main()
         {
@@ -156,6 +183,15 @@ namespace fingerPressure
         }
         private void Main_Load(object sender, EventArgs e)
         {
+            // 先把页面保存下来
+            tp1 = tabPage1;
+            tp2 = tabPage2;
+            tp3 = tabPage3;
+            tp4 = tabPage4;
+
+            // 根据默认选项显示
+            UpdateTabPages();
+
             LoadFromJson();
             if (textBox1.Text == null || textBox1.Text == "")
             {
@@ -165,7 +201,7 @@ namespace fingerPressure
             {
                 textBox2.Text = "50";
             }
-            if (comboBox2.SelectedText == null || comboBox2.SelectedText == "")
+            if (comboBox2.SelectedIndex == -1)
             {
                 comboBox2.SelectedIndex = 0;
             }
@@ -224,6 +260,21 @@ namespace fingerPressure
 
             //StartSimulation(); // 开始模拟
         }
+        private void UpdateTabPages()
+        {
+            tabControl1.TabPages.Clear(); // 清空所有页面
+
+            if (chuanGanQiType == "MEMS")
+            {
+                tabControl1.TabPages.Add(tp3);
+                tabControl1.TabPages.Add(tp4);
+            }
+            else if (chuanGanQiType == "Yingbianhua")
+            {
+                tabControl1.TabPages.Add(tp2);
+                tabControl1.TabPages.Add(tp1);
+            }
+        }
         private void TestDraw()
         {
             timer = new System.Windows.Forms.Timer();
@@ -235,14 +286,14 @@ namespace fingerPressure
         private void Timer_Tick(object sender, EventArgs e)
         {
             // 模拟递增数据
-            double[] values = new double[8];
-            for (int i = 0; i < 8; i++)
+            double[] values = new double[9];
+            for (int i = 0; i < 9; i++)
             {
                 values[i] = ((counter + i) * 10000) % 100000; // 循环递增，超过100000从0开始
             }
 
-            panel_finger1_point.Values = values;
-            panel_finger1_cloud.Values = values;
+            //panel_finger1_point.Values = values;
+            panel_finger1_cloud27.Values = values;
             counter++;
         }
         private void StartWorkers()
@@ -305,156 +356,271 @@ namespace fingerPressure
         }
 
         // 后台串口读取循环
+        /*        private void SerialReadLoop(CancellationToken token)
+                {
+                    byte[] buffer = new byte[4096];
+                    List<byte> recvBuffer = new List<byte>(); // 缓存字节流
+
+                    while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
+                    {
+                        try
+                        {
+                            if(chuanGanQiType == "MEMS")
+                            {
+                                int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                                if (bytesRead > 0)
+                                {
+                                    string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                                    lock (serialLock)
+                                    {
+                                        // 加入缓存
+                                        for (int i = 0; i < bytesRead; i++)
+                                            recvBuffer.Add(buffer[i]);
+
+                                        // 解析缓存中的完整包
+                                        while (recvBuffer.Count >= 6) // 至少包含 包头2+长度1+其他字段
+                                        {
+                                            // 查找包头 0x42 0x54
+                                            if (!(recvBuffer[0] == 0x42 && recvBuffer[1] == 0x54))
+                                            {
+                                                recvBuffer.RemoveAt(0);
+                                                continue;
+                                            }
+
+                                            int length = recvBuffer[2]; // 长度字段（字节数）
+
+                                            if (recvBuffer.Count < length)
+                                                break; // 数据未收完
+
+                                            // 拿出完整包
+                                            byte[] packet = recvBuffer.GetRange(0, length).ToArray();
+                                            recvBuffer.RemoveRange(0, length);
+
+                                            // 校验和（最后1字节）
+                                            byte checksum = 0;
+                                            for (int i = 2; i < length - 1; i++)
+                                                checksum += packet[i];
+                                            checksum = (byte)(checksum & 0xFF);
+
+                                            byte checksumInPacket = packet[length - 1];
+
+                                            if (checksum == checksumInPacket)
+                                            {
+                                                // 校验成功 → 入队
+                                                EnqueuePacket(packet);
+                                            }
+                                            else
+                                            {
+                                                LogToConsole("校验失败，丢弃数据包");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else if(chuanGanQiType == "Yingbianhua")
+                            {
+                                // 定义固定的头尾
+                                byte[] PACKET_HEADER = { 0xAA, 0xAA, 0xAA, 0xAA };
+                                byte[] PACKET_TAIL = { 0xBB, 0xBB, 0xBB, 0xBB };
+                                int PACKET_LENGTH = 343;
+
+                                int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                                if (bytesRead > 0)
+                                {
+                                    lock (serialLock)
+                                    {
+                                        // 添加到缓存
+                                        for (int i = 0; i < bytesRead; i++)
+                                            recvBuffer.Add(buffer[i]);
+
+                                        // 解析缓存中的完整包
+                                        while (recvBuffer.Count >= PACKET_LENGTH)
+                                        {
+                                            // 查找包头
+                                            int headerIndex = -1;
+                                            for (int i = 0; i <= recvBuffer.Count - 4; i++)
+                                            {
+                                                if (recvBuffer[i] == PACKET_HEADER[0] &&
+                                                    recvBuffer[i + 1] == PACKET_HEADER[1] &&
+                                                    recvBuffer[i + 2] == PACKET_HEADER[2] &&
+                                                    recvBuffer[i + 3] == PACKET_HEADER[3])
+                                                {
+                                                    headerIndex = i;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (headerIndex == -1)
+                                            {
+                                                // 没找到包头，清空无效数据
+                                                recvBuffer.Clear();
+                                                break;
+                                            }
+
+                                            // 移除包头前的无效数据
+                                            if (headerIndex > 0)
+                                                recvBuffer.RemoveRange(0, headerIndex);
+
+                                            // 检查是否有完整包
+                                            if (recvBuffer.Count < PACKET_LENGTH)
+                                                break;
+
+                                            // 检查包尾
+                                            bool validTail = true;
+                                            for (int i = 0; i < 4; i++)
+                                            {
+                                                if (recvBuffer[PACKET_LENGTH - 4 + i] != PACKET_TAIL[i])
+                                                {
+                                                    validTail = false;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (validTail)
+                                            {
+                                                // 拿到完整包
+                                                byte[] packet = recvBuffer.GetRange(0, PACKET_LENGTH).ToArray();
+                                                EnqueuePacket(packet);
+                                                recvBuffer.RemoveRange(0, PACKET_LENGTH);
+                                            }
+                                            else
+                                            {
+                                                // 包尾不对，丢弃当前头，继续查找下一个
+                                                recvBuffer.RemoveAt(0);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
+                        catch (TimeoutException)
+                        {
+                            // 忽略超时
+                        }
+                        catch (IOException)
+                        {
+                            break; // 串口被关闭
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            break; // 串口被关闭
+                        }
+                        catch (Exception ex)
+                        {
+                            LogToConsole("串口读取异常：" + ex.Message);
+                            break;
+                        }
+                    }
+                }*/
         private void SerialReadLoop(CancellationToken token)
         {
             byte[] buffer = new byte[4096];
-            List<byte> recvBuffer = new List<byte>(); // 缓存字节流
+            const int MaxBufferSize = 65536;
+            byte[] recvBuffer = new byte[MaxBufferSize];
+            int recvHead = 0; // 有效数据起始
+            int recvTail = 0; // 有效数据末尾
+
+            // 使用 ArrayPool 管理包缓冲区
+            ArrayPool<byte> pool = ArrayPool<byte>.Shared;
 
             while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
             {
                 try
                 {
-                    if(chuanGanQiType == "MEMS")
+                    int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                    if (bytesRead <= 0) continue;
+
+                    lock (serialLock)
                     {
-                        int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
-                        if (bytesRead > 0)
+                        // 写入环形缓冲区
+                        for (int i = 0; i < bytesRead; i++)
                         {
-                            string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                            lock (serialLock)
+                            recvBuffer[recvTail] = buffer[i];
+                            recvTail = (recvTail + 1) % MaxBufferSize;
+
+                            // 覆盖模式：避免写满
+                            if (recvTail == recvHead)
+                                recvHead = (recvHead + 1) % MaxBufferSize;
+                        }
+
+                        // 解析数据
+                        if (chuanGanQiType == "MEMS")
+                        {
+                            while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
                             {
-                                // 加入缓存
-                                for (int i = 0; i < bytesRead; i++)
-                                    recvBuffer.Add(buffer[i]);
-
-                                // 解析缓存中的完整包
-                                while (recvBuffer.Count >= 6) // 至少包含 包头2+长度1+其他字段
+                                if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0x42 &&
+                                      PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0x54))
                                 {
-                                    // 查找包头 0x42 0x54
-                                    if (!(recvBuffer[0] == 0x42 && recvBuffer[1] == 0x54))
-                                    {
-                                        recvBuffer.RemoveAt(0);
-                                        continue;
-                                    }
+                                    recvHead = (recvHead + 1) % MaxBufferSize;
+                                    continue;
+                                }
 
-                                    int length = recvBuffer[2]; // 长度字段（字节数）
+                                int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
+                                if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
+                                    break;
 
-                                    if (recvBuffer.Count < length)
-                                        break; // 数据未收完
+                                byte[] packet = pool.Rent(length); // 从池里拿内存
+                                CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
+                                recvHead = (recvHead + length) % MaxBufferSize;
 
-                                    // 拿出完整包
-                                    byte[] packet = recvBuffer.GetRange(0, length).ToArray();
-                                    recvBuffer.RemoveRange(0, length);
+                                // 校验
+                                byte checksum = 0;
+                                for (int i = 2; i < length - 1; i++)
+                                    checksum += packet[i];
 
-                                    // 校验和（最后1字节）
-                                    byte checksum = 0;
-                                    for (int i = 2; i < length - 1; i++)
-                                        checksum += packet[i];
-                                    checksum = (byte)(checksum & 0xFF);
+                                if (checksum == packet[length - 1])
+                                {
+                                    EnqueuePacket(packet);
+                                }
+                                else
+                                {
+                                    LogToConsole("MEMS 校验失败");
+                                    pool.Return(packet);
+                                }
+                            }
+                        }
+                        else if (chuanGanQiType == "Yingbianhua")
+                        {
+                            const int PACKET_LENGTH = 343;
 
-                                    byte checksumInPacket = packet[length - 1];
+                            while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= PACKET_LENGTH)
+                            {
+                                if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0xAA &&
+                                      PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0xAA &&
+                                      PeekByte(recvBuffer, recvHead, 2, MaxBufferSize) == 0xAA &&
+                                      PeekByte(recvBuffer, recvHead, 3, MaxBufferSize) == 0xAA))
+                                {
+                                    recvHead = (recvHead + 1) % MaxBufferSize;
+                                    continue;
+                                }
 
-                                    if (checksum == checksumInPacket)
-                                    {
-                                        // 校验成功 → 入队
-                                        EnqueuePacket(packet);
-                                    }
-                                    else
-                                    {
-                                        LogToConsole("校验失败，丢弃数据包");
-                                    }
+                                if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < PACKET_LENGTH)
+                                    break;
+
+                                byte[] packet = pool.Rent(PACKET_LENGTH);
+                                CopyFromRingBuffer(recvBuffer, recvHead, packet, PACKET_LENGTH, MaxBufferSize);
+                                recvHead = (recvHead + PACKET_LENGTH) % MaxBufferSize;
+
+                                if (packet[PACKET_LENGTH - 4] == 0xBB &&
+                                    packet[PACKET_LENGTH - 3] == 0xBB &&
+                                    packet[PACKET_LENGTH - 2] == 0xBB &&
+                                    packet[PACKET_LENGTH - 1] == 0xBB)
+                                {
+                                    EnqueuePacket(packet.AsSpan(0, PACKET_LENGTH).ToArray());
+                                }
+                                else
+                                {
+                                    LogToConsole("Yingbianhua 包尾错误");
+                                    pool.Return(packet);
                                 }
                             }
                         }
                     }
-                    else if(chuanGanQiType == "Yingbianhua")
-                    {
-                        // 定义固定的头尾
-                        byte[] PACKET_HEADER = { 0xAA, 0xAA, 0xAA, 0xAA };
-                        byte[] PACKET_TAIL = { 0xBB, 0xBB, 0xBB, 0xBB };
-                        int PACKET_LENGTH = 343;
-
-                        int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
-                        if (bytesRead > 0)
-                        {
-                            lock (serialLock)
-                            {
-                                // 添加到缓存
-                                for (int i = 0; i < bytesRead; i++)
-                                    recvBuffer.Add(buffer[i]);
-
-                                // 解析缓存中的完整包
-                                while (recvBuffer.Count >= PACKET_LENGTH)
-                                {
-                                    // 查找包头
-                                    int headerIndex = -1;
-                                    for (int i = 0; i <= recvBuffer.Count - 4; i++)
-                                    {
-                                        if (recvBuffer[i] == PACKET_HEADER[0] &&
-                                            recvBuffer[i + 1] == PACKET_HEADER[1] &&
-                                            recvBuffer[i + 2] == PACKET_HEADER[2] &&
-                                            recvBuffer[i + 3] == PACKET_HEADER[3])
-                                        {
-                                            headerIndex = i;
-                                            break;
-                                        }
-                                    }
-
-                                    if (headerIndex == -1)
-                                    {
-                                        // 没找到包头，清空无效数据
-                                        recvBuffer.Clear();
-                                        break;
-                                    }
-
-                                    // 移除包头前的无效数据
-                                    if (headerIndex > 0)
-                                        recvBuffer.RemoveRange(0, headerIndex);
-
-                                    // 检查是否有完整包
-                                    if (recvBuffer.Count < PACKET_LENGTH)
-                                        break;
-
-                                    // 检查包尾
-                                    bool validTail = true;
-                                    for (int i = 0; i < 4; i++)
-                                    {
-                                        if (recvBuffer[PACKET_LENGTH - 4 + i] != PACKET_TAIL[i])
-                                        {
-                                            validTail = false;
-                                            break;
-                                        }
-                                    }
-
-                                    if (validTail)
-                                    {
-                                        // 拿到完整包
-                                        byte[] packet = recvBuffer.GetRange(0, PACKET_LENGTH).ToArray();
-                                        EnqueuePacket(packet);
-                                        recvBuffer.RemoveRange(0, PACKET_LENGTH);
-                                    }
-                                    else
-                                    {
-                                        // 包尾不对，丢弃当前头，继续查找下一个
-                                        recvBuffer.RemoveAt(0);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                 }
-                catch (TimeoutException)
-                {
-                    // 忽略超时
-                }
-                catch (IOException)
-                {
-                    break; // 串口被关闭
-                }
-                catch (InvalidOperationException)
-                {
-                    break; // 串口被关闭
-                }
+                catch (TimeoutException) { }
+                catch (IOException) { break; }
+                catch (InvalidOperationException) { break; }
                 catch (Exception ex)
                 {
                     LogToConsole("串口读取异常：" + ex.Message);
@@ -462,7 +628,6 @@ namespace fingerPressure
                 }
             }
         }
-
 
         // 背景线程解包
         private void StartPacketProcessingThread()
@@ -476,63 +641,10 @@ namespace fingerPressure
             });
         }
 
-        // 通道标识转索引，例如：AA=0, AB=1, ..., HH=63
-        private int ParseChannelId(string id)
-        {
-            // 假设通道ID格式是: [A-H][A-H]
-            if (id.Length == 2)
-            {
-                int row = id[0] - 'A';  // 第一个字母决定行 (0~7)
-                int col = id[1] - 'A';  // 第二个字母决定列 (0~7)
-                return row * 8 + col;   // 映射到 0~63
-            }
-            return -1; // 无效ID
-        }
-        private static List<(string id, string temp, string pressure)> ParseLineFast(string line)
-        {
-            var result = new List<(string id, string temp, string pressure)>();
-            int i = 0, n = line.Length;
-
-            while (i < n)
-            {
-                // 跳过前导空格
-                while (i < n && char.IsWhiteSpace(line[i])) i++;
-
-                if (i >= n) break;
-
-                // === 1. 通道 ID（两个字母） ===
-                if (i + 1 >= n || !char.IsLetter(line[i]) || !char.IsLetter(line[i + 1]))
-                    break; // 格式异常
-                string id = line.Substring(i, 2);
-                i += 2;
-
-                // 跳过空格
-                while (i < n && char.IsWhiteSpace(line[i])) i++;
-
-                // === 2. 温度 ===
-                int start = i;
-                while (i < n && (char.IsDigit(line[i]) || line[i] == '-' || line[i] == '+')) i++;
-                if (i == start) break; // 格式错误
-                string temp = line.Substring(start, i - start);
-
-                // 跳过空格
-                while (i < n && char.IsWhiteSpace(line[i])) i++;
-
-                // === 3. 压力 ===
-                start = i;
-                while (i < n && (char.IsDigit(line[i]) || line[i] == '-' || line[i] == '+')) i++;
-                if (i == start) break; // 格式错误
-                string pressure = line.Substring(start, i - start);
-
-                result.Add((id, temp, pressure));
-            }
-
-            return result;
-        }
 
         private void ProcessPacketForUI(List<string> uiData)
         {
-            if(chuanGanQiType == "MEMS")
+            if (chuanGanQiType == "MEMS")
             {
                 try
                 {
@@ -658,7 +770,7 @@ namespace fingerPressure
                     MessageBox.Show("ProcessPacketForUI error: " + ex.Message);
                 }
             }
-            else if(chuanGanQiType == "Yingbianhua")
+            else if (chuanGanQiType == "Yingbianhua")
             {
                 try
                 {
@@ -743,7 +855,7 @@ namespace fingerPressure
                     MessageBox.Show("ProcessPacketForUI error: " + ex.Message);
                 }
             }
-            
+
         }
 
 
@@ -764,81 +876,210 @@ namespace fingerPressure
             pane.YAxis.Scale.MagAuto = false;
             pane.YAxis.Scale.Mag = 0;
 
-            // === 更新滚动图（zedGraphControl2） ===
-            while (graphQueue.TryDequeue(out graphUpdate))
+            if (chuanGanQiType == "MEMS")
             {
-                needRefresh = true;
-
-                if (!channelData2.ContainsKey(graphUpdate.Channel))
+                // === 更新滚动图（zedGraphControl2） ===
+                while (graphQueue.TryDequeue(out graphUpdate))
                 {
-                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                    var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
-                    channelData2[graphUpdate.Channel] = list;
-                    channelCurves2[graphUpdate.Channel] = curve;
+                    needRefresh = true;
+
+                    if (!channelData2.ContainsKey(graphUpdate.Channel))
+                    {
+                        var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                        var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                        channelData2[graphUpdate.Channel] = list;
+                        channelCurves2[graphUpdate.Channel] = curve;
+                    }
+
+                    if (graphUpdate.Index >= xMin)
+                    {
+                        channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+                    }
                 }
 
-                if (graphUpdate.Index >= xMin)
+                if (needRefresh)
                 {
-                    channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+                    zedGraphControl2.AxisChange();
+                    zedGraphControl2.Invalidate();
+                }
+
+                // === 更新点图和云图 Panels ===
+                DotMatrixUpdate dotUpdate;
+                while (dotQueue.TryDequeue(out dotUpdate))
+                {
+                    // 每个传感器地址 1~5，对应 8 通道
+                    for (int addr = 1; addr <= 5; addr++)
+                    {
+                        // 计算对应的 8 个通道索引
+                        int startIndex = (addr - 1) * 8;
+
+                        // 更新点图 Panel
+                        var panelPoint = this.Controls.Find($"panel_finger{addr}_point", true).FirstOrDefault() as DoubleBufferedPanel;
+                        if (panelPoint != null)
+                        {
+                            double[] values = new double[8];
+                            Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
+                            panelPoint.Values = values;
+                            panelPoint.Invalidate();
+                        }
+
+                        // 更新云图 Panel
+                        var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                        if (panelCloud != null)
+                        {
+                            double[] values = new double[8];
+                            Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
+                            panelCloud.Values = values;
+                            panelCloud.Invalidate();
+                        }
+
+                        var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
+                        if (panelPoint2 != null)
+                        {
+                            double[] values = new double[8];
+                            Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
+                            panelPoint2.Values = values;
+                            panelPoint2.Invalidate();
+                        }
+
+                        // 更新云图 Panel
+                        var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                        var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        if (panelCloud2 != null)
+                        {
+                            double[] values = new double[8];
+                            Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
+                            panelCloud2.Values = values;
+                            panelCloud2.Invalidate();
+
+                            // 更新最大最小值标签
+                            if (values.Length > 0)
+                            {
+                                double maxVal = values.Max();
+                                double minVal = values.Min();
+
+                                if (labelMax != null)
+                                    labelMax.Text = $"Max: {maxVal:F1}";
+
+                                if (labelMin != null)
+                                    labelMin.Text = $"Min: {minVal:F1}";
+                            }
+                        }
+                    }
+                }
+            }
+            else if (chuanGanQiType == "Yingbianhua")
+            {
+                // === 更新滚动图（zedGraphControl2） ===
+                while (graphQueue.TryDequeue(out graphUpdate))
+                {
+                    needRefresh = true;
+
+                    if (!channelData2.ContainsKey(graphUpdate.Channel))
+                    {
+                        var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                        var curve = pane.AddCurve(
+                            $"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}",
+                            list,
+                            GetColor(graphUpdate.Channel),
+                            SymbolType.None);
+                        channelData2[graphUpdate.Channel] = list;
+                        channelCurves2[graphUpdate.Channel] = curve;
+                    }
+
+                    if (graphUpdate.Index >= xMin)
+                    {
+                        channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+                    }
+                }
+
+                if (needRefresh)
+                {
+                    zedGraphControl2.AxisChange();
+                    zedGraphControl2.Invalidate();
+                }
+
+                // === 更新点图和云图 Panels ===
+                DotMatrixUpdate dotUpdate;
+                while (dotQueue.TryDequeue(out dotUpdate))
+                {
+                    int sensorCount = 5;
+                    int pressureCount = 27;
+                    int groupSize = 3;   // 每3个通道归为一组
+
+                    for (int s = 0; s < sensorCount; s++)
+                    {
+                        //// === 压力点图 ===
+                        var panelPoint = this.Controls.Find($"panel_finger{s + 1}_point27", true).FirstOrDefault() as DoubleBufferedPanel27;
+                        if (panelPoint != null)
+                        {
+                            double[] values = new double[pressureCount];
+                            Array.Copy(dotUpdate.PressureValues, s * pressureCount, values, 0, pressureCount);
+                            panelPoint.Values = values;
+                            panelPoint.Invalidate();
+                        }
+
+                        // === 压力云图 ===
+                        var panelCloud = this.Controls.Find($"panel_finger{s + 1}_cloud27", true).FirstOrDefault() as DoubleBufferedPanelCloud27;
+                        var labelMax = this.Controls.Find($"label_finger{s + 1}_max27", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMin = this.Controls.Find($"label_finger{s + 1}_min27", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        if (panelCloud != null)
+                        {
+                            int pointCount = pressureCount / groupSize; // 27 / 3 = 9
+
+                            double[] values = new double[pointCount];
+                            for (int g = 0; g < pointCount; g++)
+                            {
+                                double sum = 0;
+                                for (int k = 0; k < groupSize; k++)
+                                {
+                                    int idx = s * pressureCount + g * groupSize + k;
+                                    sum += dotUpdate.PressureValues[idx];
+                                }
+                                values[g] = sum / groupSize;
+                            }
+
+                            panelCloud.Values = values; // 9 个点
+                            panelCloud.Invalidate();
+
+                            // 更新最大最小值标签
+                            if (values.Length > 0)
+                            {
+                                double maxVal = values.Max();
+                                double minVal = values.Min();
+
+                                if (labelMax != null)
+                                    labelMax.Text = $"Max: {maxVal:F1}";
+
+                                if (labelMin != null)
+                                    labelMin.Text = $"Min: {minVal:F1}";
+                            }
+                        }
+
+
+                        //// === 温度点图 ===
+                        //var panelPointTemp = this.Controls.Find($"panel_finger{s + 1}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
+                        //if (panelPointTemp != null)
+                        //{
+                        //    double[] values = { dotUpdate.TempValues[s] };
+                        //    panelPointTemp.Values = values;
+                        //    panelPointTemp.Invalidate();
+                        //}
+
+                        //// === 温度云图 ===
+                        //var panelCloudTemp = this.Controls.Find($"panel_finger{s + 1}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                        //if (panelCloudTemp != null)
+                        //{
+                        //    double[] values = { dotUpdate.TempValues[s] };
+                        //    panelCloudTemp.Values = values;
+                        //    panelCloudTemp.Invalidate();
+                        //}
+                    }
                 }
             }
 
-            if (needRefresh)
-            {
-                zedGraphControl2.AxisChange();
-                zedGraphControl2.Invalidate();
-            }
 
-            // === 更新点图和云图 Panels ===
-            DotMatrixUpdate dotUpdate;
-            while (dotQueue.TryDequeue(out dotUpdate))
-            {
-                // 每个传感器地址 1~5，对应 8 通道
-                for (int addr = 1; addr <= 5; addr++)
-                {
-                    // 计算对应的 8 个通道索引
-                    int startIndex = (addr - 1) * 8;
-
-                    // 更新点图 Panel
-                    var panelPoint = this.Controls.Find($"panel_finger{addr}_point", true).FirstOrDefault() as DoubleBufferedPanel;
-                    if (panelPoint != null)
-                    {
-                        double[] values = new double[8];
-                        Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
-                        panelPoint.Values = values;
-                        panelPoint.Invalidate();
-                    }
-
-                    // 更新云图 Panel
-                    var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                    if (panelCloud != null)
-                    {
-                        double[] values = new double[8];
-                        Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
-                        panelCloud.Values = values;
-                        panelCloud.Invalidate();
-                    }
-
-                    var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
-                    if (panelPoint2 != null)
-                    {
-                        double[] values = new double[8];
-                        Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
-                        panelPoint2.Values = values;
-                        panelPoint2.Invalidate();
-                    }
-
-                    // 更新云图 Panel
-                    var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                    if (panelCloud2 != null)
-                    {
-                        double[] values = new double[8];
-                        Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
-                        panelCloud2.Values = values;
-                        panelCloud2.Invalidate();
-                    }
-                }
-            }
         }
 
 
@@ -942,57 +1183,270 @@ namespace fingerPressure
 
         // 保存最近一包（用于容错）
         private byte[] lastValidPacket = null;
+        public class ListStringPool
+        {
+            private readonly ConcurrentBag<List<string>> pool = new ConcurrentBag<List<string>>();
+
+            public List<string> Rent()
+            {
+                if (pool.TryTake(out var list))
+                {
+                    list.Clear();
+                    return list;
+                }
+                return new List<string>(50); // 初始容量预分配
+            }
+
+            public void Return(List<string> list)
+            {
+                list.Clear();
+                pool.Add(list);
+            }
+        }
+
+        private static ListStringPool uiDataPool = new ListStringPool();
+
+        /*        private void EnqueuePacket(byte[] packet)
+                {
+                    if(chuanGanQiType == "MEMS")
+                    {
+                        try
+                        {
+                            // 基本校验
+                            if (packet.Length < 10) return;
+
+                            int length = packet[2];     // 长度字段
+                            byte addr = packet[3];      // 地址
+                            byte type = packet[4];      // 类型 (F4/F5)
+
+                            // 占位4字节 + 序列号4字节
+                            byte[] serialBytes = packet.Skip(9).Take(4).ToArray();
+                            Array.Reverse(serialBytes);
+                            int serial = BitConverter.ToInt32(serialBytes, 0);
+
+                            // 数据区
+                            int dataOffset = 13; // 2包头 +1长度 +1地址 +1类型 +4占位 +4序列号 = 13
+                            int dataLength = length - (1 + 1 + 4 + 4); // 去掉地址/类型/占位/序列号，剩下就是数据+校验和
+
+                            double[] values = new double[8];
+
+                            if (type == 0xF4) // 温度：8通道*2字节
+                            {
+                                for (int i = 0; i < 8; i++)
+                                {
+                                    int pos = dataOffset + i * 2;
+                                    if (pos + 1 >= packet.Length) break;
+
+                                    byte[] tmp = { packet[pos], packet[pos + 1] };
+                                    Array.Reverse(tmp); // 翻转
+                                    values[i] = BitConverter.ToInt16(tmp, 0);
+                                }
+                            }
+                            else if (type == 0xF5) // 压力：8通道*4字节
+                            {
+                                for (int i = 0; i < 8; i++)
+                                {
+                                    int pos = dataOffset + i * 4;
+                                    if (pos + 3 >= packet.Length) break;
+
+                                    // 取 4 个字节
+                                    byte[] tmp = { packet[pos], packet[pos + 1], packet[pos + 2], packet[pos + 3] };
+
+                                    // 或者用 BitConverter
+                                    values[i] = BitConverter.ToInt32(tmp, 0); // 但不要 Array.Reverse
+
+
+                                }
+                            }
+                            else
+                            {
+                                LogToConsole($"未知包类型: {type:X2}");
+                                return;
+                            }
+
+                            // 容错（校验成功的包才覆盖）
+                            lastValidPacket = packet;
+
+                            // 构造 List<string>
+                            var uiData = new List<string>(10);
+                            uiData.Add(addr.ToString());        // [0] 地址
+                            uiData.Add(type.ToString("X2"));    // [1] 类型 (16进制显示更直观，比如 F4/F5)
+                            for (int i = 0; i < 8; i++)
+                            {
+                                uiData.Add(values[i].ToString()); // [2] ~ [9] 八个通道值
+                            }
+
+                            // 入UI队列（清空旧的，只保留最新）
+                            while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                            uiQueue.Add(uiData);
+
+                            // 存储节流
+                            var now = HighResDateTime.Now;
+                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                            {
+                                lastSaveTime = now;
+
+                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                fileRawQueue.Add(uiData);
+                            }
+
+                            // 包总数 + UI更新
+                            long newCount = Interlocked.Increment(ref totalPacketCount);
+                            if (packetCountLabel.InvokeRequired)
+                            {
+                                packetCountLabel.BeginInvoke(new Action(() =>
+                                {
+                                    packetCountLabel.Text = $"接收包数: {newCount}";
+                                }));
+                            }
+                            else
+                            {
+                                packetCountLabel.Text = $"接收包数: {newCount}";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogToConsole("EnqueuePacket 异常: " + ex.Message);
+                        }
+                    }
+                    else if(chuanGanQiType == "Yingbianhua")
+                    {
+                        try
+                        {
+                            if (packet.Length != 343)
+                            {
+                                LogToConsole($"无效包长度: {packet.Length}");
+                                return;
+                            }
+
+                            // 校验包头和包尾
+                            if (!(packet[0] == 0xAA && packet[1] == 0xAA && packet[2] == 0xAA && packet[3] == 0xAA &&
+                                  packet[339] == 0xBB && packet[340] == 0xBB && packet[341] == 0xBB && packet[342] == 0xBB))
+                            {
+                                LogToConsole("包头或包尾错误，丢弃数据包");
+                                return;
+                            }
+
+                            int dataOffset = 4; // 数据从第5个字节开始
+                            int sensorCount = 5;
+
+                            // 压力值：每个传感器 27 个 2 字节 = 54 字节
+                            int pressureCount = 27;
+                            short[][] pressureValues = new short[sensorCount][];
+                            for (int s = 0; s < sensorCount; s++)
+                            {
+                                pressureValues[s] = new short[pressureCount];
+                                for (int i = 0; i < pressureCount; i++)
+                                {
+                                    int pos = dataOffset + s * (pressureCount * 2 + 1 + 12) + i * 2; // 每个传感器块偏移
+                                    byte[] tmp = { packet[pos + 1], packet[pos] }; // 高低字节翻转
+                                    pressureValues[s][i] = BitConverter.ToInt16(tmp, 0);
+                                }
+                            }
+
+                            // 温度值：每个传感器 1 个字节
+                            byte[] temperatureValues = new byte[sensorCount];
+                            for (int s = 0; s < sensorCount; s++)
+                            {
+                                int pos = dataOffset + s * (pressureCount * 2 + 1 + 12) + pressureCount * 2;
+                                temperatureValues[s] = packet[pos];
+                            }
+
+                            // 陀螺仪值：每个传感器 6 个 2 字节 = 12 字节
+                            short[][] gyroValues = new short[sensorCount][];
+                            for (int s = 0; s < sensorCount; s++)
+                            {
+                                gyroValues[s] = new short[6];
+                                int gyroOffset = dataOffset + s * (pressureCount * 2 + 1 + 12) + pressureCount * 2 + 1;
+                                for (int i = 0; i < 6; i++)
+                                {
+                                    int pos = gyroOffset + i * 2;
+                                    byte[] tmp = { packet[pos + 1], packet[pos] }; // 高低字节翻转
+                                    gyroValues[s][i] = BitConverter.ToInt16(tmp, 0);
+                                }
+                            }
+
+                            // 容错（校验成功的包才覆盖）
+                            lastValidPacket = packet;
+
+                            // 构造 UI 数据
+                            var uiData = new List<string>();
+                            for (int s = 0; s < sensorCount; s++)
+                            {
+                                uiData.Add($"S{s + 1}");
+                                for (int i = 0; i < pressureValues[s].Length; i++)
+                                    uiData.Add(pressureValues[s][i].ToString());
+                                uiData.Add(temperatureValues[s].ToString());
+                                for (int i = 0; i < gyroValues[s].Length; i++)
+                                    uiData.Add(gyroValues[s][i].ToString());
+                            }
+
+                            // 入UI队列（只保留最新）
+                            while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                            uiQueue.Add(uiData);
+
+                            // 存储节流
+                            var now = HighResDateTime.Now;
+                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                            {
+                                lastSaveTime = now;
+                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                fileRawQueue.Add(uiData);
+                            }
+
+                            // 包总数 + UI更新
+                            long newCount = Interlocked.Increment(ref totalPacketCount);
+                            if (packetCountLabel.InvokeRequired)
+                            {
+                                packetCountLabel.BeginInvoke(new Action(() =>
+                                {
+                                    packetCountLabel.Text = $"接收包数: {newCount}";
+                                }));
+                            }
+                            else
+                            {
+                                packetCountLabel.Text = $"接收包数: {newCount}";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogToConsole("EnqueuePacket 异常: " + ex.Message);
+                        }
+                    }
+
+                }*/
 
         private void EnqueuePacket(byte[] packet)
         {
-            if(chuanGanQiType == "MEMS")
+            if (chuanGanQiType == "MEMS")
             {
                 try
                 {
-                    // 基本校验
                     if (packet.Length < 10) return;
 
-                    int length = packet[2];     // 长度字段
-                    byte addr = packet[3];      // 地址
-                    byte type = packet[4];      // 类型 (F4/F5)
+                    int length = packet[2];
+                    byte addr = packet[3];
+                    byte type = packet[4];
 
-                    // 占位4字节 + 序列号4字节
-                    byte[] serialBytes = packet.Skip(9).Take(4).ToArray();
-                    Array.Reverse(serialBytes);
-                    int serial = BitConverter.ToInt32(serialBytes, 0);
+                    // 复用数组
+                    Span<double> values = stackalloc double[8];
 
-                    // 数据区
-                    int dataOffset = 13; // 2包头 +1长度 +1地址 +1类型 +4占位 +4序列号 = 13
-                    int dataLength = length - (1 + 1 + 4 + 4); // 去掉地址/类型/占位/序列号，剩下就是数据+校验和
+                    int dataOffset = 13;
 
-                    double[] values = new double[8];
-
-                    if (type == 0xF4) // 温度：8通道*2字节
+                    if (type == 0xF4) // 温度
                     {
                         for (int i = 0; i < 8; i++)
                         {
-                            int pos = dataOffset + i * 2;
-                            if (pos + 1 >= packet.Length) break;
-
-                            byte[] tmp = { packet[pos], packet[pos + 1] };
-                            Array.Reverse(tmp); // 翻转
-                            values[i] = BitConverter.ToInt16(tmp, 0);
+                            if (dataOffset + i * 2 + 1 >= packet.Length) break;
+                            values[i] = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(dataOffset + i * 2, 2));
                         }
                     }
-                    else if (type == 0xF5) // 压力：8通道*4字节
+                    else if (type == 0xF5) // 压力
                     {
                         for (int i = 0; i < 8; i++)
                         {
-                            int pos = dataOffset + i * 4;
-                            if (pos + 3 >= packet.Length) break;
-
-                            // 取 4 个字节
-                            byte[] tmp = { packet[pos], packet[pos + 1], packet[pos + 2], packet[pos + 3] };
-
-                            // 或者用 BitConverter
-                            values[i] = BitConverter.ToInt32(tmp, 0); // 但不要 Array.Reverse
-
-
+                            if (dataOffset + i * 4 + 3 >= packet.Length) break;
+                            values[i] = BitConverter.ToInt32(packet, dataOffset + i * 4); // 保持小端或按协议
                         }
                     }
                     else
@@ -1001,33 +1455,27 @@ namespace fingerPressure
                         return;
                     }
 
-                    // 容错（校验成功的包才覆盖）
                     lastValidPacket = packet;
 
-                    // 构造 List<string>
-                    var uiData = new List<string>(10);
-                    uiData.Add(addr.ToString());        // [0] 地址
-                    uiData.Add(type.ToString("X2"));    // [1] 类型 (16进制显示更直观，比如 F4/F5)
+                    // 获取 List<string> 对象池
+                    var uiData = uiDataPool.Rent();
+                    uiData.Clear();
+                    uiData.Add(addr.ToString());
+                    uiData.Add(type.ToString("X2"));
                     for (int i = 0; i < 8; i++)
-                    {
-                        uiData.Add(values[i].ToString()); // [2] ~ [9] 八个通道值
-                    }
+                        uiData.Add(values[i].ToString());
 
-                    // 入UI队列（清空旧的，只保留最新）
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                     uiQueue.Add(uiData);
 
-                    // 存储节流
                     var now = HighResDateTime.Now;
                     if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
                     {
                         lastSaveTime = now;
-
                         if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
                         fileRawQueue.Add(uiData);
                     }
 
-                    // 包总数 + UI更新
                     long newCount = Interlocked.Increment(ref totalPacketCount);
                     if (packetCountLabel.InvokeRequired)
                     {
@@ -1046,7 +1494,7 @@ namespace fingerPressure
                     LogToConsole("EnqueuePacket 异常: " + ex.Message);
                 }
             }
-            else if(chuanGanQiType == "Yingbianhua")
+            else if (chuanGanQiType == "Yingbianhua")
             {
                 try
                 {
@@ -1056,7 +1504,6 @@ namespace fingerPressure
                         return;
                     }
 
-                    // 校验包头和包尾
                     if (!(packet[0] == 0xAA && packet[1] == 0xAA && packet[2] == 0xAA && packet[3] == 0xAA &&
                           packet[339] == 0xBB && packet[340] == 0xBB && packet[341] == 0xBB && packet[342] == 0xBB))
                     {
@@ -1064,65 +1511,50 @@ namespace fingerPressure
                         return;
                     }
 
-                    int dataOffset = 4; // 数据从第5个字节开始
-                    int sensorCount = 5;
-
-                    // 压力值：每个传感器 27 个 2 字节 = 54 字节
-                    int pressureCount = 27;
-                    short[][] pressureValues = new short[sensorCount][];
-                    for (int s = 0; s < sensorCount; s++)
-                    {
-                        pressureValues[s] = new short[pressureCount];
-                        for (int i = 0; i < pressureCount; i++)
-                        {
-                            int pos = dataOffset + s * (pressureCount * 2 + 1 + 12) + i * 2; // 每个传感器块偏移
-                            byte[] tmp = { packet[pos + 1], packet[pos] }; // 高低字节翻转
-                            pressureValues[s][i] = BitConverter.ToInt16(tmp, 0);
-                        }
-                    }
-
-                    // 温度值：每个传感器 1 个字节
-                    byte[] temperatureValues = new byte[sensorCount];
-                    for (int s = 0; s < sensorCount; s++)
-                    {
-                        int pos = dataOffset + s * (pressureCount * 2 + 1 + 12) + pressureCount * 2;
-                        temperatureValues[s] = packet[pos];
-                    }
-
-                    // 陀螺仪值：每个传感器 6 个 2 字节 = 12 字节
-                    short[][] gyroValues = new short[sensorCount][];
-                    for (int s = 0; s < sensorCount; s++)
-                    {
-                        gyroValues[s] = new short[6];
-                        int gyroOffset = dataOffset + s * (pressureCount * 2 + 1 + 12) + pressureCount * 2 + 1;
-                        for (int i = 0; i < 6; i++)
-                        {
-                            int pos = gyroOffset + i * 2;
-                            byte[] tmp = { packet[pos + 1], packet[pos] }; // 高低字节翻转
-                            gyroValues[s][i] = BitConverter.ToInt16(tmp, 0);
-                        }
-                    }
-
-                    // 容错（校验成功的包才覆盖）
                     lastValidPacket = packet;
 
-                    // 构造 UI 数据
-                    var uiData = new List<string>();
+                    int dataOffset = 4;
+                    int sensorCount = 5;
+                    int pressureCount = 27;
+
+                    // 使用 stackalloc + Span 避免 new
+                    Span<short> pressureBuffer = stackalloc short[pressureCount];
+                    Span<short> gyroBuffer = stackalloc short[6];
+
+                    // 获取 List<string> 对象池
+                    var uiData = uiDataPool.Rent();
+                    uiData.Clear();
+
                     for (int s = 0; s < sensorCount; s++)
                     {
                         uiData.Add($"S{s + 1}");
-                        for (int i = 0; i < pressureValues[s].Length; i++)
-                            uiData.Add(pressureValues[s][i].ToString());
-                        uiData.Add($"Temp{temperatureValues[s]}");
-                        for (int i = 0; i < gyroValues[s].Length; i++)
-                            uiData.Add(gyroValues[s][i].ToString());
+
+                        // 压力值
+                        int sensorOffset = s * (pressureCount * 2 + 1 + 12);
+                        for (int i = 0; i < pressureCount; i++)
+                        {
+                            int pos = dataOffset + sensorOffset + i * 2;
+                            pressureBuffer[i] = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(pos, 2));
+                            uiData.Add(pressureBuffer[i].ToString());
+                        }
+
+                        // 温度值
+                        byte temp = packet[dataOffset + sensorOffset + pressureCount * 2];
+                        uiData.Add(temp.ToString());
+
+                        // 陀螺仪
+                        int gyroOffset = dataOffset + sensorOffset + pressureCount * 2 + 1;
+                        for (int i = 0; i < 6; i++)
+                        {
+                            int pos = gyroOffset + i * 2;
+                            gyroBuffer[i] = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(pos, 2));
+                            uiData.Add(gyroBuffer[i].ToString());
+                        }
                     }
 
-                    // 入UI队列（只保留最新）
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                     uiQueue.Add(uiData);
 
-                    // 存储节流
                     var now = HighResDateTime.Now;
                     if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
                     {
@@ -1131,7 +1563,6 @@ namespace fingerPressure
                         fileRawQueue.Add(uiData);
                     }
 
-                    // 包总数 + UI更新
                     long newCount = Interlocked.Increment(ref totalPacketCount);
                     if (packetCountLabel.InvokeRequired)
                     {
@@ -1150,9 +1581,7 @@ namespace fingerPressure
                     LogToConsole("EnqueuePacket 异常: " + ex.Message);
                 }
             }
-
         }
-
 
 
         private void FormatWorkerLoop()
@@ -1480,7 +1909,7 @@ namespace fingerPressure
                     MessageBox.Show("配置文件数据为空");
                     return;
                 }
-                if(comboBox5.SelectedIndex == 0)
+                if (comboBox5.SelectedIndex == 0)
                 {
                     portName = "COMPort_left";
                 }
@@ -1509,7 +1938,10 @@ namespace fingerPressure
                                         serialPort.DataReceived += SerialPort_DataReceived;
                                         serialPort.Open();*/
                     OpenSerialPort();
-                    state_label.Text = "已连接";
+                    if (serialPort.IsOpen)
+                    {
+                        state_label.Text = "已连接";
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1707,19 +2139,10 @@ namespace fingerPressure
             if (checkBox2.Checked)
             {
                 yalitu = true;
-                if (hiddenPage != null && !tabControl1.TabPages.Contains(hiddenPage))
-                {
-                    tabControl1.TabPages.Add(hiddenPage);
-                }
             }
             else
             {
                 yalitu = false;
-                if (tabControl1.TabPages.Contains(tabPage2))
-                {
-                    hiddenPage = tabPage2;
-                    tabControl1.TabPages.Remove(tabPage2);
-                }
             }
 
         }
@@ -1960,7 +2383,7 @@ namespace fingerPressure
 
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if(comboBox2.SelectedIndex == 0)
+            if (comboBox2.SelectedIndex == 0)
             {
                 chuanGanQiType = "MEMS";
             }
@@ -1968,6 +2391,9 @@ namespace fingerPressure
             {
                 chuanGanQiType = "Yingbianhua";
             }
+
+            UpdateTabPages();
+
             var data = new Dictionary<string, object>();
 
             data[textBox1.Name] = textBox1.Text;
@@ -1981,104 +2407,96 @@ namespace fingerPressure
             File.WriteAllText("ExcelPath.json", json);
         }
 
-        /*        private void button10_Click(object sender, EventArgs e)
-                {
-                    using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\fingerApp\\pymode\\model2_new.onnx");
+        private void button10_Click(object sender, EventArgs e)
+        {
+            using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\fingerApp\\pymode\\model2_new.onnx");
 
-                    // 假设只推理一条数据：27 个 float
-                    float[] inputData = new float[27]
-                    {
+            // 假设只推理一条数据：27 个 float
+            float[] inputData = new float[27]
+            {
                     0.1f, 0.2f, 0.3f, 0.4f, 0.5f,
                     0.6f, 0.7f, 0.8f, 0.9f, 1.0f,
                     1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
                     1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
                     2.1f, 2.2f, 2.3f, 2.4f, 2.5f, 2.6f, 2.7f
-                    };
+            };
 
-                    var inputTensor = new DenseTensor<float>(inputData, new int[] { 1, 27 });
-                    var inputs = new List<NamedOnnxValue>
+            var inputTensor = new DenseTensor<float>(inputData, new int[] { 1, 27 });
+            var inputs = new List<NamedOnnxValue>
                     {
                         NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), inputTensor)
                     };
 
-                    using var results = session.Run(inputs);
-
-                    // label 输出为 Int64
-                    var labelTensor = results.First(x => x.Name == "label").AsTensor<long>();
-                    long[] labels = labelTensor.ToArray();
-
-                    // probabilities 输出为 float
-                    var probTensor = results.First(x => x.Name == "probabilities").AsTensor<float>();
-                    float[] probs = probTensor.ToArray();
-
-                    LogToConsole("预测标签 (label): " + labels[0].ToString());
-                    LogToConsole("最大概率类别索引: " + Array.IndexOf(probs, probs.Max()) + ", 概率=" + probs.Max());
-                }*/
-        private void button10_Click(object sender, EventArgs e)
-        {
-            using var session = new InferenceSession(@"C:\Users\Administrator\Desktop\fingerApp\pymode\model2_new.onnx");
-
-            // batch=2，每条样本 27 个特征，总共 54 个 float
-            float[] inputData = new float[54]
-            {
-        // 样本1
-        0.1f, 0.2f, 0.3f, 0.4f, 0.5f,
-        0.6f, 0.7f, 0.8f, 0.9f, 1.0f,
-        1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
-        1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
-        2.1f, 2.2f, 2.3f, 2.4f, 2.5f, 2.6f, 2.7f,
-
-        // 样本2
-        1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
-        1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
-        2.1f, 2.2f, 2.3f, 2.4f, 2.5f,
-        2.6f, 2.7f, 2.8f, 2.9f, 3.0f,
-        3.1f, 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f
-            };
-
-            int batch = 2;
-            int numFeatures = 27;
-            int numClasses = 81;
-
-            var inputTensor = new DenseTensor<float>(inputData, new int[] { batch, numFeatures });
-
-            var inputs = new List<NamedOnnxValue>
-    {
-        NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), inputTensor)
-    };
-
             using var results = session.Run(inputs);
 
-            // label 输出为 Int64，每条样本一个值
+            // label 输出为 Int64
             var labelTensor = results.First(x => x.Name == "label").AsTensor<long>();
-            long[] labels = labelTensor.ToArray(); // 长度 = batch
+            long[] labels = labelTensor.ToArray();
 
-            // probabilities 输出为 float，每条样本 numClasses 个概率
+            // probabilities 输出为 float
             var probTensor = results.First(x => x.Name == "probabilities").AsTensor<float>();
-            float[] flatProbs = probTensor.ToArray();
-            float[,] probs = new float[batch, numClasses];
-            for (int b = 0; b < batch; b++)
-                for (int i = 0; i < numClasses; i++)
-                    probs[b, i] = flatProbs[b * numClasses + i];
+            float[] probs = probTensor.ToArray();
 
-            // 输出每条样本的预测结果
-            for (int b = 0; b < batch; b++)
-            {
-                float[] rowProbs = GetRow(probs, b);
-                int predictedClass = Array.IndexOf(rowProbs, rowProbs.Max());
-                LogToConsole($"样本 {b + 1}: label={labels[b]}, 预测类别索引={predictedClass}, 最大概率={rowProbs.Max():F4}");
-            }
+            LogToConsole("预测标签 (label): " + labels[0].ToString());
+            LogToConsole("最大概率类别索引: " + Array.IndexOf(probs, probs.Max()) + ", 概率=" + probs.Max());
         }
+        //    private void button10_Click(object sender, EventArgs e)
+        //    {
+        //        using var session = new InferenceSession(@"C:\Users\Administrator\Desktop\fingerApp\pymode\model2_new.onnx");
 
-        // 辅助函数：获取二维数组某行
-        private float[] GetRow(float[,] array, int row)
-        {
-            int cols = array.GetLength(1);
-            float[] result = new float[cols];
-            for (int i = 0; i < cols; i++)
-                result[i] = array[row, i];
-            return result;
-        }
+        //        // batch=1，每条样本 27 个特征，总共 54 个 float
+        //        float[] inputData = new float[27]
+        //        {
+        //            0.1f, 0.2f, 0.3f, 0.4f, 0.5f,
+        //            0.6f, 0.7f, 0.8f, 0.9f, 1.0f,
+        //            1.1f, 1.2f, 1.3f, 1.4f, 1.5f,
+        //            1.6f, 1.7f, 1.8f, 1.9f, 2.0f,
+        //            2.1f, 2.2f, 2.3f, 2.4f, 2.5f, 2.6f, 2.7f
+        //        };
+
+        //        int batch = 1;
+        //        int numFeatures = 27;
+        //        int numClasses = 81;
+
+        //        var inputTensor = new DenseTensor<float>(inputData, new int[] { batch, numFeatures });
+
+        //        var inputs = new List<NamedOnnxValue>
+        //{
+        //    NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), inputTensor)
+        //};
+
+        //        using var results = session.Run(inputs);
+
+        //        // label 输出为 Int64，每条样本一个值
+        //        var labelTensor = results.First(x => x.Name == "label").AsTensor<long>();
+        //        long[] labels = labelTensor.ToArray(); // 长度 = batch
+
+        //        // probabilities 输出为 float，每条样本 numClasses 个概率
+        //        var probTensor = results.First(x => x.Name == "probabilities").AsTensor<float>();
+        //        float[] flatProbs = probTensor.ToArray();
+        //        float[,] probs = new float[batch, numClasses];
+        //        for (int b = 0; b < batch; b++)
+        //            for (int i = 0; i < numClasses; i++)
+        //                probs[b, i] = flatProbs[b * numClasses + i];
+
+        //        // 输出每条样本的预测结果
+        //        for (int b = 0; b < batch; b++)
+        //        {
+        //            float[] rowProbs = GetRow(probs, b);
+        //            int predictedClass = Array.IndexOf(rowProbs, rowProbs.Max());
+        //            LogToConsole($"样本 {b + 1}: label={labels[b]}, 预测类别索引={predictedClass}, 最大概率={rowProbs.Max():F4}");
+        //        }
+        //    }
+
+        //    // 辅助函数：获取二维数组某行
+        //    private float[] GetRow(float[,] array, int row)
+        //    {
+        //        int cols = array.GetLength(1);
+        //        float[] result = new float[cols];
+        //        for (int i = 0; i < cols; i++)
+        //            result[i] = array[row, i];
+        //        return result;
+        //    }
 
         private void comboBox5_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -2093,6 +2511,11 @@ namespace fingerPressure
 
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText("ExcelPath.json", json);
+        }
+
+        private void toolStripButton2_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
