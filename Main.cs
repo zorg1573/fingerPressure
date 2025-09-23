@@ -141,6 +141,10 @@ namespace fingerPressure
         private InferenceSession sessionModel2;
         private BlockingCollection<float[]> inferenceQueue = new BlockingCollection<float[]>(new ConcurrentQueue<float[]>());
 
+/*        private StreamWriter monitorWriter;
+        private Thread monitorThread;
+        private bool monitorRunning = true;*/
+
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
 
         public struct SensorInferenceResult
@@ -286,11 +290,52 @@ namespace fingerPressure
 
                 // 启动后台写线程
                 StartWorkers();
-                fileWriterThread = new Thread(FileWriterLoop);
-                fileWriterThread.IsBackground = true;
-                fileWriterThread.Start();
+                /*                fileWriterThread = new Thread(FileWriterLoop);
+                                fileWriterThread.IsBackground = true;
+                                fileWriterThread.Start();*/
 
                 //TestDraw();
+
+/*                // 打开监控日志文件
+                monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
+
+                // 启动监控线程
+                monitorThread = new Thread(() =>
+                {
+                    try
+                    {
+                        while (monitorRunning)
+                        {
+                            string logLine = string.Format(
+                                "[{0:HH:mm:ss}] UIQ={1}, RawQ={2}, FileQ={3}, Recv={4}, Saved={5}, Drop={6}, GC0={7}, GC1={8}, GC2={9}",
+                                DateTime.Now,
+                                uiQueue.Count,
+                                fileRawQueue.Count,
+                                fileQueue.Count,
+                                totalPacketCount,
+                                savedPacketCount,
+                                totalPacketCount - savedPacketCount,
+                                GC.CollectionCount(0),
+                                GC.CollectionCount(1),
+                                GC.CollectionCount(2)
+                            );
+
+                            lock (monitorWriter)
+                            {
+                                monitorWriter.WriteLine(logLine);
+                            }
+
+                            Thread.Sleep(5000); // 每5秒记录一次
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("监控线程错误: " + ex.Message);
+                    }
+                });
+                monitorThread.IsBackground = true;
+                monitorThread.Start();*/
+
             }
             catch (Exception ex)
             {
@@ -709,7 +754,7 @@ namespace fingerPressure
                     // [1] 类型 ("F4"=温度, "F5"=压力)
                     // [2]~[9] 8个通道的值
 
-                    if (!int.TryParse(uiData[0], out int addr)) return;
+                    if (!int.TryParse(uiData[0].Replace("S", ""), out int addr)) return;
                     string type = uiData[1];
 
                     // === 校零采集逻辑 ===
@@ -786,7 +831,7 @@ namespace fingerPressure
                         {
                             if (type == "F4") // 温度
                             {
-                                double temp = value / 10.0;
+                                double temp = Math.Round(value / 1000.0, 1);
                                 dotUpdate.TempValues[channelIndex] = temp;
                             }
                             else if (type == "F5") // 压力
@@ -861,7 +906,7 @@ namespace fingerPressure
                         // 温度值
                         if (double.TryParse(uiData[index++], out double rawTemp))
                         {
-                            dotUpdate.TempValues[s] = rawTemp / 10.0;
+                            dotUpdate.TempValues[s] = rawTemp;
                         }
 
                         // 陀螺仪值 (6个)
@@ -919,6 +964,7 @@ namespace fingerPressure
         private const int PanelRefreshInterval = 2;  // 每 2 个 tick 刷新点阵和云图
         private readonly double[] panelValuesBuffer = new double[5 * 27]; // 预分配数组，零分配
         private readonly double[] cloudValuesBuffer = new double[5 * 9];  // 每个 Panel 9 个点
+        private readonly double[] gyroValuesBuffer = new double[5 * 6];  // 每个 Panel 9 个点
         private void RefreshTimer_Tick(object sender, EventArgs e)
         {
             bool needRefresh = false;
@@ -985,8 +1031,8 @@ namespace fingerPressure
 
                         // 更新云图 Panel
                         var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                        var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
                         if (panelCloud != null)
                         {
                             double[] values = new double[8];
@@ -1000,11 +1046,11 @@ namespace fingerPressure
                                 double maxVal = values.Max();
                                 double minVal = values.Min();
 
-                                if (labelMax_temp != null)
-                                    labelMax_temp.Text = $"Max: {maxVal:F1}";
+                                if (labelMax != null)
+                                    labelMax.Text = $"Max: {maxVal:F1}";
 
-                                if (labelMin_temp != null)
-                                    labelMin_temp.Text = $"Min: {minVal:F1}";
+                                if (labelMin != null)
+                                    labelMin.Text = $"Min: {minVal:F1}";
                             }
                         }
 
@@ -1019,12 +1065,12 @@ namespace fingerPressure
 
                         // 更新云图 Panel
                         var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                        var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
                         if (panelCloud2 != null)
                         {
                             double[] values = new double[8];
-                            Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
+                            Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
                             panelCloud2.Values = values;
                             panelCloud2.Invalidate();
 
@@ -1034,11 +1080,11 @@ namespace fingerPressure
                                 double maxVal = values.Max();
                                 double minVal = values.Min();
 
-                                if (labelMax != null)
-                                    labelMax.Text = $"Max: {maxVal:F1}";
+                                if (labelMax_temp != null)
+                                    labelMax_temp.Text = $"Max: {maxVal:F1}";
 
-                                if (labelMin != null)
-                                    labelMin.Text = $"Min: {minVal:F1}";
+                                if (labelMin_temp != null)
+                                    labelMin_temp.Text = $"Min: {minVal:F1}";
                             }
                         }
                     }
@@ -1195,6 +1241,21 @@ namespace fingerPressure
 
                     if (graphUpdate.Index >= xMin)
                         channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+
+
+                    if (comboBox4.SelectedIndex != -1)
+                    {
+                        int chuanganqiIndex = comboBox4.SelectedIndex;
+                        if(chuanganqiIndex == graphUpdate.SensorIndex)
+                        {
+                            label_ax.Text = $"Ax: {graphUpdate.GyroValues[0]:F2}";
+                            label_ay.Text = $"Ay: {graphUpdate.GyroValues[1]:F2}";
+                            label_az.Text = $"Az: {graphUpdate.GyroValues[2]:F2}";
+                            label_gx.Text = $"Gx: {graphUpdate.GyroValues[3]:F2}";
+                            label_gy.Text = $"Gy: {graphUpdate.GyroValues[4]:F2}";
+                            label_gz.Text = $"Gz: {graphUpdate.GyroValues[5]:F2}";
+                        }
+                    }
                 }
 
                 // 每 GraphRefreshInterval tick 批量刷新滚动图
@@ -1223,6 +1284,7 @@ namespace fingerPressure
                             // 预分配数组避免重复分配
                             Array.Clear(panelValuesBuffer, 0, panelValuesBuffer.Length);
                             Array.Clear(cloudValuesBuffer, 0, cloudValuesBuffer.Length);
+
 
                             for (int s = 0; s < sensorCount; s++)
                             {
@@ -1277,6 +1339,7 @@ namespace fingerPressure
                                                 labelMin.Text = $"Min: {values.Min():F1}";
                                         }
                                     }
+
 
                                     // --- 显示模型推理结果 ---
                                     if (comboBox4.SelectedIndex != -1)
@@ -1686,7 +1749,7 @@ namespace fingerPressure
                     // 获取 List<string> 对象池
                     var uiData = uiDataPool.Rent();
                     uiData.Clear();
-                    uiData.Add(addr.ToString());
+                    uiData.Add("S"+addr.ToString());
                     uiData.Add(type.ToString("X2"));
                     for (int i = 0; i < 8; i++)
                         uiData.Add(values[i].ToString());
@@ -1921,7 +1984,16 @@ namespace fingerPressure
             {
                 foreach (var packet in fileRawQueue.GetConsumingEnumerable())
                 {
-                    string line = FormatPacketToOneCsvLineFast(packet);
+                    string line = "";
+                    if (chuanGanQiType == "MEMS")
+                    {
+                        line = FormatPacketToOneCsvLineFast(packet);
+                    }
+                    else
+                    {
+                        line = FormatPacketToOneCsvLineFast27(packet);
+                    }
+                    
                     if (line == null) continue;
 
                     // fileQueue 有界 + 丢最旧，确保不堆积
@@ -1931,28 +2003,74 @@ namespace fingerPressure
             }
             catch (Exception ex)
             {
-                LogToConsole($"[ERR] FormatWorker: {ex.Message}");
+                LogToConsole($"[ERR] FormatWorker: {ex.ToString()}");
             }
         }
+        /*        private string FormatPacketToOneCsvLineFast(List<string> packet)
+                {
+                    if (packet == null || packet.Count < 9) return null;
+
+                    // 64通道
+                    string[] pressures = new string[64];
+                    string[] temps = new string[64];
+
+                    // 解析第2~9行
+                    for (int row = 1; row <= 8; row++)
+                        ParseLineIntoArrays(packet[row], temps, pressures);
+
+                    // 拼CSV：时间 + 64压 + 64温
+                    var sb = new System.Text.StringBuilder(2048);
+                    sb.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
+                    for (int i = 0; i < 64; i++) { sb.Append(','); if (pressures[i] != null) sb.Append(pressures[i]); }
+                    for (int i = 0; i < 64; i++) { sb.Append(','); if (temps[i] != null) sb.Append(temps[i]); }
+                    return sb.ToString();
+                }*/
+        [ThreadStatic] private static StringBuilder _sbCache;
         private string FormatPacketToOneCsvLineFast(List<string> packet)
         {
-            if (packet == null || packet.Count < 9) return null;
+            if (packet == null) return null;
 
-            // 64通道
-            string[] pressures = new string[64];
-            string[] temps = new string[64];
+            // 初始化缓存（只在第一次调用时分配）
+            if (_sbCache == null) _sbCache = new StringBuilder(4096);
 
-            // 解析第2~9行
-            for (int row = 1; row <= 8; row++)
-                ParseLineIntoArrays(packet[row], temps, pressures);
+            // 清空缓存
+            _sbCache.Clear();
 
-            // 拼CSV：时间 + 64压 + 64温
-            var sb = new System.Text.StringBuilder(2048);
-            sb.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
-            for (int i = 0; i < 64; i++) { sb.Append(','); if (pressures[i] != null) sb.Append(pressures[i]); }
-            for (int i = 0; i < 64; i++) { sb.Append(','); if (temps[i] != null) sb.Append(temps[i]); }
-            return sb.ToString();
+            // 先写时间戳
+            _sbCache.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
+
+            // 拼接 175 个值
+            for (int i = 0; i < 10; i++)
+            {
+                _sbCache.Append(',');
+                _sbCache.Append(packet[i]);
+            }
+
+            return _sbCache.ToString();
         }
+        private string FormatPacketToOneCsvLineFast27(List<string> packet)
+        {
+            if (packet == null || packet.Count < 175) return null;
+
+            // 初始化缓存（只在第一次调用时分配）
+            if (_sbCache == null) _sbCache = new StringBuilder(4096);
+
+            // 清空缓存
+            _sbCache.Clear();
+
+            // 先写时间戳
+            _sbCache.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
+
+            // 拼接 175 个值
+            for (int i = 0; i < 175; i++)
+            {
+                _sbCache.Append(',');
+                _sbCache.Append(packet[i]);
+            }
+
+            return _sbCache.ToString();
+        }
+
 
         // 逐字符解析： [A-Z][A-Z] <spaces> temp <spaces> pressure <spaces> ... 重复
         private static void ParseLineIntoArrays(string line, string[] temps, string[] pressures)

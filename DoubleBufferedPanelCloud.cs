@@ -1,4 +1,4 @@
-﻿using System;
+﻿/*using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -41,12 +41,11 @@ namespace fingerPressure
         {
             base.OnPaint(e);
             DrawCloud(e.Graphics);
-            DrawForceArrow(e.Graphics);
         }
 
         #region 云图模式（半椭圆内）
 
-        /*        private void DrawCloud(Graphics g)
+        *//*        private void DrawCloud(Graphics g)
                 {
                     int gridSize = 6;
                     double[,] input = new double[gridSize, gridSize];
@@ -149,7 +148,7 @@ namespace fingerPressure
                             g.DrawArc(pen, ellipseRect, 180, 180);
                         }
                     }
-                }*/
+                }*//*
         private void DrawCloud(Graphics g)
         {
             int outW = this.Width;
@@ -291,68 +290,201 @@ namespace fingerPressure
             return Color.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
         }
 
-        /*        private Color GetColorFromValue(double value)
+        *//*        private Color GetColorFromValue(double value)
                 {
                     value = Math.Max(0, Math.Min(value, 100000));
                     int r = (int)(value / 100000.0 * 255);
                     int g = 0;
                     int b = 255 - r;
                     return Color.FromArgb(r, g, b);
-                }*/
+                }*//*
 
-        private void DrawForceArrow(Graphics g)
+    }
+}
+*/
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+
+namespace fingerPressure
+{
+    public class DoubleBufferedPanelCloud : Panel
+    {
+        private double[] values = new double[8];    // 8通道数据
+        private Bitmap backgroundCache;             // 背景缓存
+        private Bitmap cloudBitmap;                 // 热力图缓存
+        private PointF[] sensors;                   // 传感器点位缓存
+        private bool needsRefresh;                  // 节流标记
+
+        public DoubleBufferedPanelCloud()
         {
-            if (values == null || values.Length != 8)
-                return;
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint |
+                          ControlStyles.UserPaint |
+                          ControlStyles.OptimizedDoubleBuffer, true);
+            this.UpdateStyles();
+            this.Resize += (_, __) => GenerateBackgroundCache();
+        }
 
-            // Panel 中心
-            float cx = this.Width / 2f;
-            float cy = this.Height / 2f;
-
-            // 八个方向的单位向量
-            PointF[] dirs =
+        /// <summary>
+        /// 设置/获取8通道值
+        /// </summary>
+        public double[] Values
+        {
+            get => values;
+            set
             {
-                new PointF(-1,-1), // 左上 0
-                new PointF( 1,-1), // 右上 1
-                new PointF(-1, 0), // 左   2
-                new PointF( 0, 0), // 中   3 （通常不用作为方向，可忽略或仅作权重）
-                new PointF( 1, 0), // 右   4
-                new PointF(-1, 1), // 左下 5
-                new PointF( 0, 1), // 下   6
-                new PointF( 1, 1)  // 右下 7
-            };
-
-            // 计算合力向量
-            float fx = 0, fy = 0;
-            for (int i = 0; i < values.Length; i++)
-            {
-                // 中点 (索引3) 可以不加方向，只算强度
-                if (i == 3) continue;
-
-                float mag = (float)values[i];
-                fx += dirs[i].X * mag;
-                fy += dirs[i].Y * mag;
-            }
-
-            // 长度缩放，避免超出
-            float len = (float)Math.Sqrt(fx * fx + fy * fy);
-            if (len < 1e-3) return;
-
-            float scale = Math.Min(this.Width, this.Height) / 4f / len;
-            fx *= scale;
-            fy *= scale;
-
-            // 目标点
-            float tx = cx + fx;
-            float ty = cy + fy;
-
-            using (Pen pen = new Pen(Color.White, 3))
-            {
-                pen.CustomEndCap = new AdjustableArrowCap(6, 8, true);
-                g.DrawLine(pen, cx, cy, tx, ty);
+                if (value != null && value.Length == values.Length)
+                    Array.Copy(value, values, values.Length);
+                Invalidate();
             }
         }
 
+        private void GenerateBackgroundCache()
+        {
+            backgroundCache?.Dispose();
+            cloudBitmap?.Dispose();
 
+            backgroundCache = new Bitmap(this.Width, this.Height);
+            cloudBitmap = new Bitmap(this.Width, this.Height);
+
+            float cx = this.Width / 2f;
+            float cy = this.Height;
+            float a = this.Width / 2f - 5;
+            float b = this.Height - 5;
+
+            double[] angles =
+            {
+                -135 * Math.PI / 180, // 左上
+                -45  * Math.PI / 180, // 右上
+                180  * Math.PI / 180, // 左
+                0,                    // 中（特殊）
+                0,                    // 右
+                135 * Math.PI / 180,  // 左下
+                90  * Math.PI / 180,  // 下
+                45  * Math.PI / 180   // 右下
+            };
+
+            sensors = new PointF[8];
+            for (int i = 0; i < 8; i++)
+            {
+                if (i == 3)
+                    sensors[i] = new PointF(cx, cy - b / 2); // 中点
+                else
+                    sensors[i] = new PointF(
+                        cx + (float)(a * Math.Cos(angles[i])),
+                        cy + (float)(b * Math.Sin(angles[i]))
+                    );
+            }
+
+            using (var g = Graphics.FromImage(backgroundCache))
+            {
+                g.Clear(this.BackColor);
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
+                g.FillPie(Brushes.LightGray, ellipseRect, 180, 180);
+                g.DrawArc(Pens.Black, ellipseRect, 180, 180);
+            }
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            // 不清背景，避免闪烁
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            if (backgroundCache != null)
+                e.Graphics.DrawImageUnscaled(backgroundCache, 0, 0);
+
+            if (cloudBitmap != null && sensors != null)
+            {
+                RenderCloud(cloudBitmap);
+                e.Graphics.DrawImageUnscaled(cloudBitmap, 0, 0);
+            }
+        }
+
+        private void RenderCloud(Bitmap bmp)
+        {
+            int w = bmp.Width;
+            int h = bmp.Height;
+
+            BitmapData data = bmp.LockBits(new Rectangle(0, 0, w, h),
+                                           ImageLockMode.WriteOnly,
+                                           PixelFormat.Format32bppArgb);
+
+            int stride = data.Stride;
+            IntPtr scan0 = data.Scan0;
+            byte[] buffer = new byte[stride * h];
+
+            float cx = w / 2f;
+            float cy = h;
+            float a = w / 2f - 5;
+            float b = h - 5;
+
+            for (int y = 0; y < h; y++)
+            {
+                int row = y * stride;
+                for (int x = 0; x < w; x++)
+                {
+                    double norm = ((x - cx) * (x - cx)) / (a * a) +
+                                  ((y - cy) * (y - cy)) / (b * b);
+
+                    if (norm > 1.0) continue;
+
+                    double val = 0, wsum = 0;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        double dx = x - sensors[i].X;
+                        double dy = y - sensors[i].Y;
+                        double dist2 = dx * dx + dy * dy + 1e-6;
+                        double weight = 1.0 / dist2;
+                        val += values[i] * weight;
+                        wsum += weight;
+                    }
+                    val /= wsum;
+
+                    Color c = GetColorFromValue(val);
+                    int idx = row + x * 4;
+                    buffer[idx + 0] = c.B;
+                    buffer[idx + 1] = c.G;
+                    buffer[idx + 2] = c.R;
+                    buffer[idx + 3] = 255;
+                }
+            }
+
+            Marshal.Copy(buffer, 0, scan0, buffer.Length);
+            bmp.UnlockBits(data);
+        }
+
+        private Color GetColorFromValue(double value)
+        {
+            double maxAbs = 10000;
+            if (value < -maxAbs) value = -maxAbs;
+            if (value > maxAbs) value = maxAbs;
+
+            double r = 0, g = 0, b = 0;
+
+            if (value < 0)
+            {
+                double ratio = (value + maxAbs) / maxAbs;
+                if (ratio < 0.5) { r = 0; g = ratio * 2; b = 1; }
+                else { r = 0; g = 1; b = 2 * (1 - ratio); }
+            }
+            else
+            {
+                double ratio = value / maxAbs;
+                if (ratio < 0.5) { r = ratio * 2; g = 1; b = 0; }
+                else { r = 1; g = 2 * (1 - ratio); b = 0; }
+            }
+
+            return Color.FromArgb(
+                (int)(r * 255),
+                (int)(g * 255),
+                (int)(b * 255));
+        }
     }
 }

@@ -396,7 +396,7 @@ namespace fingerPressure
             // 
             // panel2
             // 
-            panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel2.BorderStyle = BorderStyle.FixedSingle;
             panel2.Controls.Add(comboBox5);
             panel2.Controls.Add(label67);
             panel2.Controls.Add(button10);
@@ -463,6 +463,7 @@ namespace fingerPressure
             button8.TabIndex = 60;
             button8.Text = "button8";
             button8.UseVisualStyleBackColor = true;
+            button8.Visible = false;
             button8.Click += button8_Click;
             // 
             // comboBox2
@@ -539,7 +540,7 @@ namespace fingerPressure
             checkBox3.Name = "checkBox3";
             checkBox3.Size = new Size(75, 21);
             checkBox3.TabIndex = 44;
-            checkBox3.Text = "点图总览";
+            checkBox3.Text = "点图云图";
             checkBox3.UseVisualStyleBackColor = true;
             checkBox3.CheckedChanged += checkBox3_CheckedChanged;
             // 
@@ -550,7 +551,7 @@ namespace fingerPressure
             checkBox2.Name = "checkBox2";
             checkBox2.Size = new Size(75, 21);
             checkBox2.TabIndex = 43;
-            checkBox2.Text = "压力总览";
+            checkBox2.Text = "压力曲线";
             checkBox2.UseVisualStyleBackColor = true;
             checkBox2.CheckedChanged += checkBox2_CheckedChanged;
             // 
@@ -658,7 +659,7 @@ namespace fingerPressure
             // 
             // panel1
             // 
-            panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel1.BorderStyle = BorderStyle.FixedSingle;
             panel1.Controls.Add(tabControl1);
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 0);
@@ -900,6 +901,7 @@ namespace fingerPressure
             // 
             // panel_finger1_point
             // 
+            panel_finger1_point.BackColor = Color.White;
             panel_finger1_point.Dock = DockStyle.Fill;
             panel_finger1_point.Location = new Point(3, 178);
             panel_finger1_point.Name = "panel_finger1_point";
@@ -1009,6 +1011,7 @@ namespace fingerPressure
             // 
             // panel_finger3_point
             // 
+            panel_finger3_point.BackColor = Color.White;
             panel_finger3_point.Dock = DockStyle.Fill;
             panel_finger3_point.Location = new Point(415, 178);
             panel_finger3_point.Name = "panel_finger3_point";
@@ -1073,6 +1076,7 @@ namespace fingerPressure
             // 
             // panel_finger4_point
             // 
+            panel_finger4_point.BackColor = Color.White;
             panel_finger4_point.Dock = DockStyle.Fill;
             panel_finger4_point.Location = new Point(621, 178);
             panel_finger4_point.Name = "panel_finger4_point";
@@ -1137,6 +1141,7 @@ namespace fingerPressure
             // 
             // panel_finger5_point
             // 
+            panel_finger5_point.BackColor = Color.White;
             panel_finger5_point.Dock = DockStyle.Fill;
             panel_finger5_point.Location = new Point(827, 178);
             panel_finger5_point.Name = "panel_finger5_point";
@@ -1156,6 +1161,7 @@ namespace fingerPressure
             // 
             // panel_finger2_point
             // 
+            panel_finger2_point.BackColor = Color.White;
             panel_finger2_point.Dock = DockStyle.Fill;
             panel_finger2_point.Location = new Point(209, 178);
             panel_finger2_point.Name = "panel_finger2_point";
@@ -1335,6 +1341,7 @@ namespace fingerPressure
             // 
             // panel_finger5_point27
             // 
+            panel_finger5_point27.BackColor = Color.White;
             panel_finger5_point27.Dock = DockStyle.Fill;
             panel_finger5_point27.Location = new Point(915, 178);
             panel_finger5_point27.Name = "panel_finger5_point27";
@@ -1373,6 +1380,7 @@ namespace fingerPressure
             // 
             // panel_finger4_point27
             // 
+            panel_finger4_point27.BackColor = Color.White;
             panel_finger4_point27.Dock = DockStyle.Fill;
             panel_finger4_point27.Location = new Point(687, 178);
             panel_finger4_point27.Name = "panel_finger4_point27";
@@ -1411,6 +1419,7 @@ namespace fingerPressure
             // 
             // panel_finger3_point27
             // 
+            panel_finger3_point27.BackColor = Color.White;
             panel_finger3_point27.Dock = DockStyle.Fill;
             panel_finger3_point27.Location = new Point(459, 178);
             panel_finger3_point27.Name = "panel_finger3_point27";
@@ -1449,6 +1458,7 @@ namespace fingerPressure
             // 
             // panel_finger2_point27
             // 
+            panel_finger2_point27.BackColor = Color.White;
             panel_finger2_point27.Dock = DockStyle.Fill;
             panel_finger2_point27.Location = new Point(231, 178);
             panel_finger2_point27.Name = "panel_finger2_point27";
@@ -1487,6 +1497,7 @@ namespace fingerPressure
             // 
             // panel_finger1_point27
             // 
+            panel_finger1_point27.BackColor = Color.White;
             panel_finger1_point27.Dock = DockStyle.Fill;
             panel_finger1_point27.Location = new Point(3, 178);
             panel_finger1_point27.Name = "panel_finger1_point27";
@@ -2328,6 +2339,7 @@ namespace fingerPressure
             // 
             // panel_finger1_point_temp
             // 
+            panel_finger1_point_temp.BackColor = Color.White;
             panel_finger1_point_temp.Dock = DockStyle.Fill;
             panel_finger1_point_temp.Location = new Point(3, 178);
             panel_finger1_point_temp.Name = "panel_finger1_point_temp";
@@ -2485,6 +2497,7 @@ namespace fingerPressure
             // 
             // panel_finger3_point_temp
             // 
+            panel_finger3_point_temp.BackColor = Color.White;
             panel_finger3_point_temp.Dock = DockStyle.Fill;
             panel_finger3_point_temp.Location = new Point(459, 178);
             panel_finger3_point_temp.Name = "panel_finger3_point_temp";
@@ -2573,6 +2586,7 @@ namespace fingerPressure
             // 
             // panel_finger4_point_temp
             // 
+            panel_finger4_point_temp.BackColor = Color.White;
             panel_finger4_point_temp.Dock = DockStyle.Fill;
             panel_finger4_point_temp.Location = new Point(687, 178);
             panel_finger4_point_temp.Name = "panel_finger4_point_temp";
@@ -2661,6 +2675,7 @@ namespace fingerPressure
             // 
             // panel_finger5_point_temp
             // 
+            panel_finger5_point_temp.BackColor = Color.White;
             panel_finger5_point_temp.Dock = DockStyle.Fill;
             panel_finger5_point_temp.Location = new Point(915, 178);
             panel_finger5_point_temp.Name = "panel_finger5_point_temp";
@@ -2680,6 +2695,7 @@ namespace fingerPressure
             // 
             // panel_finger2_point_temp
             // 
+            panel_finger2_point_temp.BackColor = Color.White;
             panel_finger2_point_temp.Dock = DockStyle.Fill;
             panel_finger2_point_temp.Location = new Point(231, 178);
             panel_finger2_point_temp.Name = "panel_finger2_point_temp";

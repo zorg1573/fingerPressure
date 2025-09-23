@@ -10,7 +10,13 @@
     <Compile Update="DoubleBufferedPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Update="DoubleBufferedPanel27.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Update="DoubleBufferedPanelCloud.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="DoubleBufferedPanelCloud27.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Update="FileSet.cs">
