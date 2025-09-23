@@ -43,7 +43,7 @@ namespace fingerPressure
         private int selectedRealtimeChannel = 0;
 
         //校零
-        private double[] channelZeroOffsets = new double[40]; // 默认全为 0.0
+        private double[] channelZeroOffsets = new double[8]; // 默认全为 0.0
         private double[] channelZeroOffsets2 = new double[135]; // 默认全为 0.0
         private double xielv;
         // 用于暂存每个通道的前5个电压值
@@ -768,9 +768,10 @@ namespace fingerPressure
                     {
                         for (int i = 0; i < 8; i++)
                         {
-                            int channelIndex = (addr - 1) * 8 + i; // 根据地址计算全局通道索引
+                            //int channelIndex = (addr - 1) * 8 + i; // 根据地址计算全局通道索引
+                            int channelIndex = i;
 
-                            if (channelIndex < 0 || channelIndex >= 40) continue;
+                            if (channelIndex < 0 || channelIndex >= 8) continue;
 
                             if (!pressureCalibBuffers.ContainsKey(channelIndex))
                                 pressureCalibBuffers[channelIndex] = new List<double>();
@@ -829,9 +830,10 @@ namespace fingerPressure
 
                     for (int i = 0; i < 8; i++)
                     {
-                        int channelIndex = (addr - 1) * 8 + i;
+                        //int channelIndex = (addr - 1) * 8 + i;
+                        int channelIndex = i;
 
-                        if (channelIndex < 0 || channelIndex >= 40) continue;
+                        if (channelIndex < 0 || channelIndex >= 8) continue;
 
                         if (double.TryParse(uiData[2 + i], out double value))
                         {
@@ -2591,6 +2593,9 @@ namespace fingerPressure
             // 清空图表数据并重建曲线
             channelData2.Clear();
             channelCurves2.Clear();
+
+            channelData_temp.Clear();
+            channelCurves_temp.Clear();
 
             packetIndex = 0;
 

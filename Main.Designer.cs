@@ -42,6 +42,7 @@ namespace fingerPressure
             splitContainer1 = new SplitContainer();
             splitContainer2 = new SplitContainer();
             panel2 = new Panel();
+            checkBox1 = new CheckBox();
             comboBox5 = new ComboBox();
             label67 = new Label();
             button10 = new Button();
@@ -210,7 +211,6 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
-            checkBox1 = new CheckBox();
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -426,6 +426,17 @@ namespace fingerPressure
             panel2.Size = new Size(1414, 103);
             panel2.TabIndex = 31;
             // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(169, 73);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(75, 21);
+            checkBox1.TabIndex = 64;
+            checkBox1.Text = "温度曲线";
+            checkBox1.UseVisualStyleBackColor = true;
+            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
+            // 
             // comboBox5
             // 
             comboBox5.FormattingEnabled = true;
@@ -448,7 +459,7 @@ namespace fingerPressure
             // 
             // button10
             // 
-            button10.Location = new Point(845, 64);
+            button10.Location = new Point(845, 62);
             button10.Name = "button10";
             button10.Size = new Size(75, 23);
             button10.TabIndex = 61;
@@ -2927,17 +2938,6 @@ namespace fingerPressure
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
-            // 
-            // checkBox1
-            // 
-            checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(169, 73);
-            checkBox1.Name = "checkBox1";
-            checkBox1.Size = new Size(75, 21);
-            checkBox1.TabIndex = 64;
-            checkBox1.Text = "温度曲线";
-            checkBox1.UseVisualStyleBackColor = true;
-            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
             // 
             // Main
             // 
