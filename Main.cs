@@ -23,12 +23,12 @@ namespace fingerPressure
         private SerialPort serialPort = new SerialPort();
         //private Dictionary<int, RollingPointPairList> channelData = new();
         //private Dictionary<int, PointPairList> channelData = new();
-        private Dictionary<int, RollingPointPairList> channelData = new();
+        private Dictionary<int, RollingPointPairList> channelData_temp = new();
         private Dictionary<int, RollingPointPairList> channelData2 = new();
-        private Dictionary<int, LineItem> channelCurves = new();
+        private Dictionary<int, LineItem> channelCurves_temp = new();
         private Dictionary<int, LineItem> channelCurves2 = new();
         private List<string> currentPacketLines = new();
-        private int MaxVisiblePackets = 500;
+        private int MaxVisiblePackets = 200;
         private int saveRate = 100;
         private GraphPane selectedChannelPane;
         private PointPairList selectedChannelList = new();
@@ -43,8 +43,8 @@ namespace fingerPressure
         private int selectedRealtimeChannel = 0;
 
         //校零
-        private double[] channelZeroOffsets = new double[162]; // 默认全为 0.0
-        private double[] channelZeroOffsets2 = new double[64]; // 默认全为 0.0
+        private double[] channelZeroOffsets = new double[40]; // 默认全为 0.0
+        private double[] channelZeroOffsets2 = new double[135]; // 默认全为 0.0
         private double xielv;
         // 用于暂存每个通道的前5个电压值
         private Dictionary<int, Queue<double>> zeroCalibBuffers = new Dictionary<int, Queue<double>>();
@@ -72,6 +72,7 @@ namespace fingerPressure
         //private BlockingCollection<List<string>> fileQueue = new BlockingCollection<List<string>>(new ConcurrentQueue<List<string>>());
         // 存储解析后的曲线更新数据
         private ConcurrentQueue<GraphUpdate> graphQueue = new ConcurrentQueue<GraphUpdate>();
+        private ConcurrentQueue<GraphUpdate> tempQueue = new ConcurrentQueue<GraphUpdate>();
 
         // 存储点阵刷新数据
         private ConcurrentQueue<DotMatrixUpdate> dotQueue = new ConcurrentQueue<DotMatrixUpdate>();
@@ -141,11 +142,14 @@ namespace fingerPressure
         private InferenceSession sessionModel2;
         private BlockingCollection<float[]> inferenceQueue = new BlockingCollection<float[]>(new ConcurrentQueue<float[]>());
 
-/*        private StreamWriter monitorWriter;
-        private Thread monitorThread;
-        private bool monitorRunning = true;*/
+        /*        private StreamWriter monitorWriter;
+                private Thread monitorThread;
+                private bool monitorRunning = true;*/
 
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
+        private int choosedFinger1 = -1; // 默认大拇指
+        private int choosedFinger3 = -1; // 默认大拇指
+        private int choosedFinger19 = -1; // 默认大拇指
 
         public struct SensorInferenceResult
         {
@@ -171,6 +175,7 @@ namespace fingerPressure
             public int Channel { get; set; }         // 压力通道编号 (0~26)
             public long Index { get; set; }          // 包序号
             public double Pressure { get; set; }     // 当前压力值
+            public double Temperature { get; set; }  // 当前温度值
             public double[] GyroValues { get; set; } // 当前传感器的6个陀螺仪值
         }
 
@@ -253,7 +258,7 @@ namespace fingerPressure
                 {
                     data.Add(new { Value = i, Text = $"CH{i}-{j}" });
                 }
-                    
+
             }
 
             // 绑定到多选 ComboBox
@@ -268,11 +273,11 @@ namespace fingerPressure
 
             InitGraph();
 
-            if(chuanGanQiType == "Yingbianhua")
+            if (chuanGanQiType == "Yingbianhua")
             {
                 InitModel();
             }
-            
+
 
             try
             {
@@ -296,45 +301,45 @@ namespace fingerPressure
 
                 //TestDraw();
 
-/*                // 打开监控日志文件
-                monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
+                /*                // 打开监控日志文件
+                                monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
 
-                // 启动监控线程
-                monitorThread = new Thread(() =>
-                {
-                    try
-                    {
-                        while (monitorRunning)
-                        {
-                            string logLine = string.Format(
-                                "[{0:HH:mm:ss}] UIQ={1}, RawQ={2}, FileQ={3}, Recv={4}, Saved={5}, Drop={6}, GC0={7}, GC1={8}, GC2={9}",
-                                DateTime.Now,
-                                uiQueue.Count,
-                                fileRawQueue.Count,
-                                fileQueue.Count,
-                                totalPacketCount,
-                                savedPacketCount,
-                                totalPacketCount - savedPacketCount,
-                                GC.CollectionCount(0),
-                                GC.CollectionCount(1),
-                                GC.CollectionCount(2)
-                            );
+                                // 启动监控线程
+                                monitorThread = new Thread(() =>
+                                {
+                                    try
+                                    {
+                                        while (monitorRunning)
+                                        {
+                                            string logLine = string.Format(
+                                                "[{0:HH:mm:ss}] UIQ={1}, RawQ={2}, FileQ={3}, Recv={4}, Saved={5}, Drop={6}, GC0={7}, GC1={8}, GC2={9}",
+                                                DateTime.Now,
+                                                uiQueue.Count,
+                                                fileRawQueue.Count,
+                                                fileQueue.Count,
+                                                totalPacketCount,
+                                                savedPacketCount,
+                                                totalPacketCount - savedPacketCount,
+                                                GC.CollectionCount(0),
+                                                GC.CollectionCount(1),
+                                                GC.CollectionCount(2)
+                                            );
 
-                            lock (monitorWriter)
-                            {
-                                monitorWriter.WriteLine(logLine);
-                            }
+                                            lock (monitorWriter)
+                                            {
+                                                monitorWriter.WriteLine(logLine);
+                                            }
 
-                            Thread.Sleep(5000); // 每5秒记录一次
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("监控线程错误: " + ex.Message);
-                    }
-                });
-                monitorThread.IsBackground = true;
-                monitorThread.Start();*/
+                                            Thread.Sleep(5000); // 每5秒记录一次
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        MessageBox.Show("监控线程错误: " + ex.Message);
+                                    }
+                                });
+                                monitorThread.IsBackground = true;
+                                monitorThread.Start();*/
 
             }
             catch (Exception ex)
@@ -354,7 +359,8 @@ namespace fingerPressure
                     sessionModel2 = new InferenceSession(model2Path);
                 }
 
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 MessageBox.Show("加载模型失败: " + ex.Message);
             }
@@ -367,7 +373,7 @@ namespace fingerPressure
 
             if (chuanGanQiType == "MEMS")
             {
-                tabControl1.TabPages.Add(tp2);
+                //tabControl1.TabPages.Add(tp2);
                 tabControl1.TabPages.Add(tp3);
                 tabControl1.TabPages.Add(tp4);
             }
@@ -764,7 +770,7 @@ namespace fingerPressure
                         {
                             int channelIndex = (addr - 1) * 8 + i; // 根据地址计算全局通道索引
 
-                            if (channelIndex < 0 || channelIndex >= 64) continue;
+                            if (channelIndex < 0 || channelIndex >= 40) continue;
 
                             if (!pressureCalibBuffers.ContainsKey(channelIndex))
                                 pressureCalibBuffers[channelIndex] = new List<double>();
@@ -825,7 +831,7 @@ namespace fingerPressure
                     {
                         int channelIndex = (addr - 1) * 8 + i;
 
-                        if (channelIndex < 0 || channelIndex >= 64) continue;
+                        if (channelIndex < 0 || channelIndex >= 40) continue;
 
                         if (double.TryParse(uiData[2 + i], out double value))
                         {
@@ -833,6 +839,21 @@ namespace fingerPressure
                             {
                                 double temp = Math.Round(value / 1000.0, 1);
                                 dotUpdate.TempValues[channelIndex] = temp;
+
+                                if (wendutu)
+                                {
+                                    var graphUpdate = new GraphUpdate
+                                    {
+                                        SensorIndex = addr - 1,
+                                        Channel = channelIndex,
+                                        Index = packetIndex,
+                                        Temperature = temp
+                                    };
+
+                                    if (tempQueue.Count >= MaxQueueSize)
+                                        tempQueue.TryDequeue(out _);
+                                    tempQueue.Enqueue(graphUpdate);
+                                }
                             }
                             else if (type == "F5") // 压力
                             {
@@ -844,6 +865,7 @@ namespace fingerPressure
                                     double correctedPressure = DenoiseByMedian(channelIndex, pressure);
                                     var graphUpdate = new GraphUpdate
                                     {
+                                        SensorIndex = addr - 1,
                                         Channel = channelIndex,
                                         Index = packetIndex,
                                         Pressure = correctedPressure
@@ -853,6 +875,7 @@ namespace fingerPressure
                                         graphQueue.TryDequeue(out _);
                                     graphQueue.Enqueue(graphUpdate);
                                 }
+
                             }
                         }
                     }
@@ -875,6 +898,60 @@ namespace fingerPressure
             {
                 try
                 {
+                    if (!int.TryParse(uiData[0].Replace("S", ""), out int addr))
+                        return;
+
+                    // === 校零采集逻辑 ===
+                    if (isZeroing)
+                    {
+                        // 遍历 27 个压力通道
+                        for (int i = 0; i < 27; i++)
+                        {
+                            // 根据传感器编号计算全局通道索引
+                            int channelIndex = (addr - 1) * 27 + i;
+
+                            // 越界检查（假设最多支持 5 个传感器 → 135 通道）
+                            if (channelIndex < 0 || channelIndex >= channelZeroOffsets2.Length)
+                                continue;
+
+                            if (!pressureCalibBuffers.ContainsKey(channelIndex))
+                                pressureCalibBuffers[channelIndex] = new List<double>();
+
+                            // uiData[1..27] 是压力值，所以压力的起始索引是 1
+                            if (double.TryParse(uiData[1 + i], out double pressure))
+                                pressureCalibBuffers[channelIndex].Add(pressure);
+                        }
+
+                        zeroingPacketCount++;
+
+                        if (zeroingPacketCount >= ZeroingTargetPackets)
+                        {
+                            for (int channel = 0; channel < channelZeroOffsets2.Length; channel++)
+                            {
+                                if (pressureCalibBuffers.ContainsKey(channel) && pressureCalibBuffers[channel].Count > 0)
+                                    channelZeroOffsets2[channel] = pressureCalibBuffers[channel].Average();
+                            }
+
+                            isZeroing = false;
+
+                            if (console_textBox.InvokeRequired)
+                            {
+                                console_textBox.BeginInvoke(new Action(() =>
+                                {
+                                    MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                }));
+                            }
+                            else
+                            {
+                                MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }
+
+                        return;
+                    }
+
+
+
                     int sensorCount = 5;
                     int pressureCount = 27;
 
@@ -897,7 +974,7 @@ namespace fingerPressure
                             if (double.TryParse(uiData[index++], out double rawPressure))
                             {
                                 int channelIndex = s * pressureCount + p;
-                                double pressure = rawPressure - channelZeroOffsets[channelIndex];
+                                double pressure = rawPressure - channelZeroOffsets2[channelIndex];
                                 dotUpdate.PressureValues[channelIndex] = pressure;
                                 pressures[p] = pressure;
                             }
@@ -962,6 +1039,8 @@ namespace fingerPressure
         private int tickCount = 0;
         private const int GraphRefreshInterval = 2;  // 每 2 个 tick 刷新滚动图
         private const int PanelRefreshInterval = 2;  // 每 2 个 tick 刷新点阵和云图
+        private readonly double[] panelValuesBuffer8 = new double[5 * 8]; // 预分配数组，零分配
+        private readonly double[] cloudValuesBuffer8 = new double[5 * 8];  // 每个 Panel 9 个点
         private readonly double[] panelValuesBuffer = new double[5 * 27]; // 预分配数组，零分配
         private readonly double[] cloudValuesBuffer = new double[5 * 9];  // 每个 Panel 9 个点
         private readonly double[] gyroValuesBuffer = new double[5 * 6];  // 每个 Panel 9 个点
@@ -970,124 +1049,193 @@ namespace fingerPressure
             bool needRefresh = false;
             GraphUpdate graphUpdate;
 
-            var pane = zedGraphControl2.GraphPane;
-
-            // 控制 X 轴显示范围
-            double xMin = packetIndex - MaxVisiblePackets;
-            if (xMin < 0) xMin = 0;
-            double xMax = packetIndex;
-
-            pane.XAxis.Scale.Min = xMin;
-            pane.XAxis.Scale.Max = xMax;
-            pane.YAxis.Scale.MagAuto = false;
-            pane.YAxis.Scale.Mag = 0;
-
             if (chuanGanQiType == "MEMS")
             {
-                // === 更新滚动图（zedGraphControl2） ===
+                var pane = zedGraphControl1.GraphPane;
+                var pane_temp = zedGraphControl19.GraphPane;
+
+                // 控制 X 轴显示范围
+                double xMin = packetIndex - MaxVisiblePackets;
+                if (xMin < 0) xMin = 0;
+                double xMax = packetIndex;
+
+                pane.XAxis.Scale.Min = xMin;
+                pane.XAxis.Scale.Max = xMax;
+                pane.YAxis.Scale.MagAuto = false;
+                pane.YAxis.Scale.Mag = 0;
+
+                pane_temp.XAxis.Scale.Min = xMin;
+                pane_temp.XAxis.Scale.Max = xMax;
+                pane_temp.YAxis.Scale.MagAuto = false;
+                pane_temp.YAxis.Scale.Mag = 0;
+
+
+                // === 更新滚动图（zedGraphControl1） ===
                 while (graphQueue.TryDequeue(out graphUpdate))
                 {
-                    needRefresh = true;
-
-                    if (!channelData2.ContainsKey(graphUpdate.Channel))
+                    if (choosedFinger1 != -1)
                     {
-                        var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                        var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
-                        channelData2[graphUpdate.Channel] = list;
-                        channelCurves2[graphUpdate.Channel] = curve;
-                    }
+                        int chuanganqiIndex = choosedFinger1;
+                        if (chuanganqiIndex == graphUpdate.SensorIndex)
+                        {
+                            needRefresh = true;
 
-                    if (graphUpdate.Index >= xMin)
-                    {
-                        channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+                            if (!channelData2.ContainsKey(graphUpdate.Channel))
+                            {
+                                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                                var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                channelData2[graphUpdate.Channel] = list;
+                                channelCurves2[graphUpdate.Channel] = curve;
+                            }
+
+                            if (graphUpdate.Index >= xMin)
+                            {
+                                channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+                            }
+                        }
                     }
                 }
 
                 if (needRefresh)
                 {
-                    zedGraphControl2.AxisChange();
-                    zedGraphControl2.Invalidate();
+                    zedGraphControl1.AxisChange();
+                    zedGraphControl1.Invalidate();
                 }
 
-                // === 更新点图和云图 Panels ===
-                DotMatrixUpdate dotUpdate;
-                while (dotQueue.TryDequeue(out dotUpdate))
+                while (tempQueue.TryDequeue(out graphUpdate))
                 {
-                    // 每个传感器地址 1~5，对应 8 通道
-                    for (int addr = 1; addr <= 5; addr++)
+                    if (choosedFinger19 != -1)
                     {
-                        // 计算对应的 8 个通道索引
-                        int startIndex = (addr - 1) * 8;
-
-                        // 更新点图 Panel
-                        var panelPoint = this.Controls.Find($"panel_finger{addr}_point", true).FirstOrDefault() as DoubleBufferedPanel;
-                        if (panelPoint != null)
+                        int chuanganqiIndex = choosedFinger19;
+                        if (chuanganqiIndex == graphUpdate.SensorIndex)
                         {
-                            double[] values = new double[8];
-                            Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
-                            panelPoint.Values = values;
-                            panelPoint.Invalidate();
-                        }
+                            needRefresh = true;
 
-                        // 更新云图 Panel
-                        var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                        var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        if (panelCloud != null)
-                        {
-                            double[] values = new double[8];
-                            Array.Copy(dotUpdate.PressureValues, startIndex, values, 0, 8);
-                            panelCloud.Values = values;
-                            panelCloud.Invalidate();
-
-                            // 更新最大最小值标签
-                            if (values.Length > 0)
+                            if (!channelData_temp.ContainsKey(graphUpdate.Channel))
                             {
-                                double maxVal = values.Max();
-                                double minVal = values.Min();
-
-                                if (labelMax != null)
-                                    labelMax.Text = $"Max: {maxVal:F1}";
-
-                                if (labelMin != null)
-                                    labelMin.Text = $"Min: {minVal:F1}";
+                                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                                var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                channelData_temp[graphUpdate.Channel] = list;
+                                channelCurves_temp[graphUpdate.Channel] = curve;
                             }
-                        }
 
-                        var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
-                        if (panelPoint2 != null)
-                        {
-                            double[] values = new double[8];
-                            Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
-                            panelPoint2.Values = values;
-                            panelPoint2.Invalidate();
-                        }
-
-                        // 更新云图 Panel
-                        var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                        var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        if (panelCloud2 != null)
-                        {
-                            double[] values = new double[8];
-                            Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
-                            panelCloud2.Values = values;
-                            panelCloud2.Invalidate();
-
-                            // 更新最大最小值标签
-                            if (values.Length > 0)
+                            if (graphUpdate.Index >= xMin)
                             {
-                                double maxVal = values.Max();
-                                double minVal = values.Min();
-
-                                if (labelMax_temp != null)
-                                    labelMax_temp.Text = $"Max: {maxVal:F1}";
-
-                                if (labelMin_temp != null)
-                                    labelMin_temp.Text = $"Min: {minVal:F1}";
+                                channelData_temp[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Temperature);
                             }
                         }
                     }
+                }
+
+                if (needRefresh)
+                {
+                    zedGraphControl19.AxisChange();
+                    zedGraphControl19.Invalidate();
+                }
+
+                // === 更新点图和云图 Panels ===
+                while (dotQueue.TryDequeue(out var dequeuedUpdate))
+                {
+                    var dotUpdate = dequeuedUpdate; // 建立副本，避免闭包问题
+                    if (dotUpdate == null)
+                        continue; // 跳过 null 元素
+
+                    Task.Run(() =>
+                    {
+                        int sensorCount = 5;
+                        int pressureCount = 8;
+
+                        Array.Clear(panelValuesBuffer8, 0, panelValuesBuffer8.Length);
+                        Array.Clear(cloudValuesBuffer8, 0, cloudValuesBuffer8.Length);
+
+                        for (int s = 0; s < sensorCount; s++)
+                        {
+                            // --- 压力点值 ---
+                            Array.Copy(dotUpdate.PressureValues, s * pressureCount, panelValuesBuffer8, s * pressureCount, pressureCount);
+                            Array.Copy(dotUpdate.TempValues, s * pressureCount, cloudValuesBuffer8, s * pressureCount, pressureCount);
+
+                        }
+
+                        // 更新 UI 线程
+                        this.BeginInvoke(() =>
+                        {
+                            // 每个传感器地址 1~5，对应 8 通道
+                            for (int addr = 1; addr <= 5; addr++)
+                            {
+                                // 计算对应的 8 个通道索引
+                                int startIndex = (addr - 1) * 8;
+
+                                // 更新点图 Panel
+                                var panelPoint = this.Controls.Find($"panel_finger{addr}_point", true).FirstOrDefault() as DoubleBufferedPanel;
+                                if (panelPoint != null)
+                                {
+                                    double[] values = new double[8];
+                                    Array.Copy(panelValuesBuffer8, startIndex, values, 0, 8);
+                                    panelPoint.Values = values;
+                                    panelPoint.Invalidate();
+                                }
+
+                                // 更新云图 Panel
+                                var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                                var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
+                                var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
+                                if (panelCloud != null)
+                                {
+                                    double[] values = new double[8];
+                                    Array.Copy(panelValuesBuffer8, startIndex, values, 0, 8);
+                                    panelCloud.Values = values;
+                                    panelCloud.Invalidate();
+
+                                    // 更新最大最小值标签
+                                    if (values.Length > 0)
+                                    {
+                                        double maxVal = values.Max();
+                                        double minVal = values.Min();
+
+                                        if (labelMax != null)
+                                            labelMax.Text = $"Max: {maxVal:F1}";
+
+                                        if (labelMin != null)
+                                            labelMin.Text = $"Min: {minVal:F1}";
+                                    }
+                                }
+
+                                var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
+                                if (panelPoint2 != null)
+                                {
+                                    double[] values = new double[8];
+                                    Array.Copy(dotUpdate.TempValues, startIndex, values, 0, 8);
+                                    panelPoint2.Values = values;
+                                    panelPoint2.Invalidate();
+                                }
+
+                                // 更新云图 Panel
+                                var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                                var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
+                                var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
+                                if (panelCloud2 != null)
+                                {
+                                    double[] values = new double[8];
+                                    Array.Copy(cloudValuesBuffer8, startIndex, values, 0, 8);
+                                    panelCloud2.Values = values;
+                                    panelCloud2.Invalidate();
+
+                                    // 更新最大最小值标签
+                                    if (values.Length > 0)
+                                    {
+                                        double maxVal = values.Max();
+                                        double minVal = values.Min();
+
+                                        if (labelMax_temp != null)
+                                            labelMax_temp.Text = $"Max: {maxVal:F1}";
+
+                                        if (labelMin_temp != null)
+                                            labelMin_temp.Text = $"Min: {minVal:F1}";
+                                    }
+                                }
+                            }
+                        });
+                    });
                 }
             }
             else if (chuanGanQiType == "Yingbianhua")
@@ -1223,31 +1371,44 @@ namespace fingerPressure
                                         //}
                                     }
                                 }*/
+                var pane3 = zedGraphControl3.GraphPane;
+
+                // 控制 X 轴显示范围
+                double xMin = packetIndex - MaxVisiblePackets;
+                if (xMin < 0) xMin = 0;
+                double xMax = packetIndex;
+
+                pane3.XAxis.Scale.Min = xMin;
+                pane3.XAxis.Scale.Max = xMax;
+                pane3.YAxis.Scale.MagAuto = false;
+                pane3.YAxis.Scale.Mag = 0;
+
                 while (graphQueue.TryDequeue(out graphUpdate))
                 {
-                    needRefresh = true;
 
-                    if (!channelData2.ContainsKey(graphUpdate.Channel))
+                    if (choosedFinger3 != -1)
                     {
-                        var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                        var curve = pane.AddCurve(
-                            $"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}",
-                            list,
-                            GetColor(graphUpdate.Channel),
-                            SymbolType.None);
-                        channelData2[graphUpdate.Channel] = list;
-                        channelCurves2[graphUpdate.Channel] = curve;
-                    }
-
-                    if (graphUpdate.Index >= xMin)
-                        channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
-
-
-                    if (comboBox4.SelectedIndex != -1)
-                    {
-                        int chuanganqiIndex = comboBox4.SelectedIndex;
-                        if(chuanganqiIndex == graphUpdate.SensorIndex)
+                        int chuanganqiIndex = choosedFinger3;
+                        if (chuanganqiIndex == graphUpdate.SensorIndex)
                         {
+                            needRefresh = true;
+
+                            if (!channelData2.ContainsKey(graphUpdate.Channel))
+                            {
+                                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                                var curve = pane3.AddCurve(
+                                    $"CH{graphUpdate.Channel + 1}",
+                                    list,
+                                    GetColor(graphUpdate.Channel),
+                                    SymbolType.None);
+                                channelData2[graphUpdate.Channel] = list;
+                                channelCurves2[graphUpdate.Channel] = curve;
+                            }
+
+                            if (graphUpdate.Index >= xMin)
+                                channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+
+
                             label_ax.Text = $"Ax: {graphUpdate.GyroValues[0]:F2}";
                             label_ay.Text = $"Ay: {graphUpdate.GyroValues[1]:F2}";
                             label_az.Text = $"Az: {graphUpdate.GyroValues[2]:F2}";
@@ -1261,8 +1422,8 @@ namespace fingerPressure
                 // 每 GraphRefreshInterval tick 批量刷新滚动图
                 if (tickCount % GraphRefreshInterval == 0 && needRefresh)
                 {
-                    zedGraphControl2.AxisChange();
-                    zedGraphControl2.Invalidate();
+                    zedGraphControl3.AxisChange();
+                    zedGraphControl3.Invalidate();
                 }
 
                 // === 更新点图和云图 Panels，每 PanelRefreshInterval tick 批量刷新 ===
@@ -1342,9 +1503,9 @@ namespace fingerPressure
 
 
                                     // --- 显示模型推理结果 ---
-                                    if (comboBox4.SelectedIndex != -1)
+                                    if (choosedFinger3 != -1)
                                     {
-                                        int chuanganqiIndex = comboBox4.SelectedIndex;
+                                        int chuanganqiIndex = choosedFinger3;
                                         if (latestResults.TryGetValue(chuanganqiIndex, out var result))
                                         {
                                             label_fxy.Text = $"Fxy: {result.Fx:F2}";
@@ -1749,7 +1910,7 @@ namespace fingerPressure
                     // 获取 List<string> 对象池
                     var uiData = uiDataPool.Rent();
                     uiData.Clear();
-                    uiData.Add("S"+addr.ToString());
+                    uiData.Add("S" + addr.ToString());
                     uiData.Add(type.ToString("X2"));
                     for (int i = 0; i < 8; i++)
                         uiData.Add(values[i].ToString());
@@ -1922,8 +2083,8 @@ namespace fingerPressure
                         var probTensor = results2.First(x => x.Name == "probabilities").AsTensor<float>();
 
                         // 零分配拷贝 405 个概率
-                        int rows2 = probTensor.Dimensions[0]; 
-                        int cols2 = probTensor.Dimensions[1]; 
+                        int rows2 = probTensor.Dimensions[0];
+                        int cols2 = probTensor.Dimensions[1];
 
                         // 将二维数据拷贝到一维缓冲区
                         for (int r = 0; r < rows; r++)
@@ -1993,7 +2154,7 @@ namespace fingerPressure
                     {
                         line = FormatPacketToOneCsvLineFast27(packet);
                     }
-                    
+
                     if (line == null) continue;
 
                     // fileQueue 有界 + 丢最旧，确保不堆积
@@ -2039,11 +2200,21 @@ namespace fingerPressure
             // 先写时间戳
             _sbCache.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
 
-            // 拼接 175 个值
-            for (int i = 0; i < 10; i++)
+            if (packet[1] == "F4")
             {
-                _sbCache.Append(',');
-                _sbCache.Append(packet[i]);
+                for (int i = 0; i < 8; i++)
+                {
+                    _sbCache.Append(',');
+                    _sbCache.Append(packet[i]);
+                }
+            }
+            else if (packet[1] == "F5")
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    _sbCache.Append(',');
+                    _sbCache.Append(packet[i]);
+                }
             }
 
             return _sbCache.ToString();
@@ -2212,19 +2383,54 @@ namespace fingerPressure
 
         private void InitGraph()
         {
+            //GraphPane pane2 = zedGraphControl2.GraphPane;
+            //SetPaneFont(pane2);
+            //pane2.Title.Text = "全通道压力总览";
+            //pane2.XAxis.Title.Text = "数据包编号";
+            //pane2.YAxis.Title.Text = "压力";
+            //pane2.YAxis.Scale.MinAuto = true;
+            //pane2.YAxis.Scale.MaxAuto = true;
+            ////强制 X 轴显示为整数
+            //pane2.XAxis.Type = AxisType.Linear;
+            //pane2.XAxis.Scale.MajorStep = 1;
+            //pane2.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
+            //zedGraphControl2.AxisChange(); // 应用更改
 
-            GraphPane pane2 = zedGraphControl2.GraphPane;
-            SetPaneFont(pane2);
-            pane2.Title.Text = "全通道压力总览";
-            pane2.XAxis.Title.Text = "数据包编号";
-            pane2.YAxis.Title.Text = "压力";
-            pane2.YAxis.Scale.MinAuto = true;
-            pane2.YAxis.Scale.MaxAuto = true;
+            GraphPane pane3 = zedGraphControl3.GraphPane;
+            pane3.Title.Text = "27通道压力总览";
+            pane3.XAxis.Title.Text = "数据包编号";
+            pane3.YAxis.Title.Text = "压力";
+            pane3.YAxis.Scale.MinAuto = true;
+            pane3.YAxis.Scale.MaxAuto = true;
             //强制 X 轴显示为整数
-            pane2.XAxis.Type = AxisType.Linear;
-            pane2.XAxis.Scale.MajorStep = 1;
-            pane2.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
-            zedGraphControl2.AxisChange(); // 应用更改
+            pane3.XAxis.Type = AxisType.Linear;
+            pane3.XAxis.Scale.MajorStep = 1;
+            pane3.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
+            zedGraphControl3.AxisChange(); // 应用更改
+
+            GraphPane pane1 = zedGraphControl1.GraphPane;
+            pane1.Title.Text = "8通道压力总览";
+            pane1.XAxis.Title.Text = "数据包编号";
+            pane1.YAxis.Title.Text = "压力";
+            pane1.YAxis.Scale.MinAuto = true;
+            pane1.YAxis.Scale.MaxAuto = true;
+            //强制 X 轴显示为整数
+            pane1.XAxis.Type = AxisType.Linear;
+            pane1.XAxis.Scale.MajorStep = 1;
+            pane1.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
+            zedGraphControl1.AxisChange(); // 应用更改
+
+            GraphPane pane19 = zedGraphControl19.GraphPane;
+            pane19.Title.Text = "8通道温度总览";
+            pane19.XAxis.Title.Text = "数据包编号";
+            pane19.YAxis.Title.Text = "温度";
+            pane19.YAxis.Scale.MinAuto = true;
+            pane19.YAxis.Scale.MaxAuto = true;
+            //强制 X 轴显示为整数
+            pane19.XAxis.Type = AxisType.Linear;
+            pane19.XAxis.Scale.MajorStep = 1;
+            pane19.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
+            zedGraphControl19.AxisChange(); // 应用更改
         }
 
         /// 更新通道曲线（只绘制压力，所有通道在一个图里）
@@ -2385,22 +2591,58 @@ namespace fingerPressure
             // 清空图表数据并重建曲线
             channelData2.Clear();
             channelCurves2.Clear();
-            var pane = zedGraphControl2.GraphPane;
-            pane.CurveList.Clear();
-
-            for (int ch = 0; ch < 64; ch++)
-            {
-                var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                channelData2[ch] = list;
-                channelCurves2[ch] = curve;
-            }
 
             packetIndex = 0;
 
-            // 重绘主图
-            zedGraphControl2.AxisChange();
-            zedGraphControl2.Invalidate();
+            if (chuanGanQiType == "MEMS")
+            {
+                var pane = zedGraphControl1.GraphPane;
+                pane.CurveList.Clear();
+
+                for (int ch = 0; ch < 8; ch++)
+                {
+                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                    var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                    channelData2[ch] = list;
+                    channelCurves2[ch] = curve;
+                }
+
+                // 重绘主图
+                zedGraphControl1.AxisChange();
+                zedGraphControl1.Invalidate();
+
+                var pane19 = zedGraphControl19.GraphPane;
+                pane19.CurveList.Clear();
+
+                for (int ch = 0; ch < 8; ch++)
+                {
+                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                    var curve = pane19.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                    channelData_temp[ch] = list;
+                    channelCurves_temp[ch] = curve;
+                }
+
+                // 重绘主图
+                zedGraphControl19.AxisChange();
+                zedGraphControl19.Invalidate();
+            }
+            else if (chuanGanQiType == "Yingbianhua")
+            {
+                var pane3 = zedGraphControl3.GraphPane;
+                pane3.CurveList.Clear();
+
+
+                for (int ch = 0; ch < 27; ch++)
+                {
+                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                    var curve = pane3.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                    channelData2[ch] = list;
+                    channelCurves2[ch] = curve;
+                }
+
+                zedGraphControl3.AxisChange();
+                zedGraphControl3.Invalidate();
+            }
 
             LogToConsole_NotLog("图表已清空，并应用新的显示点数限制。");
         }
@@ -2718,7 +2960,47 @@ namespace fingerPressure
 
         private void button4_Click(object sender, EventArgs e)
         {
+            choosedFinger1 = comboBox3.SelectedIndex;
 
+            // 设置刷新间隔
+            if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
+            {
+                MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            refreshTimer.Interval = refreshMs;
+
+            LoadMeasureSetJson();
+
+            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
+            {
+                MaxVisiblePackets = maxVisible;
+            }
+            else
+            {
+                MaxVisiblePackets = -1; // 显示全部
+                LogToConsole_NotLog("未设置或输入无效，显示全部数据");
+            }
+
+            // 清空图表数据并重建曲线
+            channelData2.Clear();
+            channelCurves2.Clear();
+            var pane = zedGraphControl1.GraphPane;
+            pane.CurveList.Clear();
+
+            for (int ch = 0; ch < 8; ch++)
+            {
+                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                channelData2[ch] = list;
+                channelCurves2[ch] = curve;
+            }
+
+            packetIndex = 0;
+
+            // 重绘主图
+            zedGraphControl1.AxisChange();
+            zedGraphControl1.Invalidate();
         }
 
         private void button8_Click(object sender, EventArgs e)
@@ -2905,6 +3187,108 @@ namespace fingerPressure
         {
             Form form = new Setting();
             form.ShowDialog();
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            choosedFinger3 = comboBox4.SelectedIndex;
+
+            // 设置刷新间隔
+            if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
+            {
+                MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            refreshTimer.Interval = refreshMs;
+
+            LoadMeasureSetJson();
+
+            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
+            {
+                MaxVisiblePackets = maxVisible;
+            }
+            else
+            {
+                MaxVisiblePackets = -1; // 显示全部
+                LogToConsole_NotLog("未设置或输入无效，显示全部数据");
+            }
+
+            // 清空图表数据并重建曲线
+            channelData2.Clear();
+            channelCurves2.Clear();
+            var pane3 = zedGraphControl3.GraphPane;
+            pane3.CurveList.Clear();
+
+            for (int ch = 0; ch < 27; ch++)
+            {
+                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                var curve = pane3.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                channelData2[ch] = list;
+                channelCurves2[ch] = curve;
+            }
+
+            packetIndex = 0;
+
+            // 重绘主图
+            zedGraphControl3.AxisChange();
+            zedGraphControl3.Invalidate();
+        }
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            choosedFinger19 = comboBox6.SelectedIndex;
+
+            // 设置刷新间隔
+            if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
+            {
+                MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            refreshTimer.Interval = refreshMs;
+
+            LoadMeasureSetJson();
+
+            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
+            {
+                MaxVisiblePackets = maxVisible;
+            }
+            else
+            {
+                MaxVisiblePackets = -1; // 显示全部
+                LogToConsole_NotLog("未设置或输入无效，显示全部数据");
+            }
+
+            // 清空图表数据并重建曲线
+            channelData_temp.Clear();
+            channelCurves_temp.Clear();
+            var pane = zedGraphControl19.GraphPane;
+            pane.CurveList.Clear();
+
+            for (int ch = 0; ch < 8; ch++)
+            {
+                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                channelData_temp[ch] = list;
+                channelCurves_temp[ch] = curve;
+            }
+
+            packetIndex = 0;
+
+            // 重绘主图
+            zedGraphControl19.AxisChange();
+            zedGraphControl19.Invalidate();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox1.Checked)
+            {
+                wendutu = true;
+            }
+            else
+            {
+                wendutu = false;
+            }
         }
     }
 }

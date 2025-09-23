@@ -125,7 +125,7 @@ namespace fingerPressure
                           ControlStyles.UserPaint |
                           ControlStyles.OptimizedDoubleBuffer, true);
             this.UpdateStyles();
-            this.BackColor = Color.White;
+            //this.BackColor = Color.White;
             this.Resize += (_, __) => GenerateBackgroundCache();
             this.FontChanged += (_, __) => CacheFontHeight();
             CacheFontHeight();

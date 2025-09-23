@@ -210,6 +210,7 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            checkBox1 = new CheckBox();
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -396,7 +397,8 @@ namespace fingerPressure
             // 
             // panel2
             // 
-            panel2.BorderStyle = BorderStyle.FixedSingle;
+            panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel2.Controls.Add(checkBox1);
             panel2.Controls.Add(comboBox5);
             panel2.Controls.Add(label67);
             panel2.Controls.Add(button10);
@@ -659,7 +661,7 @@ namespace fingerPressure
             // 
             // panel1
             // 
-            panel1.BorderStyle = BorderStyle.FixedSingle;
+            panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             panel1.Controls.Add(tabControl1);
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 0);
@@ -1942,6 +1944,7 @@ namespace fingerPressure
             button9.TabIndex = 42;
             button9.Text = "确定";
             button9.UseVisualStyleBackColor = false;
+            button9.Click += button9_Click;
             // 
             // comboBox4
             // 
@@ -2774,6 +2777,7 @@ namespace fingerPressure
             button11.TabIndex = 42;
             button11.Text = "确定";
             button11.UseVisualStyleBackColor = false;
+            button11.Click += button11_Click;
             // 
             // comboBox6
             // 
@@ -2923,6 +2927,17 @@ namespace fingerPressure
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(169, 73);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(75, 21);
+            checkBox1.TabIndex = 64;
+            checkBox1.Text = "温度曲线";
+            checkBox1.UseVisualStyleBackColor = true;
+            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
             // 
             // Main
             // 
@@ -3223,5 +3238,6 @@ namespace fingerPressure
         private Label label_gx;
         private Label label_ax;
         private ToolStripButton toolStripButton2;
+        private CheckBox checkBox1;
     }
 }
