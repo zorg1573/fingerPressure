@@ -42,6 +42,7 @@ namespace fingerPressure
             splitContainer1 = new SplitContainer();
             splitContainer2 = new SplitContainer();
             panel2 = new Panel();
+            checkBox4 = new CheckBox();
             checkBox1 = new CheckBox();
             comboBox5 = new ComboBox();
             label67 = new Label();
@@ -212,7 +213,6 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
-            checkBox4 = new CheckBox();
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -429,6 +429,17 @@ namespace fingerPressure
             panel2.Size = new Size(1414, 103);
             panel2.TabIndex = 31;
             // 
+            // checkBox4
+            // 
+            checkBox4.AutoSize = true;
+            checkBox4.Location = new Point(243, 73);
+            checkBox4.Name = "checkBox4";
+            checkBox4.Size = new Size(87, 21);
+            checkBox4.TabIndex = 65;
+            checkBox4.Text = "归一化输出";
+            checkBox4.UseVisualStyleBackColor = true;
+            checkBox4.CheckedChanged += checkBox4_CheckedChanged;
+            // 
             // checkBox1
             // 
             checkBox1.AutoSize = true;
@@ -532,7 +543,7 @@ namespace fingerPressure
             // comboBox1
             // 
             comboBox1.FormattingEnabled = true;
-            comboBox1.Items.AddRange(new object[] { "100Hz", "10Hz", "1Hz", "0.1Hz", "1/60Hz" });
+            comboBox1.Items.AddRange(new object[] { "100Hz", "50Hz", "10Hz", "1Hz", "0.1Hz", "1/60Hz" });
             comboBox1.Location = new Point(464, 44);
             comboBox1.Name = "comboBox1";
             comboBox1.Size = new Size(76, 25);
@@ -876,6 +887,7 @@ namespace fingerPressure
             panel_finger1_cloud.Controls.Add(label_finger1_max);
             panel_finger1_cloud.Controls.Add(label_finger1_min);
             panel_finger1_cloud.Dock = DockStyle.Fill;
+            panel_finger1_cloud.Guiyihua = false;
             panel_finger1_cloud.Location = new Point(3, 23);
             panel_finger1_cloud.Name = "panel_finger1_cloud";
             panel_finger1_cloud.Size = new Size(200, 149);
@@ -941,6 +953,7 @@ namespace fingerPressure
             panel_finger2_cloud.Controls.Add(label_finger2_max);
             panel_finger2_cloud.Controls.Add(label_finger2_min);
             panel_finger2_cloud.Dock = DockStyle.Fill;
+            panel_finger2_cloud.Guiyihua = false;
             panel_finger2_cloud.Location = new Point(209, 23);
             panel_finger2_cloud.Name = "panel_finger2_cloud";
             panel_finger2_cloud.Size = new Size(200, 149);
@@ -986,6 +999,7 @@ namespace fingerPressure
             panel_finger3_cloud.Controls.Add(label_finger3_max);
             panel_finger3_cloud.Controls.Add(label_finger3_min);
             panel_finger3_cloud.Dock = DockStyle.Fill;
+            panel_finger3_cloud.Guiyihua = false;
             panel_finger3_cloud.Location = new Point(415, 23);
             panel_finger3_cloud.Name = "panel_finger3_cloud";
             panel_finger3_cloud.Size = new Size(200, 149);
@@ -1051,6 +1065,7 @@ namespace fingerPressure
             panel_finger4_cloud.Controls.Add(label_finger4_max);
             panel_finger4_cloud.Controls.Add(label_finger4_min);
             panel_finger4_cloud.Dock = DockStyle.Fill;
+            panel_finger4_cloud.Guiyihua = false;
             panel_finger4_cloud.Location = new Point(621, 23);
             panel_finger4_cloud.Name = "panel_finger4_cloud";
             panel_finger4_cloud.Size = new Size(200, 149);
@@ -1116,6 +1131,7 @@ namespace fingerPressure
             panel_finger5_cloud.Controls.Add(label_finger5_max);
             panel_finger5_cloud.Controls.Add(label_finger5_min);
             panel_finger5_cloud.Dock = DockStyle.Fill;
+            panel_finger5_cloud.Guiyihua = false;
             panel_finger5_cloud.Location = new Point(827, 23);
             panel_finger5_cloud.Name = "panel_finger5_cloud";
             panel_finger5_cloud.Size = new Size(203, 149);
@@ -2292,6 +2308,7 @@ namespace fingerPressure
             panel_finger1_cloud_temp.Controls.Add(label25);
             panel_finger1_cloud_temp.Controls.Add(label26);
             panel_finger1_cloud_temp.Dock = DockStyle.Fill;
+            panel_finger1_cloud_temp.Guiyihua = false;
             panel_finger1_cloud_temp.Location = new Point(3, 23);
             panel_finger1_cloud_temp.Name = "panel_finger1_cloud_temp";
             panel_finger1_cloud_temp.Size = new Size(222, 149);
@@ -2382,6 +2399,7 @@ namespace fingerPressure
             panel_finger2_cloud_temp.Controls.Add(label27);
             panel_finger2_cloud_temp.Controls.Add(label28);
             panel_finger2_cloud_temp.Dock = DockStyle.Fill;
+            panel_finger2_cloud_temp.Guiyihua = false;
             panel_finger2_cloud_temp.Location = new Point(231, 23);
             panel_finger2_cloud_temp.Name = "panel_finger2_cloud_temp";
             panel_finger2_cloud_temp.Size = new Size(222, 149);
@@ -2451,6 +2469,7 @@ namespace fingerPressure
             panel_finger3_cloud_temp.Controls.Add(label29);
             panel_finger3_cloud_temp.Controls.Add(label30);
             panel_finger3_cloud_temp.Dock = DockStyle.Fill;
+            panel_finger3_cloud_temp.Guiyihua = false;
             panel_finger3_cloud_temp.Location = new Point(459, 23);
             panel_finger3_cloud_temp.Name = "panel_finger3_cloud_temp";
             panel_finger3_cloud_temp.Size = new Size(222, 149);
@@ -2540,6 +2559,7 @@ namespace fingerPressure
             panel_finger4_cloud_temp.Controls.Add(label31);
             panel_finger4_cloud_temp.Controls.Add(label32);
             panel_finger4_cloud_temp.Dock = DockStyle.Fill;
+            panel_finger4_cloud_temp.Guiyihua = false;
             panel_finger4_cloud_temp.Location = new Point(687, 23);
             panel_finger4_cloud_temp.Name = "panel_finger4_cloud_temp";
             panel_finger4_cloud_temp.Size = new Size(222, 149);
@@ -2629,6 +2649,7 @@ namespace fingerPressure
             panel_finger5_cloud_temp.Controls.Add(label33);
             panel_finger5_cloud_temp.Controls.Add(label34);
             panel_finger5_cloud_temp.Dock = DockStyle.Fill;
+            panel_finger5_cloud_temp.Guiyihua = false;
             panel_finger5_cloud_temp.Location = new Point(915, 23);
             panel_finger5_cloud_temp.Name = "panel_finger5_cloud_temp";
             panel_finger5_cloud_temp.Size = new Size(226, 149);
@@ -2952,17 +2973,6 @@ namespace fingerPressure
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
-            // 
-            // checkBox4
-            // 
-            checkBox4.AutoSize = true;
-            checkBox4.Location = new Point(243, 73);
-            checkBox4.Name = "checkBox4";
-            checkBox4.Size = new Size(87, 21);
-            checkBox4.TabIndex = 65;
-            checkBox4.Text = "归一化输出";
-            checkBox4.UseVisualStyleBackColor = true;
-            checkBox4.CheckedChanged += checkBox4_CheckedChanged;
             // 
             // Main
             // 

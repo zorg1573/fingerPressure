@@ -243,7 +243,7 @@ namespace fingerPressure
                 }
 
                 // 数值绘制
-                string text = value.ToString("F0"); // 固定格式，避免字符串过长
+                string text = value.ToString("F1"); // 固定格式，避免字符串过长
                 SizeF textSize = g.MeasureString(text, this.Font);
                 g.DrawString(
                     text,
