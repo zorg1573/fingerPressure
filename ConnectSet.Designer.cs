@@ -33,6 +33,8 @@ namespace fingerPressure
         private void InitializeComponent()
         {
             panel1 = new Panel();
+            COMPort_right = new ComboBox();
+            label7 = new Label();
             button2 = new Button();
             button1 = new Button();
             COMPort_left = new ComboBox();
@@ -49,8 +51,6 @@ namespace fingerPressure
             label2 = new Label();
             flowLayoutPanel1 = new FlowLayoutPanel();
             pictureBox4 = new PictureBox();
-            COMPort_right = new ComboBox();
-            label7 = new Label();
             panel1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox4).BeginInit();
@@ -80,6 +80,25 @@ namespace fingerPressure
             panel1.Name = "panel1";
             panel1.Size = new Size(286, 346);
             panel1.TabIndex = 16;
+            // 
+            // COMPort_right
+            // 
+            COMPort_right.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            COMPort_right.FormattingEnabled = true;
+            COMPort_right.Location = new Point(130, 46);
+            COMPort_right.Name = "COMPort_right";
+            COMPort_right.Size = new Size(121, 24);
+            COMPort_right.TabIndex = 42;
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            label7.Location = new Point(24, 49);
+            label7.Name = "label7";
+            label7.Size = new Size(103, 16);
+            label7.TabIndex = 41;
+            label7.Text = "右手串口号：";
             // 
             // button2
             // 
@@ -216,7 +235,7 @@ namespace fingerPressure
             // 
             BaudRate.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             BaudRate.FormattingEnabled = true;
-            BaudRate.Items.AddRange(new object[] { "9600", "19200", "38400", "57600", "115200", "921600" });
+            BaudRate.Items.AddRange(new object[] { "9600", "19200", "38400", "57600", "115200", "460800", "921600" });
             BaudRate.Location = new Point(130, 81);
             BaudRate.Name = "BaudRate";
             BaudRate.Size = new Size(121, 24);
@@ -252,25 +271,6 @@ namespace fingerPressure
             pictureBox4.TabIndex = 41;
             pictureBox4.TabStop = false;
             pictureBox4.Click += pictureBox4_Click;
-            // 
-            // COMPort_right
-            // 
-            COMPort_right.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            COMPort_right.FormattingEnabled = true;
-            COMPort_right.Location = new Point(130, 46);
-            COMPort_right.Name = "COMPort_right";
-            COMPort_right.Size = new Size(121, 24);
-            COMPort_right.TabIndex = 42;
-            // 
-            // label7
-            // 
-            label7.AutoSize = true;
-            label7.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            label7.Location = new Point(24, 49);
-            label7.Name = "label7";
-            label7.Size = new Size(103, 16);
-            label7.TabIndex = 41;
-            label7.Text = "右手串口号：";
             // 
             // ConnectSet
             // 

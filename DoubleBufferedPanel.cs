@@ -105,6 +105,7 @@ namespace fingerPressure
 }
 */
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -157,7 +158,7 @@ namespace fingerPressure
         {
             backgroundCache?.Dispose();
             backgroundCache = new Bitmap(this.Width, this.Height);
-            dotRects = new Rectangle[values.Length];
+            dotRects = new Rectangle[values.Length+1];
 
             using (var g = Graphics.FromImage(backgroundCache))
             {
@@ -197,6 +198,17 @@ namespace fingerPressure
                         valueIndex++;
                     }
                 }
+                dotRects[8] = dotRects[5];
+                dotRects[5] = dotRects[7];
+                dotRects[7] = dotRects[8];
+
+                dotRects[8] = dotRects[0];
+                dotRects[0] = dotRects[1];
+                dotRects[1] = dotRects[8];
+
+                dotRects[8] = dotRects[2];
+                dotRects[2] = dotRects[4];
+                dotRects[4] = dotRects[8];
             }
         }
 
@@ -231,7 +243,7 @@ namespace fingerPressure
                 }
 
                 // 数值绘制
-                string text = value.ToString("F1"); // 固定格式，避免字符串过长
+                string text = value.ToString("F0"); // 固定格式，避免字符串过长
                 SizeF textSize = g.MeasureString(text, this.Font);
                 g.DrawString(
                     text,

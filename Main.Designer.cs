@@ -201,6 +201,7 @@ namespace fingerPressure
             comboBox6 = new ComboBox();
             label37 = new Label();
             zedGraphControl19 = new ZedGraph.ZedGraphControl();
+            tabPage7 = new TabPage();
             tableLayoutPanel9 = new TableLayoutPanel();
             console_textBox = new TextBox();
             packetCountLabel = new Label();
@@ -211,6 +212,7 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            checkBox4 = new CheckBox();
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -398,6 +400,7 @@ namespace fingerPressure
             // panel2
             // 
             panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel2.Controls.Add(checkBox4);
             panel2.Controls.Add(checkBox1);
             panel2.Controls.Add(comboBox5);
             panel2.Controls.Add(label67);
@@ -429,7 +432,7 @@ namespace fingerPressure
             // checkBox1
             // 
             checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(169, 73);
+            checkBox1.Location = new Point(84, 73);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(75, 21);
             checkBox1.TabIndex = 64;
@@ -549,7 +552,7 @@ namespace fingerPressure
             // checkBox3
             // 
             checkBox3.AutoSize = true;
-            checkBox3.Location = new Point(88, 73);
+            checkBox3.Location = new Point(162, 73);
             checkBox3.Name = "checkBox3";
             checkBox3.Size = new Size(75, 21);
             checkBox3.TabIndex = 44;
@@ -686,6 +689,7 @@ namespace fingerPressure
             tabControl1.Controls.Add(tabPage3);
             tabControl1.Controls.Add(tabPage1);
             tabControl1.Controls.Add(tabPage4);
+            tabControl1.Controls.Add(tabPage7);
             tabControl1.Dock = DockStyle.Fill;
             tabControl1.Location = new Point(0, 0);
             tabControl1.Name = "tabControl1";
@@ -2826,6 +2830,16 @@ namespace fingerPressure
             zedGraphControl19.TabIndex = 3;
             zedGraphControl19.UseExtendedPrintDialog = true;
             // 
+            // tabPage7
+            // 
+            tabPage7.Location = new Point(4, 26);
+            tabPage7.Name = "tabPage7";
+            tabPage7.Padding = new Padding(3);
+            tabPage7.Size = new Size(1404, 337);
+            tabPage7.TabIndex = 7;
+            tabPage7.Text = "tabPage7";
+            tabPage7.UseVisualStyleBackColor = true;
+            // 
             // tableLayoutPanel9
             // 
             tableLayoutPanel9.ColumnCount = 2;
@@ -2938,6 +2952,17 @@ namespace fingerPressure
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
+            // 
+            // checkBox4
+            // 
+            checkBox4.AutoSize = true;
+            checkBox4.Location = new Point(243, 73);
+            checkBox4.Name = "checkBox4";
+            checkBox4.Size = new Size(87, 21);
+            checkBox4.TabIndex = 65;
+            checkBox4.Text = "归一化输出";
+            checkBox4.UseVisualStyleBackColor = true;
+            checkBox4.CheckedChanged += checkBox4_CheckedChanged;
             // 
             // Main
             // 
@@ -3239,5 +3264,7 @@ namespace fingerPressure
         private Label label_ax;
         private ToolStripButton toolStripButton2;
         private CheckBox checkBox1;
+        private TabPage tabPage7;
+        private CheckBox checkBox4;
     }
 }

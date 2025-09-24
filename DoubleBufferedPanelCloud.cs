@@ -318,6 +318,7 @@ namespace fingerPressure
         private Bitmap cloudBitmap;                 // 热力图缓存
         private PointF[] sensors;                   // 传感器点位缓存
         private bool needsRefresh;                  // 节流标记
+        private bool guiyihua = false;            // 是否归一化显示
 
         public DoubleBufferedPanelCloud()
         {
@@ -342,6 +343,14 @@ namespace fingerPressure
                 Invalidate();
             }
         }
+        public bool Guiyihua
+        {
+            get => guiyihua;
+            set
+            {
+                guiyihua = value;
+            }
+        }
 
         private void GenerateBackgroundCache()
         {
@@ -358,14 +367,14 @@ namespace fingerPressure
 
             double[] angles =
             {
-                -135 * Math.PI / 180, // 左上
-                -45  * Math.PI / 180, // 右上
-                180  * Math.PI / 180, // 左
+                -45 * Math.PI / 180, // 左上
+                -135  * Math.PI / 180, // 右上
+                0  * Math.PI / 180, // 左
                 0,                    // 中（特殊）
-                0,                    // 右
-                135 * Math.PI / 180,  // 左下
+                180,                    // 右
+                45 * Math.PI / 180,  // 左下
                 90  * Math.PI / 180,  // 下
-                45  * Math.PI / 180   // 右下
+                135  * Math.PI / 180   // 右下
             };
 
             sensors = new PointF[8];
@@ -405,6 +414,8 @@ namespace fingerPressure
                 RenderCloud(cloudBitmap);
                 e.Graphics.DrawImageUnscaled(cloudBitmap, 0, 0);
             }
+            var g = e.Graphics;
+            DrawForceArrow8(g);
         }
 
         private void RenderCloud(Bitmap bmp)
@@ -462,7 +473,16 @@ namespace fingerPressure
 
         private Color GetColorFromValue(double value)
         {
-            double maxAbs = 10000;
+            double maxAbs = 100000;
+            if (guiyihua)
+            {
+                maxAbs = 500;
+            }
+            else
+            {
+                maxAbs = 500000;
+            }
+
             if (value < -maxAbs) value = -maxAbs;
             if (value > maxAbs) value = maxAbs;
 
@@ -486,5 +506,64 @@ namespace fingerPressure
                 (int)(g * 255),
                 (int)(b * 255));
         }
+
+        private void DrawForceArrow8(Graphics g)
+        {
+            if (values == null || values.Length != 8) return;
+
+            float cx = this.Width / 2f;
+            float cy = this.Height / 2f;
+
+            // 三行布局：2-3-3
+            // 第一行 2 点
+            // 第二行 3 点
+            // 第三行 3 点
+            PointF[] dirs = new PointF[8];
+
+            int index = 0;
+            float rowSpacing = this.Height / 3f;
+            float colSpacingTop = this.Width / 3f;
+            float colSpacingMiddle = this.Width / 4f;
+            float colSpacingBottom = this.Width / 4f;
+
+            // 第一行 (2 点)
+            dirs[index++] = new PointF(1, -1); // 左
+            dirs[index++] = new PointF(-1, -1);  // 右
+
+            // 第二行 (3 点)
+            dirs[index++] = new PointF(1, 0);  // 左
+            dirs[index++] = new PointF(0, 0);   // 中
+            dirs[index++] = new PointF(-1, 0);   // 右
+
+            // 第三行 (3 点)
+            dirs[index++] = new PointF(1, 1);  // 左
+            dirs[index++] = new PointF(0, 1);   // 中
+            dirs[index++] = new PointF(-1, 1);   // 右
+
+            float fx = 0, fy = 0;
+            for (int i = 0; i < values.Length; i++)
+            {
+                float mag = (float)values[i];
+                fx += dirs[i].X * mag;
+                fy += dirs[i].Y * mag;
+            }
+
+            float len = (float)Math.Sqrt(fx * fx + fy * fy);
+            if (len < 1e-3) return;
+
+            float scale = Math.Min(this.Width, this.Height) / 4f / len;
+            fx *= scale;
+            fy *= scale;
+
+            float tx = cx + fx;
+            float ty = cy + fy;
+
+            using (Pen pen = new Pen(Color.White, 3))
+            {
+                pen.CustomEndCap = new AdjustableArrowCap(6, 8, true);
+                g.DrawLine(pen, cx, cy, tx, ty);
+            }
+        }
+
     }
 }
