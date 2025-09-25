@@ -28,6 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="DoubleBufferedPanel_Temp.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Update="Setting.cs">
       <SubType>Form</SubType>
     </Compile>

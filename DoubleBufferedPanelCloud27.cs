@@ -250,7 +250,7 @@ namespace fingerPressure
 {
     public class DoubleBufferedPanelCloud27 : Panel
     {
-        private double[] values = new double[27];
+        private double[] values = new double[9];
         private PointF[] sensorPositions;        // 9个传感器坐标缓存
         private Bitmap backgroundCache;          // 背景缓存（半椭圆+边框）
         private bool needsRefresh;               // 节流标记

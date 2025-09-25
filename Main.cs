@@ -1,4 +1,5 @@
 using fingerPressure.MODEL;
+using fingerPressure.Properties;
 using MetroFramework.Forms;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -139,7 +140,7 @@ namespace fingerPressure
 
         string portName = "";
         // 保存所有的 TabPage 引用，避免丢失
-        private TabPage tp1, tp2, tp3, tp4;
+        private TabPage tp1, tp2, tp3, tp4, tp7;
 
         //调用模型
         private InferenceSession sessionModel1;
@@ -230,7 +231,53 @@ namespace fingerPressure
         private readonly DotMatrixUpdate_Temp[] dotUpdatesTemp27 = new DotMatrixUpdate_Temp[5];
         private readonly DotMatrixUpdate_Pres[] dotUpdatesPres27 = new DotMatrixUpdate_Pres[5];
 
-        List<int> activeSensors = new List<int>();
+        HandHeatmapControl handHeatmapControl = new HandHeatmapControl();
+
+        //private CancellationTokenSource memsPollingCts;
+
+        /*        private void StartMemsPolling()
+                {
+                    memsPollingCts?.Cancel();
+                    memsPollingCts = new CancellationTokenSource();
+                    var token = memsPollingCts.Token;
+
+                    Thread pollingThread = new Thread(() =>
+                    {
+                        int sensorCount = memsCommands.Length;
+                        long targetIntervalMs = 10; // 100Hz
+                        long[] nextSendTime = new long[sensorCount]; // 每个传感器下次发包时间
+                        Stopwatch sw = Stopwatch.StartNew();
+
+                        while (!token.IsCancellationRequested && serialPort.IsOpen)
+                        {
+                            long now = sw.ElapsedMilliseconds;
+
+                            for (int i = 0; i < sensorCount; i++)
+                            {
+                                if (now >= nextSendTime[i])
+                                {
+                                    try
+                                    {
+                                        serialPort.Write(memsCommands[i], 0, memsCommands[i].Length);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        LogToConsole("发送异常: " + ex.Message);
+                                    }
+
+                                    nextSendTime[i] = now + targetIntervalMs; // 单独计算每个传感器下一次发包
+                                }
+                            }
+
+                            Thread.Sleep(1); // 避免空转
+                        }
+                    });
+
+                    pollingThread.IsBackground = true;
+                    pollingThread.Start();
+                }*/
+
+
 
         private void InitializeDotUpdates()
         {
@@ -269,18 +316,12 @@ namespace fingerPressure
         }
         private void Main_Load(object sender, EventArgs e)
         {
-            // === MEMS 指令预生成（5 个地址） ===
-
-            for (int i = 0; i < 5; i++)
-            {
-                memsCommands[i] = new byte[] { 0xA5, 0x5A, (byte)(i + 1) };
-            }
-
             // 先把页面保存下来
             tp1 = tabPage1;
             tp2 = tabPage2;
             tp3 = tabPage3;
             tp4 = tabPage4;
+            tp7 = tabPage7;
 
             // 根据默认选项显示
             UpdateTabPages();
@@ -325,6 +366,17 @@ namespace fingerPressure
             // 默认全选
             uCheckComboBox2.CheckAll();
 
+            var fingerList = new List<dynamic>
+            {
+                new { Value = 1, Text = "大拇指" },
+                new { Value = 2, Text = "食指" },
+                new { Value = 3, Text = "中指" },
+                new { Value = 4, Text = "无名指" },
+                new { Value = 5, Text = "小拇指" }
+            };
+            uCheckComboBox1.BindingDataList(fingerList, "Value", "Text");
+            uCheckComboBox1.CheckAll();
+
             refreshTimer = new System.Windows.Forms.Timer();
             refreshTimer.Interval = flashTime; // 100 ms 刷新一次
             refreshTimer.Tick += RefreshTimer_Tick;
@@ -332,6 +384,9 @@ namespace fingerPressure
 
             InitGraph();
             InitializeDotUpdates();
+
+            handHeatmapControl.Dock = DockStyle.Fill;
+            tableLayoutPanel4.Controls.Add(handHeatmapControl, 0, 0);
 
             if (chuanGanQiType == "Yingbianhua")
             {
@@ -439,6 +494,7 @@ namespace fingerPressure
             else if (chuanGanQiType == "Yingbianhua")
             {
                 tabControl1.TabPages.Add(tp1);
+                tabControl1.TabPages.Add(tp7);
             }
         }
         private void TestDraw()
@@ -485,13 +541,12 @@ namespace fingerPressure
                 serialPort.WriteTimeout = 500;
                 serialPort.Open();
 
-
-                for (int i = 0; i < memsCommands.Length; i++)
+                // === MEMS 指令预生成（5 个地址） ===
+                memsCommands = new byte[5][];
+                List<int> fingerNum = uCheckComboBox1.GetSelectedValues();
+                for (int i = 0; i < fingerNum.Count; i++)
                 {
-                    serialPort.Write(memsCommands[i], 0, memsCommands[i].Length);
-                    Thread.Sleep(2);
-                    if (serialPort.BytesToRead > 0)
-                        activeSensors.Add(i);
+                    memsCommands[i] = new byte[] { 0xA5, 0x5A, (byte)(fingerNum[i]) };
                 }
 
                 // 启动后台读取线程
@@ -593,7 +648,7 @@ namespace fingerPressure
                                         }
                                         else
                                         {
-                                            LogToConsole("MEMS 校验失败");
+                                            //LogToConsole("MEMS 校验失败");
                                             pool.Return(packet);
                                         }
                                     }
@@ -646,30 +701,177 @@ namespace fingerPressure
                         }
                     }
                 }*/
+        /*        private void SerialReadLoop(CancellationToken token)
+                {
+                    byte[] buffer = new byte[4096];
+                    const int MaxBufferSize = 65536;
+                    byte[] recvBuffer = new byte[MaxBufferSize];
+                    int recvHead = 0;
+                    int recvTail = 0;
+
+                    ArrayPool<byte> pool = ArrayPool<byte>.Shared;
+
+                    int memsSensorIndex = 0;
+                    int responseTimeoutMs = 2; // 等待应答超时时间
+                    Stopwatch sw = new Stopwatch();
+
+                    while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
+                    {
+                        try
+                        {
+                            if (chuanGanQiType == "MEMS")
+                            {
+                                // === 1. 发送当前传感器命令 ===
+                                serialPort.Write(memsCommands[memsSensorIndex], 0, memsCommands[memsSensorIndex].Length);
+
+                                // === 2. 等待应答 ===
+                                sw.Restart();
+                                bool gotResponse = false;
+
+                                while (sw.ElapsedMilliseconds < responseTimeoutMs)
+                                {
+                                    int available = serialPort.BytesToRead;
+                                    if (available > 0)
+                                    {
+                                        int toRead = Math.Min(available, buffer.Length);
+                                        int bytesRead = serialPort.Read(buffer, 0, toRead);
+
+                                        lock (serialLock)
+                                        {
+                                            for (int i = 0; i < bytesRead; i++)
+                                            {
+                                                recvBuffer[recvTail] = buffer[i];
+                                                recvTail = (recvTail + 1) % MaxBufferSize;
+
+                                                if (recvTail == recvHead)
+                                                    recvHead = (recvHead + 1) % MaxBufferSize; // 覆盖模式
+                                            }
+
+                                            // === 尝试解析 MEMS 包 ===
+                                            while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
+                                            {
+                                                if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0x42 &&
+                                                      PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0x54))
+                                                {
+                                                    recvHead = (recvHead + 1) % MaxBufferSize;
+                                                    continue;
+                                                }
+
+                                                int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
+                                                if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
+                                                    break;
+
+                                                byte[] packet = pool.Rent(length);
+                                                CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
+                                                recvHead = (recvHead + length) % MaxBufferSize;
+
+                                                byte checksum = 0;
+                                                for (int i = 2; i < length - 1; i++)
+                                                    checksum += packet[i];
+
+                                                if (checksum == packet[length - 1])
+                                                {
+                                                    EnqueuePacket(packet);
+                                                    gotResponse = true;
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    pool.Return(packet);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (gotResponse) break;
+                                    Thread.Sleep(1); // 避免空转 CPU
+                                }
+
+
+                                // === 3. 切换下一个传感器（无论是否超时） ===
+                                memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
+                            }
+                            else if (chuanGanQiType == "Yingbianhua")
+                            {
+                                int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                                if (bytesRead > 0)
+                                {
+                                    lock (serialLock)
+                                    {
+                                        for (int i = 0; i < bytesRead; i++)
+                                        {
+                                            recvBuffer[recvTail] = buffer[i];
+                                            recvTail = (recvTail + 1) % MaxBufferSize;
+
+                                            if (recvTail == recvHead)
+                                                recvHead = (recvHead + 1) % MaxBufferSize; // 覆盖模式
+                                        }
+                                        const int PACKET_LENGTH = 343;
+
+                                        while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= PACKET_LENGTH)
+                                        {
+                                            if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0xAA &&
+                                                  PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0xAA &&
+                                                  PeekByte(recvBuffer, recvHead, 2, MaxBufferSize) == 0xAA &&
+                                                  PeekByte(recvBuffer, recvHead, 3, MaxBufferSize) == 0xAA))
+                                            {
+                                                recvHead = (recvHead + 1) % MaxBufferSize;
+                                                continue;
+                                            }
+
+                                            if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < PACKET_LENGTH)
+                                                break;
+
+                                            byte[] packet = pool.Rent(PACKET_LENGTH);
+                                            CopyFromRingBuffer(recvBuffer, recvHead, packet, PACKET_LENGTH, MaxBufferSize);
+                                            recvHead = (recvHead + PACKET_LENGTH) % MaxBufferSize;
+
+                                            if (packet[PACKET_LENGTH - 4] == 0xBB &&
+                                                packet[PACKET_LENGTH - 3] == 0xBB &&
+                                                packet[PACKET_LENGTH - 2] == 0xBB &&
+                                                packet[PACKET_LENGTH - 1] == 0xBB)
+                                            {
+                                                EnqueuePacket(packet.AsSpan(0, PACKET_LENGTH).ToArray());
+                                            }
+                                            else
+                                            {
+                                                LogToConsole("Yingbianhua 包尾错误");
+                                                pool.Return(packet);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (TimeoutException) { }
+                        catch (IOException) { break; }
+                        catch (InvalidOperationException) { break; }
+                        catch (Exception ex)
+                        {
+                            LogToConsole("串口读取异常：" + ex.Message);
+                            break;
+                        }
+                    }
+                }*/
         private void SerialReadLoop(CancellationToken token)
         {
             byte[] buffer = new byte[4096];
             const int MaxBufferSize = 65536;
             byte[] recvBuffer = new byte[MaxBufferSize];
-            int recvHead = 0;
-            int recvTail = 0;
+            int recvHead = 0; // 有效数据起始
+            int recvTail = 0; // 有效数据末尾
 
             ArrayPool<byte> pool = ArrayPool<byte>.Shared;
 
-            /*            int memsSensorIndex = 0;
-                        int responseTimeoutMs = 5; // 等待应答超时时间
-                        Stopwatch sw = new Stopwatch();*/
+
             int memsSensorIndex = 0;
 
             // === 精确计时器 ===
             Stopwatch sw = Stopwatch.StartNew();
-            //double pollIntervalMs = 2; // 每 2ms 轮询一次（5 个传感器 = 10ms，100Hz）
+            double pollIntervalMs = 2.0; // 每 2ms 轮询一次（5 个传感器 = 10ms，100Hz）
 
             long nextPollTicks = 0;
             long ticksPerMs = Stopwatch.Frequency / 1000;
-            double cycleMs = 10.0; // 一圈 10ms
-            double pollIntervalMs = cycleMs / activeSensors.Count;
-
 
             while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
             {
@@ -679,100 +881,115 @@ namespace fingerPressure
                     if (chuanGanQiType == "MEMS")
                     {
                         long nowTicks = sw.ElapsedTicks;
+
                         if (nowTicks >= nextPollTicks)
                         {
-                            int sensorIndex = activeSensors[memsSensorIndex];
-                            serialPort.Write(memsCommands[sensorIndex], 0, memsCommands[sensorIndex].Length);
+                            // 找到下一个非 null 命令
+                            int attempts = 0;
+                            while (memsCommands[memsSensorIndex] == null && attempts < memsCommands.Length)
+                            {
+                                memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
+                                attempts++;
+                            }
 
-                            memsSensorIndex = (memsSensorIndex + 1) % activeSensors.Count;
-                            nextPollTicks = sw.ElapsedTicks + (long)(pollIntervalMs * ticksPerMs);
+                            // 如果当前命令非 null，则发送
+                            if (memsCommands[memsSensorIndex] != null)
+                            {
+                                serialPort.Write(memsCommands[memsSensorIndex], 0, memsCommands[memsSensorIndex].Length);
+                            }
 
+                            // 切换到下一个索引，为下一轮轮询准备
+                            memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
+
+                            // 设置下一次发送时刻
+                            nextPollTicks = nowTicks + (long)(pollIntervalMs * ticksPerMs);
                         }
                     }
 
-                    // === 读取串口数据 ===
+
+                    // === 串口接收 ===
                     int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
+                    if (bytesRead <= 0) continue;
+
+                    lock (serialLock)
                     {
-                        lock (serialLock)
+                        // 写入环形缓冲区
+                        for (int i = 0; i < bytesRead; i++)
                         {
-                            for (int i = 0; i < bytesRead; i++)
-                            {
-                                recvBuffer[recvTail] = buffer[i];
-                                recvTail = (recvTail + 1) % MaxBufferSize;
+                            recvBuffer[recvTail] = buffer[i];
+                            recvTail = (recvTail + 1) % MaxBufferSize;
 
-                                if (recvTail == recvHead)
-                                    recvHead = (recvHead + 1) % MaxBufferSize; // 覆盖模式
-                            }
+                            if (recvTail == recvHead) // 覆盖模式
+                                recvHead = (recvHead + 1) % MaxBufferSize;
+                        }
 
-                            if (chuanGanQiType == "MEMS")
+                        if (chuanGanQiType == "MEMS")
+                        {
+                            while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
                             {
-                                while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
+                                if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0x42 &&
+                                      PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0x54))
                                 {
-                                    if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0x42 &&
-                                          PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0x54))
-                                    {
-                                        recvHead = (recvHead + 1) % MaxBufferSize;
-                                        continue;
-                                    }
+                                    recvHead = (recvHead + 1) % MaxBufferSize;
+                                    continue;
+                                }
 
-                                    int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
-                                    if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
-                                        break;
+                                int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
+                                if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
+                                    break;
 
-                                    byte[] packet = pool.Rent(length);
-                                    CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
-                                    recvHead = (recvHead + length) % MaxBufferSize;
+                                byte[] packet = pool.Rent(length);
+                                CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
+                                recvHead = (recvHead + length) % MaxBufferSize;
 
-                                    byte checksum = 0;
-                                    for (int i = 2; i < length - 1; i++)
-                                        checksum += packet[i];
+                                // 校验
+                                byte checksum = 0;
+                                for (int i = 2; i < length - 1; i++)
+                                    checksum += packet[i];
 
-                                    if (checksum == packet[length - 1])
-                                    {
-                                        EnqueuePacket(packet);
-                                    }
-                                    else
-                                    {
-                                        //LogToConsole("MEMS 校验失败");
-                                        pool.Return(packet);
-                                    }
+                                if (checksum == packet[length - 1])
+                                {
+                                    EnqueuePacket(packet);
+                                }
+                                else
+                                {
+                                    //LogToConsole("MEMS 校验失败");
+                                    pool.Return(packet);
                                 }
                             }
-                            else if (chuanGanQiType == "Yingbianhua")
+                        }
+                        else if (chuanGanQiType == "Yingbianhua")
+                        {
+                            const int PACKET_LENGTH = 343;
+                            while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= PACKET_LENGTH)
                             {
-                                const int PACKET_LENGTH = 343;
-
-                                while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= PACKET_LENGTH)
+                                if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0xAA &&
+                                      PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0xAA &&
+                                      PeekByte(recvBuffer, recvHead, 2, MaxBufferSize) == 0xAA &&
+                                      PeekByte(recvBuffer, recvHead, 3, MaxBufferSize) == 0xAA))
                                 {
-                                    if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0xAA &&
-                                          PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0xAA &&
-                                          PeekByte(recvBuffer, recvHead, 2, MaxBufferSize) == 0xAA &&
-                                          PeekByte(recvBuffer, recvHead, 3, MaxBufferSize) == 0xAA))
-                                    {
-                                        recvHead = (recvHead + 1) % MaxBufferSize;
-                                        continue;
-                                    }
+                                    recvHead = (recvHead + 1) % MaxBufferSize;
+                                    continue;
+                                }
 
-                                    if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < PACKET_LENGTH)
-                                        break;
+                                if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < PACKET_LENGTH)
+                                    break;
 
-                                    byte[] packet = pool.Rent(PACKET_LENGTH);
-                                    CopyFromRingBuffer(recvBuffer, recvHead, packet, PACKET_LENGTH, MaxBufferSize);
-                                    recvHead = (recvHead + PACKET_LENGTH) % MaxBufferSize;
+                                byte[] packet = pool.Rent(PACKET_LENGTH);
+                                CopyFromRingBuffer(recvBuffer, recvHead, packet, PACKET_LENGTH, MaxBufferSize);
+                                recvHead = (recvHead + PACKET_LENGTH) % MaxBufferSize;
 
-                                    if (packet[PACKET_LENGTH - 4] == 0xBB &&
-                                        packet[PACKET_LENGTH - 3] == 0xBB &&
-                                        packet[PACKET_LENGTH - 2] == 0xBB &&
-                                        packet[PACKET_LENGTH - 1] == 0xBB)
-                                    {
-                                        EnqueuePacket(packet.AsSpan(0, PACKET_LENGTH).ToArray());
-                                    }
-                                    else
-                                    {
-                                        LogToConsole("Yingbianhua 包尾错误");
-                                        pool.Return(packet);
-                                    }
+                                if (packet[PACKET_LENGTH - 4] == 0xBB &&
+                                    packet[PACKET_LENGTH - 3] == 0xBB &&
+                                    packet[PACKET_LENGTH - 2] == 0xBB &&
+                                    packet[PACKET_LENGTH - 1] == 0xBB)
+                                {
+                                    EnqueuePacket(packet.AsSpan(0, PACKET_LENGTH).ToArray());
+                                }
+                                else
+                                {
+                                    LogToConsole("Yingbianhua 包尾错误");
+                                    pool.Return(packet);
                                 }
                             }
                         }
@@ -787,144 +1004,8 @@ namespace fingerPressure
                     break;
                 }
             }
-            /*            while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
-                        {
-                            try
-                            {
-                                if (chuanGanQiType == "MEMS")
-                                {
-                                    // === 1. 发送当前传感器命令 ===
-                                    serialPort.Write(memsCommands[memsSensorIndex], 0, memsCommands[memsSensorIndex].Length);
-
-                                    // === 2. 等待应答 ===
-                                    sw.Restart();
-                                    bool gotResponse = false;
-
-                                    while (sw.ElapsedMilliseconds < responseTimeoutMs)
-                                    {
-                                        int available = serialPort.BytesToRead;
-                                        if (available > 0)
-                                        {
-                                            int toRead = Math.Min(available, buffer.Length);
-                                            int bytesRead = serialPort.Read(buffer, 0, toRead);
-
-                                            lock (serialLock)
-                                            {
-                                                for (int i = 0; i < bytesRead; i++)
-                                                {
-                                                    recvBuffer[recvTail] = buffer[i];
-                                                    recvTail = (recvTail + 1) % MaxBufferSize;
-
-                                                    if (recvTail == recvHead)
-                                                        recvHead = (recvHead + 1) % MaxBufferSize; // 覆盖模式
-                                                }
-
-                                                // === 尝试解析 MEMS 包 ===
-                                                while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
-                                                {
-                                                    if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0x42 &&
-                                                          PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0x54))
-                                                    {
-                                                        recvHead = (recvHead + 1) % MaxBufferSize;
-                                                        continue;
-                                                    }
-
-                                                    int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
-                                                    if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
-                                                        break;
-
-                                                    byte[] packet = pool.Rent(length);
-                                                    CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
-                                                    recvHead = (recvHead + length) % MaxBufferSize;
-
-                                                    byte checksum = 0;
-                                                    for (int i = 2; i < length - 1; i++)
-                                                        checksum += packet[i];
-
-                                                    if (checksum == packet[length - 1])
-                                                    {
-                                                        EnqueuePacket(packet);
-                                                        gotResponse = true;
-                                                        break;
-                                                    }
-                                                    else
-                                                    {
-                                                        pool.Return(packet);
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        if (gotResponse) break;
-                                        Thread.Sleep(1); // 避免空转 CPU
-                                    }
-
-
-                                    // === 3. 切换下一个传感器（无论是否超时） ===
-                                    memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
-                                }
-                                else if (chuanGanQiType == "Yingbianhua")
-                                {
-                                    int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
-                                    if (bytesRead > 0)
-                                    {
-                                        lock (serialLock)
-                                        {
-                                            for (int i = 0; i < bytesRead; i++)
-                                            {
-                                                recvBuffer[recvTail] = buffer[i];
-                                                recvTail = (recvTail + 1) % MaxBufferSize;
-
-                                                if (recvTail == recvHead)
-                                                    recvHead = (recvHead + 1) % MaxBufferSize; // 覆盖模式
-                                            }
-                                            const int PACKET_LENGTH = 343;
-
-                                            while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= PACKET_LENGTH)
-                                            {
-                                                if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0xAA &&
-                                                      PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0xAA &&
-                                                      PeekByte(recvBuffer, recvHead, 2, MaxBufferSize) == 0xAA &&
-                                                      PeekByte(recvBuffer, recvHead, 3, MaxBufferSize) == 0xAA))
-                                                {
-                                                    recvHead = (recvHead + 1) % MaxBufferSize;
-                                                    continue;
-                                                }
-
-                                                if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < PACKET_LENGTH)
-                                                    break;
-
-                                                byte[] packet = pool.Rent(PACKET_LENGTH);
-                                                CopyFromRingBuffer(recvBuffer, recvHead, packet, PACKET_LENGTH, MaxBufferSize);
-                                                recvHead = (recvHead + PACKET_LENGTH) % MaxBufferSize;
-
-                                                if (packet[PACKET_LENGTH - 4] == 0xBB &&
-                                                    packet[PACKET_LENGTH - 3] == 0xBB &&
-                                                    packet[PACKET_LENGTH - 2] == 0xBB &&
-                                                    packet[PACKET_LENGTH - 1] == 0xBB)
-                                                {
-                                                    EnqueuePacket(packet.AsSpan(0, PACKET_LENGTH).ToArray());
-                                                }
-                                                else
-                                                {
-                                                    LogToConsole("Yingbianhua 包尾错误");
-                                                    pool.Return(packet);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            catch (TimeoutException) { }
-                            catch (IOException) { break; }
-                            catch (InvalidOperationException) { break; }
-                            catch (Exception ex)
-                            {
-                                LogToConsole("串口读取异常：" + ex.Message);
-                                break;
-                            }
-                        }*/
         }
+
 
 
         // 背景线程解包
@@ -1378,6 +1459,9 @@ namespace fingerPressure
                             }
                         }
 
+                        if (dotUpdate_Pres27.TempValues == null)
+                            dotUpdate_Pres27.TempValues = new double[5];
+
                         // 温度值
                         if (double.TryParse(uiData[index++], out double rawTemp))
                         {
@@ -1575,7 +1659,7 @@ namespace fingerPressure
                         {
                             panelCloud.Guiyihua = false;
                         }
-                            Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
+                        Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
                         panelCloud.Invalidate();
 
                         // 更新最大最小值标签
@@ -1610,7 +1694,7 @@ namespace fingerPressure
                     int addr = sensorIndex + 1;
 
 
-                    var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
+                    var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel_Temp;
                     if (panelPoint2 != null)
                     {
                         Array.Copy(dotUpdate.TempValues, startIndex, panelPoint2.Values, 0, 8);
@@ -1893,6 +1977,8 @@ namespace fingerPressure
                                                                         panelCloud.Values = values;*/
                                 Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
                                 panelCloud.Invalidate();
+
+                                handHeatmapControl.SetFingerValues(s, panelCloud.Values);
 
                                 if (panelCloud.Values.Length > 0)
                                 {
@@ -2306,7 +2392,7 @@ namespace fingerPressure
 
                                 // 保证最小值为 1
                                 if (v > 0 && v < 1) v = 1;
-                                if (v< 0 && v > -1) v = -1;
+                                if (v < 0 && v > -1) v = -1;
 
                             }
 
@@ -2970,6 +3056,8 @@ namespace fingerPressure
                     OpenSerialPort();
                     if (serialPort.IsOpen)
                     {
+
+                        //StartMemsPolling();
                         state_label.Text = "已连接";
                     }
 
@@ -3162,6 +3250,9 @@ namespace fingerPressure
             packetWriter?.Close();
             packetWriter = null;
 
+            //memsPollingCts?.Cancel();
+
+
             this.Close(); // 或 Application.Exit();
         }
         #endregion
@@ -3336,6 +3427,9 @@ namespace fingerPressure
         {
             switch (comboBox1.SelectedItem.ToString())
             {
+                case "500Hz":
+                    saveRate = 5;
+                    break;
                 case "100Hz":
                     saveRate = 10;
                     break;
@@ -3375,8 +3469,14 @@ namespace fingerPressure
         {
             switch (comboBox1.SelectedItem.ToString())
             {
+                case "500Hz":
+                    saveRate = 5;
+                    break;
                 case "100Hz":
                     saveRate = 10;
+                    break;
+                case "50Hz":
+                    saveRate = 50;
                     break;
                 case "10Hz":
                     saveRate = 100;
@@ -3763,4 +3863,5 @@ namespace fingerPressure
             }
         }
     }
+
 }

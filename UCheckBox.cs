@@ -113,15 +113,16 @@ namespace fingerPressure
         /// 获取选中项的值列表
         /// </summary>
         /// <returns></returns>
-        public List<string> GetSelectedValues()
+        public List<int> GetSelectedValues()
         {
-            List<string> result = new List<string>();
+            List<int> result = new List<int>();
             for (int i = 0; i < CheckedListBox.Items.Count; i++)
             {
                 if (CheckedListBox.GetItemChecked(i))
                 {
                     string value = CheckedListBox.Items[i].GetType().GetProperty(valueProperty).GetValue(CheckedListBox.Items[i]).ToString();
-                    result.Add(value);
+                    int valueInt = int.Parse(value);
+                    result.Add(valueInt);
                 }
             }
             return result;
