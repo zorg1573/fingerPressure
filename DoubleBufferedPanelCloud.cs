@@ -463,14 +463,14 @@ namespace fingerPressure
                     buffer[idx + 0] = c.B;
                     buffer[idx + 1] = c.G;
                     buffer[idx + 2] = c.R;
-                    buffer[idx + 3] = 255;
+                    buffer[idx + 3] = c.A;  // ← 保留透明度
+
                 }
             }
 
             Marshal.Copy(buffer, 0, scan0, buffer.Length);
             bmp.UnlockBits(data);
         }
-
         private Color GetColorFromValue(double value)
         {
             double maxAbs = 100000;
@@ -483,29 +483,77 @@ namespace fingerPressure
                 maxAbs = 500000;
             }
 
-            if (value < -maxAbs) value = -maxAbs;
+            // 限幅
+            if (value < 0) value = 0;
             if (value > maxAbs) value = maxAbs;
 
-            double r = 0, g = 0, b = 0;
+            // 归一化到 0~1
+            double ratio = value / maxAbs;
 
-            if (value < 0)
+            int r = 0, g = 0, b = 0;
+
+            if (ratio < 0.33) // 蓝 -> 绿
             {
-                double ratio = (value + maxAbs) / maxAbs;
-                if (ratio < 0.5) { r = 0; g = ratio * 2; b = 1; }
-                else { r = 0; g = 1; b = 2 * (1 - ratio); }
+                double t = ratio / 0.33;
+                r = 0;
+                g = (int)(255 * t);
+                b = (int)(255 * (1 - t));
             }
-            else
+            else if (ratio < 0.66) // 绿 -> 黄
             {
-                double ratio = value / maxAbs;
-                if (ratio < 0.5) { r = ratio * 2; g = 1; b = 0; }
-                else { r = 1; g = 2 * (1 - ratio); b = 0; }
+                double t = (ratio - 0.33) / 0.33;
+                r = (int)(255 * t);
+                g = 255;
+                b = 0;
+            }
+            else // 黄 -> 红
+            {
+                double t = (ratio - 0.66) / 0.34;
+                r = 255;
+                g = (int)(255 * (1 - t));
+                b = 0;
             }
 
-            return Color.FromArgb(
-                (int)(r * 255),
-                (int)(g * 255),
-                (int)(b * 255));
+            // 透明度：0 时完全透明，100% 力时完全不透明
+            int a = (int)(255 * ratio);
+
+            return Color.FromArgb(a, r, g, b);
         }
+        /*        private Color GetColorFromValue(double value)
+                {
+                    double maxAbs = 100000;
+                    if (guiyihua)
+                    {
+                        maxAbs = 500;
+                    }
+                    else
+                    {
+                        maxAbs = 500000;
+                    }
+
+                    if (value < -maxAbs) value = -maxAbs;
+                    if (value > maxAbs) value = maxAbs;
+
+                    double r = 0, g = 0, b = 0;
+
+                    if (value < 0)
+                    {
+                        double ratio = (value + maxAbs) / maxAbs;
+                        if (ratio < 0.5) { r = 0; g = ratio * 2; b = 1; }
+                        else { r = 0; g = 1; b = 2 * (1 - ratio); }
+                    }
+                    else
+                    {
+                        double ratio = value / maxAbs;
+                        if (ratio < 0.5) { r = ratio * 2; g = 1; b = 0; }
+                        else { r = 1; g = 2 * (1 - ratio); b = 0; }
+                    }
+
+                    return Color.FromArgb(
+                        (int)(r * 255),
+                        (int)(g * 255),
+                        (int)(b * 255));
+                }*/
 
         private void DrawForceArrow8(Graphics g)
         {

@@ -397,47 +397,86 @@ namespace fingerPressure
                 g.DrawImage(bmp, new Rectangle(0, 0, outW, outH));
             }
         }
-
         private Color GetColorFromValue(double value)
         {
             double maxAbs = 10000;
 
-            if (value < -maxAbs) value = -maxAbs;
+            // 限幅
+            if (value < 0) value = 0;
             if (value > maxAbs) value = maxAbs;
 
-            double r = 0, g = 0, b = 0;
+            // 归一化到 0~1
+            double ratio = value / maxAbs;
 
-            if (value < 0)
+            int r = 0, g = 0, b = 0;
+
+            if (ratio < 0.33) // 蓝 -> 绿
             {
-                double ratio = (value + maxAbs) / maxAbs;
-                if (ratio < 0.5)
-                {
-                    g = ratio * 2;
-                    b = 1;
-                }
-                else
-                {
-                    g = 1;
-                    b = 2 * (1 - ratio);
-                }
+                double t = ratio / 0.33;
+                r = 0;
+                g = (int)(255 * t);
+                b = (int)(255 * (1 - t));
             }
-            else
+            else if (ratio < 0.66) // 绿 -> 黄
             {
-                double ratio = value / maxAbs;
-                if (ratio < 0.5)
-                {
-                    r = ratio * 2;
-                    g = 1;
-                }
-                else
-                {
-                    r = 1;
-                    g = 2 * (1 - ratio);
-                }
+                double t = (ratio - 0.33) / 0.33;
+                r = (int)(255 * t);
+                g = 255;
+                b = 0;
+            }
+            else // 黄 -> 红
+            {
+                double t = (ratio - 0.66) / 0.34;
+                r = 255;
+                g = (int)(255 * (1 - t));
+                b = 0;
             }
 
-            return Color.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
+            // 透明度：0 时完全透明，100% 力时完全不透明
+            int a = (int)(255 * ratio);
+
+            return Color.FromArgb(a, r, g, b);
         }
+
+
+        /*        private Color GetColorFromValue(double value)
+                {
+                    double maxAbs = 10000;
+
+                    // 限幅
+                    if (value < 0) value = 0;
+                    if (value > maxAbs) value = maxAbs;
+
+                    // 归一化到 0~1
+                    double ratio = value / maxAbs;
+
+                    int r, g, b, a;
+
+                    if (ratio <= 0.5)
+                    {
+                        // 0 ~ 0.5: 灰色 (128,128,128) -> 橙色 (255,165,0)
+                        double t = ratio / 0.5;
+
+                        r = (int)(128 + (255 - 128) * t);
+                        g = (int)(128 + (165 - 128) * t);
+                        b = (int)(128 + (0 - 128) * t);
+                    }
+                    else
+                    {
+                        // 0.5 ~ 1: 橙色 (255,165,0) -> 红色 (255,0,0)
+                        double t = (ratio - 0.5) / 0.5;
+
+                        r = 255;
+                        g = (int)(165 + (0 - 165) * t);
+                        b = 0;
+                    }
+
+                    // Alpha: 0 力时半透明 (50)，最大力时全不透明 (255)
+                    a = (int)(50 + (255 - 50) * ratio);
+
+                    return Color.FromArgb(a, r, g, b);
+                }*/
+
 
         private void DrawForceArrow9(Graphics g)
         {

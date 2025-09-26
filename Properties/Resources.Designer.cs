@@ -83,6 +83,26 @@ namespace fingerPressure.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
+        internal static System.Drawing.Bitmap hand_new {
+            get {
+                object obj = ResourceManager.GetObject("hand_new", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   查找 System.Drawing.Bitmap 类型的本地化资源。
+        /// </summary>
+        internal static System.Drawing.Bitmap hand_new1 {
+            get {
+                object obj = ResourceManager.GetObject("hand_new1", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   查找 System.Drawing.Bitmap 类型的本地化资源。
+        /// </summary>
         internal static System.Drawing.Bitmap handpng {
             get {
                 object obj = ResourceManager.GetObject("handpng", resourceCulture);

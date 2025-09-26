@@ -231,7 +231,8 @@ namespace fingerPressure
         private readonly DotMatrixUpdate_Temp[] dotUpdatesTemp27 = new DotMatrixUpdate_Temp[5];
         private readonly DotMatrixUpdate_Pres[] dotUpdatesPres27 = new DotMatrixUpdate_Pres[5];
 
-        HandHeatmapControl handHeatmapControl = new HandHeatmapControl();
+        HandHeatmapControl handHeatmapControlLeft = new HandHeatmapControl();
+        HandHeatmapControl handHeatmapControlRight = new HandHeatmapControl();
 
         //private CancellationTokenSource memsPollingCts;
 
@@ -385,8 +386,19 @@ namespace fingerPressure
             InitGraph();
             InitializeDotUpdates();
 
-            handHeatmapControl.Dock = DockStyle.Fill;
-            tableLayoutPanel4.Controls.Add(handHeatmapControl, 0, 0);
+            handHeatmapControlLeft.Dock = DockStyle.Fill;
+            tableLayoutPanel4.Controls.Add(handHeatmapControlLeft, 0, 0);
+
+            handHeatmapControlRight.Dock = DockStyle.Fill;
+
+            // 订阅 Paint 事件，添加镜像效果
+            handHeatmapControlRight.Paint += (s, e) =>
+            {
+                e.Graphics.TranslateTransform(handHeatmapControlRight.Width, 0);
+                e.Graphics.ScaleTransform(-1, 1);
+            };
+
+            tableLayoutPanel4.Controls.Add(handHeatmapControlRight, 1, 0);
 
             if (chuanGanQiType == "Yingbianhua")
             {
@@ -413,7 +425,7 @@ namespace fingerPressure
                                 fileWriterThread.IsBackground = true;
                                 fileWriterThread.Start();*/
 
-                //TestDraw();
+                TestDraw();
 
                 /*                // 打开监控日志文件
                                 monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
@@ -487,12 +499,18 @@ namespace fingerPressure
 
             if (chuanGanQiType == "MEMS")
             {
+                checkBox4.Visible = true;
+                label8.Visible = true;
+                uCheckComboBox1.Visible = true;
                 //tabControl1.TabPages.Add(tp2);
                 tabControl1.TabPages.Add(tp3);
                 tabControl1.TabPages.Add(tp4);
             }
             else if (chuanGanQiType == "Yingbianhua")
             {
+                checkBox4.Visible = false;
+                label8.Visible = false;
+                uCheckComboBox1.Visible = false;
                 tabControl1.TabPages.Add(tp1);
                 tabControl1.TabPages.Add(tp7);
             }
@@ -500,24 +518,68 @@ namespace fingerPressure
         private void TestDraw()
         {
             timer = new System.Windows.Forms.Timer();
-            timer.Interval = 200; // 每200ms更新一次
+            timer.Interval = 10; // 每200ms更新一次
             timer.Tick += Timer_Tick;
             timer.Start();
         }
+
         private int counter = 0;
+        private int maxSteps = 200; // 渐变的总步数
         private void Timer_Tick(object sender, EventArgs e)
         {
-            // 模拟递增数据
-            double[] values = new double[9];
-            for (int i = 0; i < 9; i++)
+            if(chuanGanQiType == "Yingbianhua")
             {
-                values[i] = ((counter + i) * 10000) % 100000; // 循环递增，超过100000从0开始
+                double[] values = new double[9];
+
+                for (int i = 0; i < 9; i++)
+                {
+                    // 每个通道相位差，保证 9 个点不同步
+                    double phaseShift = (i / 9.0) * Math.PI * 2;
+
+                    // ratio 在 0~1~0 循环，加入相位偏移
+                    double ratio = (Math.Sin(counter * Math.PI / maxSteps + phaseShift) + 1) / 2.0;
+
+                    // 映射到 0~10000
+                    values[i] = ratio * 10000;
+                }
+
+                // 更新到你的热力图控件
+                panel_finger1_cloud27.Values = values;
+                handHeatmapControlLeft.SetFingerValues(0, values);
+                handHeatmapControlLeft.SetFingerValues(1, values);
+                handHeatmapControlLeft.SetFingerValues(2, values);
+                handHeatmapControlLeft.SetFingerValues(3, values);
+                handHeatmapControlLeft.SetFingerValues(4, values);
+
+                counter++;
+            }
+            else
+            {
+                double[] values = new double[8];
+
+                for (int i = 0; i < 8; i++)
+                {
+                    // 每个通道相位差，保证 9 个点不同步
+                    double phaseShift = (i / 8.0) * Math.PI * 2;
+
+                    // ratio 在 0~1~0 循环，加入相位偏移
+                    double ratio = (Math.Sin(counter * Math.PI / maxSteps + phaseShift) + 1) / 2.0;
+
+                    // 映射到 0~10000
+                    values[i] = ratio * 500000;
+                }
+
+                // 更新到你的热力图控件
+                panel_finger1_cloud.Values = values;
+
+                counter++;
             }
 
-            //panel_finger1_point.Values = values;
-            panel_finger1_cloud27.Values = values;
-            counter++;
+
         }
+
+
+
         private void StartWorkers()
         {
             // 启动格式化工人线程
@@ -1978,7 +2040,7 @@ namespace fingerPressure
                                 Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
                                 panelCloud.Invalidate();
 
-                                handHeatmapControl.SetFingerValues(s, panelCloud.Values);
+                                handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
 
                                 if (panelCloud.Values.Length > 0)
                                 {
@@ -3609,11 +3671,17 @@ namespace fingerPressure
             if (comboBox2.SelectedIndex == 0)
             {
                 chuanGanQiType = "MEMS";
+                checkBox4.Visible = true;
+                label8.Visible = true;
+                uCheckComboBox1.Visible = true;
             }
             else
             {
                 chuanGanQiType = "Yingbianhua";
                 InitModel();
+                checkBox4.Visible = false;
+                label8.Visible = false;
+                uCheckComboBox1.Visible = false;
             }
 
             UpdateTabPages();
@@ -3862,6 +3930,7 @@ namespace fingerPressure
                 }
             }
         }
+
     }
 
 }
