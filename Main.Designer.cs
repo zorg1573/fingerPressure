@@ -461,7 +461,7 @@ namespace fingerPressure
             // checkBox1
             // 
             checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(84, 73);
+            checkBox1.Location = new Point(162, 73);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(75, 21);
             checkBox1.TabIndex = 64;
@@ -581,7 +581,7 @@ namespace fingerPressure
             // checkBox3
             // 
             checkBox3.AutoSize = true;
-            checkBox3.Location = new Point(162, 73);
+            checkBox3.Location = new Point(84, 73);
             checkBox3.Name = "checkBox3";
             checkBox3.Size = new Size(75, 21);
             checkBox3.TabIndex = 44;
