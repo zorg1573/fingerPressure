@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Vml;
 using fingerPressure.MODEL;
 using fingerPressure.Properties;
 using MetroFramework.Forms;
@@ -151,6 +152,7 @@ namespace fingerPressure
         /*        private StreamWriter monitorWriter;
                 private Thread monitorThread;
                 private bool monitorRunning = true;*/
+        private List<string> biaoTouName = new List<string> { "时间", "传感器1", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度1", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器2", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度2", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器3", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度3", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器4", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度4", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器5", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度5", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", };
 
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
         private int choosedFinger1 = -1; // 默认大拇指
@@ -184,7 +186,7 @@ namespace fingerPressure
             public long Index { get; set; }          // 包序号
             public double Pressure { get; set; }     // 当前压力值
             public double Temperature { get; set; }  // 当前温度值
-            public double[] GyroValues { get; set; } // 当前传感器的6个陀螺仪值
+            //public double[] GyroValues { get; set; } // 当前传感器的6个陀螺仪值
         }
 
 
@@ -206,7 +208,7 @@ namespace fingerPressure
             //public double[] TempValues;
             public double[] PressureValues;
             public int SensorIndex;
-            public double[] TempValues;
+            public double TempValues;
             public double[] GyroValues;
         }
 
@@ -422,11 +424,12 @@ namespace fingerPressure
                 StartInferenceThread();
 
                 // 生成文件路径
-                string filePath = Path.Combine(excelSavePath,
+                string filePath = System.IO.Path.Combine(excelSavePath,
                     $"packets_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
 
                 // 创建全局 StreamWriter，不写表头
                 packetWriter = new StreamWriter(filePath, true, new System.Text.UTF8Encoding(false));
+                packetWriter.WriteLine(string.Join(",", biaoTouName));
                 packetWriter.AutoFlush = true; // 每次写入自动刷新
 
                 // 启动后台写线程
@@ -1423,8 +1426,9 @@ namespace fingerPressure
                         // === 获取复用对象 ===
                         var dotUpdate_Temp27 = dotUpdatesTemp27[s];
                         var dotUpdate_Pres27 = dotUpdatesPres27[s];
-
-                        //string sensorLabel = uiData[index++]; // "S1", "S2"...
+                        
+                        string sensorLabel = uiData[index++]; // "S1", "S2"...
+                        dotUpdate_Pres27.SensorIndex = s;
 
                         // 压力值
                         //double[] pressures = new double[pressureCount];
@@ -1438,14 +1442,14 @@ namespace fingerPressure
                                 //pressures[p] = pressure;
                             }
                         }
-
+/*
                         if (dotUpdate_Pres27.TempValues == null)
-                            dotUpdate_Pres27.TempValues = new double[5];
+                            dotUpdate_Pres27.TempValues = new double[5];*/
 
                         // 温度值
                         if (double.TryParse(uiData[index++], out double rawTemp))
                         {
-                            dotUpdate_Pres27.TempValues[s] = rawTemp;
+                            dotUpdate_Pres27.TempValues = rawTemp;
                         }
 
                         // 陀螺仪值 (6个)
@@ -1469,7 +1473,7 @@ namespace fingerPressure
                                     Channel = p,
                                     Index = packetIndex,
                                     Pressure = correctedPressure,
-                                    GyroValues = dotUpdate_Pres27.GyroValues
+                                    //GyroValues = dotUpdate_Pres27.GyroValues
                                 };
 
                                 if (graphQueue.Count >= MaxQueueSize)
@@ -1876,13 +1880,13 @@ namespace fingerPressure
                             if (graphUpdate.Index >= xMin)
                                 channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
 
-
+/*
                             label_ax.Text = $"Ax: {graphUpdate.GyroValues[0]:F2}";
                             label_ay.Text = $"Ay: {graphUpdate.GyroValues[1]:F2}";
                             label_az.Text = $"Az: {graphUpdate.GyroValues[2]:F2}";
                             label_gx.Text = $"Gx: {graphUpdate.GyroValues[3]:F2}";
                             label_gy.Text = $"Gy: {graphUpdate.GyroValues[4]:F2}";
-                            label_gz.Text = $"Gz: {graphUpdate.GyroValues[5]:F2}";
+                            label_gz.Text = $"Gz: {graphUpdate.GyroValues[5]:F2}";*/
                         }
                     }
                 }
@@ -1958,8 +1962,15 @@ namespace fingerPressure
                                                                         panelCloud.Values = values;*/
                                 Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
                                 panelCloud.Invalidate();
-
-                                handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
+                                if(portName == "COMPort_left")
+                                {
+                                    handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
+                                }
+                                else if(portName == "COMPort_right")
+                                {
+                                    handHeatmapControlRight.SetFingerValues(s, panelCloud.Values);
+                                }
+                                
 
                                 if (panelCloud.Values.Length > 0)
                                 {
@@ -1983,15 +1994,24 @@ namespace fingerPressure
                                     label_label.Text = $"Label: {result.Label}";
                                     label_prob.Text = $"概率: {result.MaxProb:F2}";
                                 }
+                                if(dotUpdate.SensorIndex == chuanganqiIndex)
+                                {
+                                    label_ax.Text = $"Ax: {dotUpdate.GyroValues[0]:F2}";
+                                    label_ay.Text = $"Ay: {dotUpdate.GyroValues[1]:F2}";
+                                    label_az.Text = $"Az: {dotUpdate.GyroValues[2]:F2}";
+                                    label_gx.Text = $"Gx: {dotUpdate.GyroValues[3]:F2}";
+                                    label_gy.Text = $"Gy: {dotUpdate.GyroValues[4]:F2}";
+                                    label_gz.Text = $"Gz: {dotUpdate.GyroValues[5]:F2}";
+                                }
+
                             }
 
                             // --- 温度标签 ---
                             var labelTemp27 = this.Controls.Find($"label_finger{s + 1}_temp27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                            if (labelTemp27 != null && dotUpdate.TempValues.Length >= sensorCount)
-                            {
-                                labelTemp27.Text = $"{fingerNames[s]} 温度: {dotUpdate.TempValues[s]}";
-                            }
+                            labelTemp27.Text = $"{fingerNames[s]} 温度: {dotUpdate.TempValues}";
+
                         }
+
 
                     }
                 }
