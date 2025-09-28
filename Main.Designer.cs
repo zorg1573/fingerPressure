@@ -2666,7 +2666,7 @@ namespace fingerPressure
             tabPage7.Padding = new Padding(3);
             tabPage7.Size = new Size(1404, 338);
             tabPage7.TabIndex = 7;
-            tabPage7.Text = "tabPage7";
+            tabPage7.Text = "手指总览";
             tabPage7.UseVisualStyleBackColor = true;
             // 
             // tableLayoutPanel4
