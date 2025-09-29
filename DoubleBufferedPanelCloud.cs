@@ -1,310 +1,6 @@
 ﻿/*using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Windows.Forms;
-
-namespace fingerPressure
-{
-    public class DoubleBufferedPanelCloud : Panel
-    {
-        private double[] values = new double[8]; // 8通道数据
-
-        public DoubleBufferedPanelCloud()
-        {
-            this.DoubleBuffered = true;
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint |
-                          ControlStyles.UserPaint |
-                          ControlStyles.OptimizedDoubleBuffer, true);
-            this.UpdateStyles();
-        }
-
-        /// <summary>
-        /// 设置/获取8通道值
-        /// </summary>
-        public double[] Values
-        {
-            get => values;
-            set
-            {
-                if (value != null && value.Length == 8)
-                    values = value;
-                Invalidate(); // 刷新绘制
-            }
-        }
-
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            // 不调用 base，避免闪烁
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            DrawCloud(e.Graphics);
-        }
-
-        #region 云图模式（半椭圆内）
-
-        *//*        private void DrawCloud(Graphics g)
-                {
-                    int gridSize = 6;
-                    double[,] input = new double[gridSize, gridSize];
-
-                    // 填充8通道值到6x6矩阵（重复映射，保证不会越界）
-                    double Clamp(double v) => Math.Max(0, Math.Min(100000, v));
-
-                    input[0, 0] = Clamp(values[0]); input[1, 0] = Clamp(values[0]);
-                    input[0, 1] = Clamp(values[0]); input[1, 1] = Clamp(values[0]);
-
-                    input[2, 0] = Clamp(values[1]); input[3, 0] = Clamp(values[1]);
-                    input[2, 1] = Clamp(values[1]); input[3, 1] = Clamp(values[1]);
-
-                    input[4, 0] = Clamp(values[2]); input[5, 0] = Clamp(values[2]);
-                    input[4, 1] = Clamp(values[2]); input[5, 1] = Clamp(values[2]);
-
-                    input[0, 2] = Clamp(values[3]); input[1, 2] = Clamp(values[3]);
-                    input[0, 3] = Clamp(values[3]); input[1, 3] = Clamp(values[3]);
-
-                    input[2, 2] = Clamp(values[4]); input[3, 2] = Clamp(values[4]);
-                    input[2, 3] = Clamp(values[4]); input[3, 3] = Clamp(values[4]);
-
-                    input[4, 2] = Clamp(values[5]); input[5, 2] = Clamp(values[5]);
-                    input[4, 3] = Clamp(values[5]); input[5, 3] = Clamp(values[5]);
-
-                    input[0, 4] = Clamp(values[6]); input[1, 4] = Clamp(values[6]);
-                    input[0, 5] = Clamp(values[6]); input[1, 5] = Clamp(values[6]);
-                    input[2, 4] = Clamp(values[6]); input[2, 5] = Clamp(values[6]);
-
-                    input[3, 4] = Clamp(values[7]); input[4, 4] = Clamp(values[7]);
-                    input[5, 4] = Clamp(values[7]); input[3, 5] = Clamp(values[7]);
-                    input[4, 5] = Clamp(values[7]); input[5, 5] = Clamp(values[7]);
-
-                    // 双线性插值到 200x200 （分辨率提高，图像更平滑）
-                    int outW = 200, outH = 200;
-                    double[,] output = new double[outW, outH];
-
-                    for (int x = 0; x < outW; x++)
-                    {
-                        for (int y = 0; y < outH; y++)
-                        {
-                            double gx = (double)x / (outW - 1) * (gridSize - 1);
-                            double gy = (double)y / (outH - 1) * (gridSize - 1);
-
-                            int x0 = (int)Math.Floor(gx);
-                            int y0 = (int)Math.Floor(gy);
-                            int x1 = Math.Min(x0 + 1, gridSize - 1);
-                            int y1 = Math.Min(y0 + 1, gridSize - 1);
-
-                            double dx = gx - x0;
-                            double dy = gy - y0;
-
-                            double v00 = input[x0, y0];
-                            double v10 = input[x1, y0];
-                            double v01 = input[x0, y1];
-                            double v11 = input[x1, y1];
-
-                            output[x, y] = (1 - dx) * (1 - dy) * v00 +
-                                           dx * (1 - dy) * v10 +
-                                           (1 - dx) * dy * v01 +
-                                           dx * dy * v11;
-                        }
-                    }
-
-                    // === 生成位图 ===
-                    Bitmap bmp = new Bitmap(outW, outH);
-                    for (int x = 0; x < outW; x++)
-                    {
-                        for (int y = 0; y < outH; y++)
-                        {
-                            bmp.SetPixel(x, y, GetColorFromValue(output[x, y]));
-                        }
-                    }
-
-                    // 半椭圆参数
-                    Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
-
-                    // 定义半椭圆路径
-                    using (GraphicsPath path = new GraphicsPath())
-                    {
-                        path.AddArc(ellipseRect, 180, 180);
-                        path.CloseFigure();
-
-                        // 开启高质量渲染
-                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-
-                        // 设置裁剪区域（半椭圆内）
-                        g.SetClip(path);
-
-                        // 将热力图缩放绘制到 Panel
-                        g.DrawImage(bmp, new Rectangle(0, 0, this.Width, this.Height));
-
-                        g.ResetClip();
-
-                        // 画半椭圆边框
-                        using (Pen pen = new Pen(Color.Black, 1))
-                        {
-                            g.DrawArc(pen, ellipseRect, 180, 180);
-                        }
-                    }
-                }*//*
-        private void DrawCloud(Graphics g)
-        {
-            int outW = this.Width;
-            int outH = this.Height;
-            Bitmap bmp = new Bitmap(outW, outH);
-
-            // 半椭圆参数
-            float cx = outW / 2f;
-            float cy = outH;             // 半椭圆底部
-            float a = outW / 2f - 5;     // 水平方向半径
-            float b = outH - 5;          // 垂直方向半径
-
-            // 8 个方向对应的角度（弧度制）
-            double[] angles =
-            {
-        -135 * Math.PI / 180, // 左上
-        -45  * Math.PI / 180, // 右上
-        180  * Math.PI / 180, // 左
-        0,                    // 中（特殊，放在底边中心）
-        0,                    // 右
-        135 * Math.PI / 180,  // 左下
-        90  * Math.PI / 180,  // 下
-        45  * Math.PI / 180   // 右下
-    };
-
-            // 8 个通道点坐标
-            PointF[] sensors = new PointF[8];
-            for (int i = 0; i < 8; i++)
-            {
-                if (i == 3)
-                {
-                    sensors[i] = new PointF(cx, cy - b / 2); // 中间通道，放在半椭圆中点
-                }
-                else
-                {
-                    sensors[i] = new PointF(
-                        cx + (float)(a * Math.Cos(angles[i])),
-                        cy + (float)(b * Math.Sin(angles[i]))
-                    );
-                }
-            }
-
-            // 遍历半椭圆区域
-            for (int x = 0; x < outW; x++)
-            {
-                for (int y = 0; y < outH; y++)
-                {
-                    double norm = ((x - cx) * (x - cx)) / (a * a) +
-                                  ((y - cy) * (y - cy)) / (b * b);
-
-                    if (norm > 1.0) continue; // 在半椭圆外部，跳过
-
-                    // 反距离加权插值
-                    double val = 0, wsum = 0;
-                    for (int i = 0; i < 8; i++)
-                    {
-                        double dx = x - sensors[i].X;
-                        double dy = y - sensors[i].Y;
-                        double dist2 = dx * dx + dy * dy + 1e-6; // 防止除零
-                        double w = 1.0 / dist2;
-                        val += values[i] * w;
-                        wsum += w;
-                    }
-                    val /= wsum;
-
-                    bmp.SetPixel(x, y, GetColorFromValue(val));
-                }
-            }
-
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.DrawImage(bmp, new Rectangle(0, 0, outW, outH));
-
-            // 半椭圆边框
-            using (Pen pen = new Pen(Color.Black, 1))
-            {
-                g.DrawArc(pen, new Rectangle(5, 5, this.Width - 10, this.Height * 2 - 10), 180, 180);
-            }
-        }
-
-
-        #endregion
-
-        private Color GetColorFromValue(double value)
-        {
-            double maxAbs = 10000; // 你传感器的最大绝对值
-
-            // 限制范围
-            if (value < -maxAbs) value = -maxAbs;
-            if (value > maxAbs) value = maxAbs;
-
-            double r = 0, g = 0, b = 0;
-
-            if (value < 0)
-            {
-                // 负值：蓝 -> 绿
-                double ratio = (value + maxAbs) / maxAbs; // -maxAbs → 0 映射到 0~1
-
-                if (ratio < 0.5)
-                {
-                    // 深蓝 -> 青
-                    r = 0;
-                    g = ratio * 2;
-                    b = 1;
-                }
-                else
-                {
-                    // 青 -> 绿
-                    r = 0;
-                    g = 1;
-                    b = 2 * (1 - ratio);
-                }
-            }
-            else
-            {
-                // 正值：绿 -> 红
-                double ratio = value / maxAbs; // 0 → maxAbs 映射到 0~1
-
-                if (ratio < 0.5)
-                {
-                    // 绿 -> 黄
-                    r = ratio * 2;
-                    g = 1;
-                    b = 0;
-                }
-                else
-                {
-                    // 黄 -> 红
-                    r = 1;
-                    g = 2 * (1 - ratio);
-                    b = 0;
-                }
-            }
-
-            // Clamp & 转成Color
-            r = Math.Max(0, Math.Min(1, r));
-            g = Math.Max(0, Math.Min(1, g));
-            b = Math.Max(0, Math.Min(1, b));
-
-            return Color.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
-        }
-
-        *//*        private Color GetColorFromValue(double value)
-                {
-                    value = Math.Max(0, Math.Min(value, 100000));
-                    int r = (int)(value / 100000.0 * 255);
-                    int g = 0;
-                    int b = 255 - r;
-                    return Color.FromArgb(r, g, b);
-                }*//*
-
-    }
-}
-*/
-using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -519,7 +215,7 @@ namespace fingerPressure
 
             return Color.FromArgb(a, r, g, b);
         }
-        /*        private Color GetColorFromValue(double value)
+        *//*        private Color GetColorFromValue(double value)
                 {
                     double maxAbs = 100000;
                     if (guiyihua)
@@ -553,7 +249,7 @@ namespace fingerPressure
                         (int)(r * 255),
                         (int)(g * 255),
                         (int)(b * 255));
-                }*/
+                }*//*
 
         private void DrawForceArrow8(Graphics g)
         {
@@ -613,5 +309,273 @@ namespace fingerPressure
             }
         }
 
+    }
+}*/
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Windows.Forms;
+
+namespace fingerPressure
+{
+    public partial class DoubleBufferedPanelCloud : Panel
+    {
+        private double[] values = new double[8]; // 8通道数据
+        private Rectangle[] dotRects; // 点阵矩形缓存
+        private Bitmap backgroundCache; // 背景缓存
+        private float fontHeight; // 字体高度缓存
+        private bool guiyihua = false; // 是否归一化显示
+
+        public DoubleBufferedPanelCloud()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint |
+                          ControlStyles.UserPaint |
+                          ControlStyles.OptimizedDoubleBuffer, true);
+            this.UpdateStyles();
+            this.Resize += (_, __) => GenerateBackgroundCache();
+            this.FontChanged += (_, __) => CacheFontHeight();
+            CacheFontHeight();
+        }
+
+        /// <summary>
+        /// 设置/获取8通道值
+        /// </summary>
+        public double[] Values
+        {
+            get => values;
+            set
+            {
+                if (value != null && value.Length == values.Length)
+                    Array.Copy(value, values, values.Length);
+                Invalidate();
+            }
+        }
+
+        public bool Guiyihua
+        {
+            get => guiyihua;
+            set { guiyihua = value; }
+        }
+
+        private void CacheFontHeight()
+        {
+            using (Graphics g = CreateGraphics())
+            {
+                fontHeight = g.MeasureString("0", this.Font).Height;
+            }
+        }
+
+        private void GenerateBackgroundCache()
+        {
+            backgroundCache?.Dispose();
+            backgroundCache = new Bitmap(this.Width, this.Height);
+            dotRects = new Rectangle[values.Length + 1];
+            using (var g = Graphics.FromImage(backgroundCache))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(this.BackColor);
+                // 半椭圆背景
+                Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
+                using (Brush b = new SolidBrush(Color.LightGray))
+                {
+                    g.FillPie(b, ellipseRect, 180, 180);
+                }
+                g.DrawArc(Pens.Black, ellipseRect, 180, 180);
+                // 点阵布局 (2-3-3)
+                int circleDiameter = Math.Min(this.Width, this.Height) / 6;
+                int marginTop = 20;
+                int marginBottom = 10;
+                int verticalSpacing = (this.Height - marginTop - marginBottom - 3 * circleDiameter) / 2;
+                int[] rowCols = { 2, 3, 3 };
+                int valueIndex = 0;
+                for (int row = 0; row < rowCols.Length; row++)
+                {
+                    int cols = rowCols[row];
+                    int rowY = marginTop + row * (circleDiameter + verticalSpacing);
+                    int totalWidth = cols * circleDiameter + (cols - 1) * circleDiameter / 2;
+                    int startX = (this.Width - totalWidth) / 2;
+                    for (int col = 0; col < cols; col++)
+                    {
+                        if (valueIndex >= values.Length) break;
+                        int x = startX + col * (circleDiameter + circleDiameter / 2);
+                        int y = rowY;
+                        dotRects[valueIndex] = new Rectangle(x, y, circleDiameter, circleDiameter);
+                        valueIndex++;
+                    }
+                }
+                dotRects[8] = dotRects[5];
+                dotRects[5] = dotRects[7];
+                dotRects[7] = dotRects[8];
+                dotRects[8] = dotRects[0];
+                dotRects[0] = dotRects[1];
+                dotRects[1] = dotRects[8];
+                dotRects[8] = dotRects[2];
+                dotRects[2] = dotRects[4];
+                dotRects[4] = dotRects[8];
+            }
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            // 禁止背景清除，避免闪烁
+        }
+
+        private Color GetColorFromValue(double value)
+        {
+            double maxAbs = guiyihua ? 500 : 500000;
+            if (value < 0) value = 0;
+            if (value > maxAbs) value = maxAbs;
+            // 归一化到 0~1
+            double ratio = value / maxAbs;
+            int r = 0, g = 0, b = 0;
+            if (ratio < 0.33) // 蓝 -> 绿
+            {
+                double t = ratio / 0.33;
+                r = 0;
+                g = (int)(255 * t);
+                b = (int)(255 * (1 - t));
+            }
+            else if (ratio < 0.66) // 绿 -> 黄
+            {
+                double t = (ratio - 0.33) / 0.33;
+                r = (int)(255 * t);
+                g = 255;
+                b = 0;
+            }
+            else // 黄 -> 红
+            {
+                double t = (ratio - 0.66) / 0.34;
+                r = 255;
+                g = (int)(255 * (1 - t));
+                b = 0;
+            }
+            // 透明度：0 时完全透明，100% 力时完全不透明
+            int a = (int)(255 * ratio);
+            return Color.FromArgb(a, r, g, b);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            // 每次绘制时更新背景缓存
+            GenerateBackgroundCache();
+            // 先画缓存的背景
+            if (backgroundCache != null)
+            {
+                g.DrawImageUnscaled(backgroundCache, Point.Empty);
+            }
+            // 确保数据不为空
+            if (dotRects == null || values.Length == 0) return;
+
+            // 创建一个临时的位图用于绘制渐变，覆盖整个半椭圆区域
+            using (Bitmap heatmap = new Bitmap(this.Width, this.Height))
+            using (Graphics heatmapGraphics = Graphics.FromImage(heatmap))
+            {
+                heatmapGraphics.SmoothingMode = SmoothingMode.AntiAlias;
+                heatmapGraphics.Clear(Color.Transparent);
+
+                // 遍历每个点，绘制大范围渐变
+                for (int i = 0; i < values.Length && i < dotRects.Length; i++)
+                {
+                    var rect = dotRects[i];
+                    double value = values[i];
+                    // 计算颜色
+                    Color centerColor = GetColorFromValue(value);
+                    // 创建更大的渐变区域（圆点直径的3倍）
+                    int gradientDiameter = (int)(rect.Width * 3);
+                    Rectangle gradientRect = new Rectangle(
+                        rect.X - (gradientDiameter - rect.Width) / 2,
+                        rect.Y - (gradientDiameter - rect.Height) / 2,
+                        gradientDiameter,
+                        gradientDiameter
+                    );
+                    // 使用径向渐变刷
+                    using (GraphicsPath path = new GraphicsPath())
+                    {
+                        path.AddEllipse(gradientRect);
+                        using (PathGradientBrush brush = new PathGradientBrush(path))
+                        {
+                            brush.CenterColor = centerColor;
+                            brush.SurroundColors = new[] { Color.FromArgb(0, centerColor) }; // 边缘透明
+                            brush.FocusScales = new PointF(0.3f, 0.3f); // 缩小焦点，扩大渐变范围
+                            heatmapGraphics.FillEllipse(brush, gradientRect);
+                        }
+                    }
+                }
+
+                // 将渐变图层绘制到主画布，并限制在半椭圆区域内
+                using (GraphicsPath clipPath = new GraphicsPath())
+                {
+                    Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
+                    clipPath.AddPie(ellipseRect, 180, 180);
+                    g.SetClip(clipPath);
+                    g.DrawImageUnscaled(heatmap, Point.Empty);
+                    g.ResetClip();
+                }
+            }
+
+            // 再次绘制中心圆点，确保清晰
+            for (int i = 0; i < values.Length && i < dotRects.Length; i++)
+            {
+                var rect = dotRects[i];
+                double value = values[i];
+                // 计算颜色
+                Color centerColor = GetColorFromValue(value);
+                // 绘制中心圆点
+                using (Brush brush = new SolidBrush(centerColor))
+                {
+                    g.FillEllipse(brush, rect);
+                }
+            }
+            DrawForceArrow8(g);
+        }
+
+        private void DrawForceArrow8(Graphics g)
+        {
+            if (values == null || values.Length != 8) return;
+            float cx = this.Width / 2f;
+            float cy = this.Height / 2f;
+
+            PointF[] dirs = new PointF[8];
+            int index = 0;
+            float rowSpacing = this.Height / 3f;
+            float colSpacingTop = this.Width / 3f;
+            float colSpacingMiddle = this.Width / 4f;
+            float colSpacingBottom = this.Width / 4f;
+
+            dirs[index++] = new PointF(1, -1);  // 左
+            dirs[index++] = new PointF(-1, -1); // 右
+            dirs[index++] = new PointF(1, 0);   // 左
+            dirs[index++] = new PointF(0, 0);   // 中
+            dirs[index++] = new PointF(-1, 0);  // 右
+            dirs[index++] = new PointF(1, 1);   // 左
+            dirs[index++] = new PointF(0, 1);   // 中
+            dirs[index++] = new PointF(-1, 1);  // 右
+
+            float fx = 0, fy = 0;
+            for (int i = 0; i < values.Length; i++)
+            {
+                float mag = (float)values[i];
+                fx += dirs[i].X * mag;
+                fy += dirs[i].Y * mag;
+            }
+
+            float len = (float)Math.Sqrt(fx * fx + fy * fy);
+            if (len < 1e-3) return;
+
+            float scale = Math.Min(this.Width, this.Height) / 4f / len;
+            fx *= scale;
+            fy *= scale;
+            float tx = cx + fx;
+            float ty = cy + fy;
+
+            using (Pen pen = new Pen(Color.White, 3))
+            {
+                pen.CustomEndCap = new AdjustableArrowCap(6, 8, true);
+                g.DrawLine(pen, cx, cy, tx, ty);
+            }
+        }
     }
 }

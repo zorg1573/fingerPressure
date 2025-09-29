@@ -1,112 +1,7 @@
-﻿/*using System;
-using System.Drawing;
-using System.Windows.Forms;
-
-namespace fingerPressure
-{
-    public partial class DoubleBufferedPanel : Panel
-    {
-        private double[] values = new double[8]; // 8通道数据
-
-        public DoubleBufferedPanel()
-        {
-            this.DoubleBuffered = true;
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint |
-                          ControlStyles.UserPaint |
-                          ControlStyles.OptimizedDoubleBuffer, true);
-            this.UpdateStyles();
-        }
-
-        /// <summary>
-        /// 设置/获取8通道值
-        /// </summary>
-        public double[] Values
-        {
-            get => values;
-            set
-            {
-                if (value != null && value.Length == 8)
-                    values = value;
-                Invalidate(); // 刷新绘制
-            }
-        }
-
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            // 不调用 base，避免闪烁
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            Graphics g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-            // ========= 绘制指腹半椭圆背景 =========
-            Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
-            using (Brush b = new SolidBrush(Color.LightGray))
-            {
-                g.FillPie(b, ellipseRect, 180, 180);  // 填充半椭圆
-            }
-            g.DrawArc(Pens.Black, ellipseRect, 180, 180); // 边框
-
-            // ========= 绘制点阵（2-3-3 布局） =========
-            int circleDiameter = Math.Min(this.Width, this.Height) / 6; // 点直径
-            int marginTop = 20;
-            int marginBottom = 10;
-            int verticalSpacing = (this.Height - marginTop - marginBottom - 3 * circleDiameter) / 2;
-
-            int[] rowCols = { 2, 3, 3 }; // 每行点数
-            int totalRows = rowCols.Length;
-
-            int valueIndex = 0;
-
-            for (int row = 0; row < totalRows; row++)
-            {
-                int cols = rowCols[row];
-                int rowY = marginTop + row * (circleDiameter + verticalSpacing);
-
-                // 当前行总宽度
-                int totalWidth = cols * circleDiameter + (cols - 1) * circleDiameter / 2;
-                int startX = (this.Width - totalWidth) / 2;
-
-                for (int col = 0; col < cols; col++)
-                {
-                    if (valueIndex >= values.Length) break;
-
-                    int x = startX + col * (circleDiameter + circleDiameter / 2);
-                    int y = rowY;
-
-                    double value = values[valueIndex];
-
-                    Rectangle dotRect = new Rectangle(x, y, circleDiameter, circleDiameter);
-                    using (Brush brush = new SolidBrush(Color.LightSkyBlue))
-                    {
-                        g.FillEllipse(brush, dotRect);
-                    }
-                    //g.DrawEllipse(Pens.Black, dotRect);
-
-                    // 数值居中绘制
-                    string text = value.ToString();
-                    SizeF textSize = g.MeasureString(text, this.Font);
-                    g.DrawString(
-                        text,
-                        this.Font,
-                        Brushes.Black,
-                        x + (circleDiameter - textSize.Width) / 2,
-                        y + (circleDiameter - textSize.Height) / 2
-                    );
-
-                    valueIndex++;
-                }
-            }
-        }
-    }
-}
-*/
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace fingerPressure
@@ -118,6 +13,7 @@ namespace fingerPressure
         private Bitmap backgroundCache;          // 背景缓存
         private float fontHeight;                // 字体高度缓存
         private bool needsRefresh;               // 节流标记
+        private bool guiyihua = false; // 是否归一化显示
 
         public DoubleBufferedPanel()
         {
@@ -145,6 +41,11 @@ namespace fingerPressure
                 Invalidate();
             }
         }
+        public bool Guiyihua
+        {
+            get => guiyihua;
+            set { guiyihua = value; }
+        }
 
         private void CacheFontHeight()
         {
@@ -158,7 +59,7 @@ namespace fingerPressure
         {
             backgroundCache?.Dispose();
             backgroundCache = new Bitmap(this.Width, this.Height);
-            dotRects = new Rectangle[values.Length+1];
+            dotRects = new Rectangle[values.Length + 1];
 
             using (var g = Graphics.FromImage(backgroundCache))
             {
@@ -216,11 +117,51 @@ namespace fingerPressure
         {
             // 禁止背景清除，避免闪烁
         }
+        private Color GetColorFromValue(double value)
+        {
+            double maxAbs = guiyihua ? 500 : 500000;
+            if (value < 0) value = 0;
+            if (value > maxAbs) value = maxAbs;
 
+            // 归一化到 0~1
+            double ratio = value / maxAbs;
+
+            int r = 0, g = 0, b = 0;
+
+            if (ratio < 0.33) // 蓝 -> 绿
+            {
+                double t = ratio / 0.33;
+                r = 0;
+                g = (int)(255 * t);
+                b = (int)(255 * (1 - t));
+            }
+            else if (ratio < 0.66) // 绿 -> 黄
+            {
+                double t = (ratio - 0.33) / 0.33;
+                r = (int)(255 * t);
+                g = 255;
+                b = 0;
+            }
+            else // 黄 -> 红
+            {
+                double t = (ratio - 0.66) / 0.34;
+                r = 255;
+                g = (int)(255 * (1 - t));
+                b = 0;
+            }
+
+            // 透明度：0 时完全透明，100% 力时完全不透明
+            int a = (int)(255 * ratio);
+
+            return Color.FromArgb(a, r, g, b);
+        }
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            // 每次绘制时更新背景缓存，确保渐变效果更新
+            GenerateBackgroundCache();
 
             // 先画缓存的背景
             if (backgroundCache != null)
@@ -228,16 +169,20 @@ namespace fingerPressure
                 g.DrawImageUnscaled(backgroundCache, Point.Empty);
             }
 
-            // 再绘制点值
-            if (dotRects == null) return;
+            // 确保数据不为空
+            if (dotRects == null || values.Length == 0) return;
 
+            // 遍历每个点
             for (int i = 0; i < values.Length && i < dotRects.Length; i++)
             {
                 var rect = dotRects[i];
                 double value = values[i];
 
+                // 计算每个传感器位置的颜色
+                Color pressureColor = GetColorFromValue(value);
+
                 // 填充圆点
-                using (Brush brush = new SolidBrush(Color.LightSkyBlue))
+                using (Brush brush = new SolidBrush(pressureColor))
                 {
                     g.FillEllipse(brush, rect);
                 }
@@ -256,3 +201,4 @@ namespace fingerPressure
         }
     }
 }
+
