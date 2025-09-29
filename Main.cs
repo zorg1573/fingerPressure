@@ -433,7 +433,10 @@ namespace fingerPressure
 
                 // 创建全局 StreamWriter，不写表头
                 packetWriter = new StreamWriter(filePath, true, new System.Text.UTF8Encoding(false));
-                packetWriter.WriteLine(string.Join(",", biaoTouName));
+                if(chuanGanQiType == "Yingbianhua")
+                {
+                    packetWriter.WriteLine(string.Join(",", biaoTouName));
+                }
                 packetWriter.AutoFlush = true; // 每次写入自动刷新
 
                 // 启动后台写线程
@@ -636,10 +639,13 @@ namespace fingerPressure
                 serialThread = new Thread(() => SerialReadLoop(cts.Token));
                 serialThread.IsBackground = true;
                 serialThread.Start();
+                if(chuanGanQiType == "MEMS")
+                {
+                    serialSendThread = new Thread(() => SerialSendLoop(cts.Token, fingerNum.Count));
+                    serialSendThread.IsBackground = true;
+                    serialSendThread.Start();
+                }
 
-                serialSendThread = new Thread(() => SerialSendLoop(cts.Token, fingerNum.Count));
-                serialSendThread.IsBackground = true;
-                serialSendThread.Start();
 
                 LogToConsole("串口已打开");
             }
@@ -949,22 +955,19 @@ namespace fingerPressure
             {
                 try
                 {
-                    if (chuanGanQiType == "MEMS")
+                    int attempts = 0;
+                    while (memsCommands[memsSensorIndex] == null && attempts < memsCommands.Length)
                     {
-                        int attempts = 0;
-                        while (memsCommands[memsSensorIndex] == null && attempts < memsCommands.Length)
-                        {
-                            memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
-                            attempts++;
-                        }
-
-                        if (memsCommands[memsSensorIndex] != null)
-                        {
-                            serialPort.Write(memsCommands[memsSensorIndex], 0, memsCommands[memsSensorIndex].Length);
-                        }
-
                         memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
+                        attempts++;
                     }
+
+                    if (memsCommands[memsSensorIndex] != null)
+                    {
+                        serialPort.Write(memsCommands[memsSensorIndex], 0, memsCommands[memsSensorIndex].Length);
+                    }
+
+                    memsSensorIndex = (memsSensorIndex + 1) % memsCommands.Length;
 
                     Thread.Sleep((int)pollIntervalMs); // 用 Sleep 控制间隔
                 }
@@ -1073,7 +1076,7 @@ namespace fingerPressure
                                 }
                                 else
                                 {
-                                    LogToConsole("Yingbianhua 包尾错误");
+                                    //LogToConsole("Yingbianhua 包尾错误");
                                     pool.Return(packet);
                                 }
                             }
@@ -2402,6 +2405,113 @@ namespace fingerPressure
 
                 }*/
 
+        /*        private void EnqueuePacket(byte[] packet)
+                {
+                    if (chuanGanQiType == "MEMS")
+                    {
+                        try
+                        {
+                            if (packet.Length < 10) return;
+
+                            int length = packet[2];
+                            byte addr = packet[3];
+                            byte type = packet[4];
+
+                            // 复用数组
+                            Span<double> values = stackalloc double[8];
+
+                            int dataOffset = 13;
+
+                            if (type == 0xF4) // 温度
+                            {
+                                for (int i = 0; i < 8; i++)
+                                {
+                                    if (dataOffset + i * 2 + 1 >= packet.Length) break;
+                                    //double v = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(dataOffset + i * 2, 2));
+                                    double v = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(dataOffset + i * 2, 2));
+                                    values[7 - i] = v / 10;
+                                }
+                            }
+                            else if (type == 0xF5) // 压力
+                            {
+                                for (int i = 0; i < 8; i++)
+                                {
+                                    if (dataOffset + i * 4 + 3 >= packet.Length) break;
+                                    double v = BitConverter.ToInt32(packet, dataOffset + i * 4); // 保持小端或按协议
+                                    if (guiyihua)
+                                    {
+                                        v = v / 1000.0; // 压力值归一化，单位 kPa
+
+                                        // 保证最小值为 1
+                                        if (v > 0 && v < 1) v = 1;
+                                        if (v < 0 && v > -1) v = -1;
+
+                                    }
+
+                                    values[7 - i] = v; // 保持小端或按协议
+                                }
+                            }
+                            else
+                            {
+                                LogToConsole($"未知包类型: {type:X2}");
+                                return;
+                            }
+
+                            lastValidPacket = packet;
+
+                            // 获取 List<string> 对象池
+                            var uiData = uiDataPool.Rent();
+                            uiData.Clear();
+                            uiData.Add("S" + addr.ToString());
+                            uiData.Add(type.ToString("X2"));
+                            for (int i = 0; i < 8; i++)
+                                uiData.Add(values[i].ToString());
+
+                            while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                            uiQueue.Add(uiData);
+
+                            var now = HighResDateTime.Now;
+                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                            {
+                                lastSaveTime = now;
+                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                fileRawQueue.Add(uiData);
+                            }
+
+                            long newCount = Interlocked.Increment(ref totalPacketCount);
+                            if (packetCountLabel.InvokeRequired)
+                            {
+                                packetCountLabel.BeginInvoke(new Action(() =>
+                                {
+                                    packetCountLabel.Text = $"接收包数: {newCount}";
+                                }));
+                            }
+                            else
+                            {
+                                packetCountLabel.Text = $"接收包数: {newCount}";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogToConsole("EnqueuePacket 异常: " + ex.Message);
+                        }*/
+        // 创建一个结构体来保存温度和压力数据
+        public struct SensorData
+        {
+            public List<double> TemperatureData; // 存储温度数据 (F4)
+            public List<double> PressureData;    // 存储压力数据 (F5)
+
+            public SensorData()
+            {
+                TemperatureData = new List<double>();
+                PressureData = new List<double>();
+            }
+        }
+
+        // 创建全局字典来存储每个 addr 对应的温度和压力数据
+        private Dictionary<byte, SensorData> addrDataDict = new Dictionary<byte, SensorData>();
+
+        // 处理接收到的包并更新字典
         private void EnqueuePacket(byte[] packet)
         {
             if (chuanGanQiType == "MEMS")
@@ -2424,10 +2534,17 @@ namespace fingerPressure
                         for (int i = 0; i < 8; i++)
                         {
                             if (dataOffset + i * 2 + 1 >= packet.Length) break;
-                            //double v = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(dataOffset + i * 2, 2));
+                            // 解析温度数据
                             double v = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(dataOffset + i * 2, 2));
                             values[7 - i] = v / 10;
                         }
+
+                        // 将温度数据添加到字典
+                        if (!addrDataDict.ContainsKey(addr))
+                        {
+                            addrDataDict[addr] = new SensorData();
+                        }
+                        addrDataDict[addr].TemperatureData.AddRange(values.ToArray());
                     }
                     else if (type == 0xF5) // 压力
                     {
@@ -2442,11 +2559,17 @@ namespace fingerPressure
                                 // 保证最小值为 1
                                 if (v > 0 && v < 1) v = 1;
                                 if (v < 0 && v > -1) v = -1;
-
                             }
 
                             values[7 - i] = v; // 保持小端或按协议
                         }
+
+                        // 将压力数据添加到字典
+                        if (!addrDataDict.ContainsKey(addr))
+                        {
+                            addrDataDict[addr] = new SensorData();
+                        }
+                        addrDataDict[addr].PressureData.AddRange(values.ToArray());
                     }
                     else
                     {
@@ -2467,12 +2590,35 @@ namespace fingerPressure
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                     uiQueue.Add(uiData);
 
-                    var now = HighResDateTime.Now;
-                    if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                    // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
+                    if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
                     {
-                        lastSaveTime = now;
-                        if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                        fileRawQueue.Add(uiData);
+                        // 当数据满足条件时，加入 fileRawQueue
+                        var fileData = uiDataPool.Rent();
+                        fileData.Clear();
+                        fileData.Add("S" + addr.ToString());
+
+                        // 将温度数据和压力数据一起添加到 uiData
+                        foreach (var value in addrDataDict[addr].TemperatureData)
+                        {
+                            fileData.Add(value.ToString());
+                        }
+                        foreach (var value in addrDataDict[addr].PressureData)
+                        {
+                            fileData.Add(value.ToString());
+                        }
+
+                        // 保存数据到 fileRawQueue
+                        var now = HighResDateTime.Now;
+                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                        {
+                            lastSaveTime = now;
+                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                            fileRawQueue.Add(fileData);
+                        }
+
+                        // 清除该 addr 的数据（温度和压力都清除）
+                        addrDataDict[addr] = new SensorData();
                     }
 
                     long newCount = Interlocked.Increment(ref totalPacketCount);
@@ -2544,8 +2690,15 @@ namespace fingerPressure
 
                             
                             // 乘以系数 1.55
-                            if(danwei == 1) 
+                            if(danwei == 1)
+                            {
                                 scaled = raw * 1.55;
+                            }
+                            else
+                            {
+                                scaled = raw;
+                            }
+                                
 
                             uiData.Add(scaled.ToString("F2")); // 保留两位小数，可以根据需要改
                             pressureValues[s * pressureCount + i] = (float)scaled;
@@ -2851,21 +3004,11 @@ namespace fingerPressure
             // 先写时间戳
             _sbCache.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
 
-            if (packet[1] == "F4")
+
+            for (int i = 0; i < 17; i++)
             {
-                for (int i = 0; i < 8; i++)
-                {
-                    _sbCache.Append(',');
-                    _sbCache.Append(packet[i]);
-                }
-            }
-            else if (packet[1] == "F5")
-            {
-                for (int i = 0; i < 10; i++)
-                {
-                    _sbCache.Append(',');
-                    _sbCache.Append(packet[i]);
-                }
+                _sbCache.Append(',');
+                _sbCache.Append(packet[i]);
             }
 
             return _sbCache.ToString();
@@ -3287,7 +3430,7 @@ namespace fingerPressure
                 var pane = zedGraphControl1.GraphPane;
                 pane.CurveList.Clear();
 
-                for (int ch = 0; ch < 8; ch++)
+                for (int ch = 0; ch < 40; ch++)
                 {
                     var list = new RollingPointPairList(MaxVisiblePackets + 100);
                     var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3302,7 +3445,7 @@ namespace fingerPressure
                 var pane19 = zedGraphControl19.GraphPane;
                 pane19.CurveList.Clear();
 
-                for (int ch = 0; ch < 8; ch++)
+                for (int ch = 0; ch < 40; ch++)
                 {
                     var list = new RollingPointPairList(MaxVisiblePackets + 100);
                     var curve = pane19.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3697,7 +3840,7 @@ namespace fingerPressure
             var pane = zedGraphControl1.GraphPane;
             pane.CurveList.Clear();
 
-            for (int ch = 0; ch < 8; ch++)
+            for (int ch = 0; ch < 40; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
                 var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3770,6 +3913,8 @@ namespace fingerPressure
                 checkBox4.Visible = true;
                 label8.Visible = true;
                 uCheckComboBox1.Visible = true;
+                label17.Visible = false;
+                comboBox8.Visible = false;
             }
             else
             {
@@ -3779,6 +3924,8 @@ namespace fingerPressure
                 checkBox4.Visible = false;
                 label8.Visible = false;
                 uCheckComboBox1.Visible = false;
+                label17.Visible = true;
+                comboBox8.Visible = true;
             }
 
             UpdateTabPages();
@@ -4031,7 +4178,7 @@ namespace fingerPressure
             var pane = zedGraphControl19.GraphPane;
             pane.CurveList.Clear();
 
-            for (int ch = 0; ch < 8; ch++)
+            for (int ch = 0; ch < 40; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
                 var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
