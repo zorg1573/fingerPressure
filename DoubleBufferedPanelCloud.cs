@@ -591,6 +591,8 @@ namespace fingerPressure
         private double[] values = new double[8]; // 8通道数据
         private Rectangle[] dotRects; // 点阵矩形缓存
         private Bitmap backgroundCache; // 背景缓存
+        private Bitmap heatmapCache; // 新增：热力图缓存
+        //private bool valuesChanged = true; // 新增：标记值是否变化
         private float fontHeight; // 字体高度缓存
         private bool guiyihua = false; // 是否归一化显示
 
@@ -601,7 +603,11 @@ namespace fingerPressure
                           ControlStyles.UserPaint |
                           ControlStyles.OptimizedDoubleBuffer, true);
             this.UpdateStyles();
-            this.Resize += (_, __) => GenerateBackgroundCache();
+            this.Resize += (_, __) =>
+            {
+                //valuesChanged = true; // 大小变化时强制重计算
+                GenerateBackgroundCache();
+            };
             this.FontChanged += (_, __) => CacheFontHeight();
             CacheFontHeight();
         }
@@ -615,8 +621,11 @@ namespace fingerPressure
             set
             {
                 if (value != null && value.Length == values.Length)
+                {
                     Array.Copy(value, values, values.Length);
-                Invalidate();
+                    //valuesChanged = true; // 标记变化
+                    Invalidate(); // 触发重绘
+                }
             }
         }
 
@@ -727,67 +736,88 @@ namespace fingerPressure
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            // 每次绘制时更新背景缓存
-            GenerateBackgroundCache();
-            // 先画缓存的背景
+
+            // 只当值变化或缓存为空时重计算
+/*            if (valuesChanged || backgroundCache == null || heatmapCache == null)
+            {*/
+                GenerateBackgroundCache(); // 只在需要时生成背景
+
+                // 计算点中心坐标
+                PointF[] centers = new PointF[values.Length];
+                for (int i = 0; i < values.Length; i++)
+                {
+                    centers[i] = new PointF(dotRects[i].X + dotRects[i].Width / 2f, dotRects[i].Y + dotRects[i].Height / 2f);
+                }
+
+                // 创建热力图缓存，使用 LockBits 加速像素设置
+                heatmapCache?.Dispose();
+                heatmapCache = new Bitmap(this.Width, this.Height);
+                var bmpData = heatmapCache.LockBits(new Rectangle(0, 0, Width, Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                unsafe
+                {
+                    byte* ptr = (byte*)bmpData.Scan0.ToPointer();
+                    int bytesPerPixel = 4; // ARGB
+                    double power = 2.0; // 插值幂
+                    double epsilon = 1e-6;
+
+                    for (int y = 0; y < this.Height; y++)
+                    {
+                        for (int x = 0; x < this.Width; x++)
+                        {
+                            double sumValue = 0.0;
+                            double sumWeight = 0.0;
+                            bool isCenter = false;
+                            for (int i = 0; i < values.Length; i++)
+                            {
+                                double dx = x - centers[i].X;
+                                double dy = y - centers[i].Y;
+                                double dist = Math.Sqrt(dx * dx + dy * dy);
+                                if (dist < epsilon)
+                                {
+                                    sumValue = values[i];
+                                    isCenter = true;
+                                    break;
+                                }
+                                double weight = 1.0 / Math.Pow(dist, power);
+                                sumValue += values[i] * weight;
+                                sumWeight += weight;
+                            }
+                            double interpValue = isCenter ? sumValue : (sumValue / sumWeight);
+                            Color color = GetColorFromValue(interpValue);
+
+                            int pixelOffset = (y * bmpData.Stride) + (x * bytesPerPixel);
+                            ptr[pixelOffset] = color.B;
+                            ptr[pixelOffset + 1] = color.G;
+                            ptr[pixelOffset + 2] = color.R;
+                            ptr[pixelOffset + 3] = color.A;
+                        }
+                    }
+                //}
+                heatmapCache.UnlockBits(bmpData);
+
+                //valuesChanged = false; // 重置标记
+            }
+
+            // 先画背景缓存
             if (backgroundCache != null)
             {
                 g.DrawImageUnscaled(backgroundCache, Point.Empty);
             }
+
             // 确保数据不为空
             if (dotRects == null || values.Length == 0) return;
 
-            // 计算点中心坐标
-            PointF[] centers = new PointF[values.Length];
-            for (int i = 0; i < values.Length; i++)
+            // 将热力图层绘制到主画布，并限制在半椭圆区域内
+            using (GraphicsPath clipPath = new GraphicsPath())
             {
-                centers[i] = new PointF(dotRects[i].X + dotRects[i].Width / 2f, dotRects[i].Y + dotRects[i].Height / 2f);
-            }
-
-            // 创建一个临时的位图用于绘制热力图
-            using (Bitmap heatmap = new Bitmap(this.Width, this.Height))
-            {
-                // 使用 IDW 插值计算每个像素的颜色
-                double power = 2.0; // 插值幂，调整此值控制平滑度（1.0~3.0）
-                double epsilon = 1e-6; // 避免除零
-                for (int y = 0; y < this.Height; y++)
+                Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
+                clipPath.AddPie(ellipseRect, 180, 180);
+                g.SetClip(clipPath);
+                if (heatmapCache != null)
                 {
-                    for (int x = 0; x < this.Width; x++)
-                    {
-                        double sumValue = 0.0;
-                        double sumWeight = 0.0;
-                        bool isCenter = false;
-                        for (int i = 0; i < values.Length; i++)
-                        {
-                            double dx = x - centers[i].X;
-                            double dy = y - centers[i].Y;
-                            double dist = Math.Sqrt(dx * dx + dy * dy);
-                            if (dist < epsilon)
-                            {
-                                // 正好在中心点，使用该点值
-                                sumValue = values[i];
-                                isCenter = true;
-                                break;
-                            }
-                            double weight = 1.0 / Math.Pow(dist, power);
-                            sumValue += values[i] * weight;
-                            sumWeight += weight;
-                        }
-                        double interpValue = isCenter ? sumValue : (sumValue / sumWeight);
-                        Color color = GetColorFromValue(interpValue);
-                        heatmap.SetPixel(x, y, color);
-                    }
+                    g.DrawImageUnscaled(heatmapCache, Point.Empty);
                 }
-
-                // 将热力图层绘制到主画布，并限制在半椭圆区域内
-                using (GraphicsPath clipPath = new GraphicsPath())
-                {
-                    Rectangle ellipseRect = new Rectangle(5, 5, this.Width - 10, (this.Height - 10) * 2);
-                    clipPath.AddPie(ellipseRect, 180, 180);
-                    g.SetClip(clipPath);
-                    g.DrawImageUnscaled(heatmap, Point.Empty);
-                    g.ResetClip();
-                }
+                g.ResetClip();
             }
 
             DrawForceArrow8(g);
@@ -798,14 +828,12 @@ namespace fingerPressure
             if (values == null || values.Length != 8) return;
             float cx = this.Width / 2f;
             float cy = this.Height / 2f;
-
             PointF[] dirs = new PointF[8];
             int index = 0;
             float rowSpacing = this.Height / 3f;
             float colSpacingTop = this.Width / 3f;
             float colSpacingMiddle = this.Width / 4f;
             float colSpacingBottom = this.Width / 4f;
-
             dirs[index++] = new PointF(1, -1);  // 左
             dirs[index++] = new PointF(-1, -1); // 右
             dirs[index++] = new PointF(1, 0);   // 左
@@ -814,7 +842,6 @@ namespace fingerPressure
             dirs[index++] = new PointF(1, 1);   // 左
             dirs[index++] = new PointF(0, 1);   // 中
             dirs[index++] = new PointF(-1, 1);  // 右
-
             float fx = 0, fy = 0;
             for (int i = 0; i < values.Length; i++)
             {
@@ -822,16 +849,13 @@ namespace fingerPressure
                 fx += dirs[i].X * mag;
                 fy += dirs[i].Y * mag;
             }
-
             float len = (float)Math.Sqrt(fx * fx + fy * fy);
             if (len < 1e-3) return;
-
             float scale = Math.Min(this.Width, this.Height) / 4f / len;
             fx *= scale;
             fy *= scale;
             float tx = cx + fx;
             float ty = cy + fy;
-
             using (Pen pen = new Pen(Color.White, 3))
             {
                 pen.CustomEndCap = new AdjustableArrowCap(6, 8, true);

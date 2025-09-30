@@ -153,11 +153,11 @@ namespace fingerPressure
         /*        private StreamWriter monitorWriter;
                 private Thread monitorThread;
                 private bool monitorRunning = true;*/
-        private List<string> biaoTouName = new List<string> { "时间", "传感器1", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度1", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器2", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度2", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器3", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度3", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器4", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度4", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", "传感器5", "通道1", "通道2", "通道3", "通道4", "通道5", "通道6", "通道7", "通道8", "通道9", "通道10", "通道11", "通道12", "通道13", "通道14", "通道15", "通道16", "通道17", "通道18", "通道19", "通道20", "通道21", "通道22", "通道23", "通道24", "通道25", "通道26", "通道27", "温度5", "陀螺仪Ax", "陀螺仪Ay", "陀螺仪Az", "陀螺仪Gx", "陀螺仪Gy", "陀螺仪Gz", };
-        private List<string> biaoTouNameMEMS = new List<string> { "时间", "传感器", "温度1", "温度2", "温度3", "温度4", "温度5", "温度6", "温度7", "温度8", "压力1", "压力2", "压力3", "压力4", "压力5", "压力6", "压力7", "压力8" };
+        private List<string> biaoTouName = new List<string> { "LogTime", "Sensor1", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp1", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor2", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp2", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor3", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp3", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor4", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp4", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor5", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp5", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", };
+        private List<string> biaoTouNameMEMS = new List<string> { "LogTime", "Sensor", "Temp1", "Temp2", "Temp3", "Temp4", "Temp5", "Temp6", "Temp7", "Temp8", "Press1", "Press2", "Press3", "Press4", "Press5", "Press6", "Press7", "Press8" };
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
         private string[] danweiNames = { "原始值","电阻值","应变值","压力值" };
-        private int danwei = -1; //电阻 应变 压力
+        private int danwei = 0; //电阻 应变 压力
         private int choosedFinger1 = -1; // 默认大拇指
         private int choosedFinger3 = -1; // 默认大拇指
         private int choosedFinger19 = -1; // 默认大拇指
@@ -361,6 +361,7 @@ namespace fingerPressure
             {
                 comboBox5.SelectedIndex = 0;
             }
+            comboBox8.SelectedIndex = 0;
             this.ControlBox = false;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -1317,58 +1318,6 @@ namespace fingerPressure
             {
                 try
                 {
-                    /*                    if (!int.TryParse(uiData[0].Replace("S", ""), out int addr))
-                                            return;
-                                        int sensorIndex = addr - 1;
-                                        // === 校零采集逻辑 ===
-                                        if (isZeroing)
-                                        {
-                                            for (int i = 0; i < 27; i++) // 遍历该传感器的通道
-                                            {
-                                                int channelIndex = sensorIndex * 27 + i;
-                                                if (channelIndex < 0 || channelIndex >= 135) continue;
-
-                                                if (!pressureCalibBuffers27.ContainsKey(channelIndex))
-                                                    pressureCalibBuffers27[channelIndex] = new List<double>();
-
-                                                if (double.TryParse(uiData[1 + i], out double pressure))
-                                                {
-                                                    pressureCalibBuffers27[channelIndex].Add(pressure);
-                                                    channelZeroingCounts27[channelIndex]++;
-                                                }
-                                            }
-
-                                            // 判断所有通道是否都达到目标采样数
-                                            bool allChannelsDone = true;
-                                            for (int ch = 0; ch < 135; ch++)
-                                            {
-                                                if (channelZeroingCounts27[ch] < ZeroingTargetPackets)
-                                                {
-                                                    allChannelsDone = false;
-                                                    break;
-                                                }
-                                            }
-
-                                            if (allChannelsDone)
-                                            {
-                                                // 计算每个通道零点偏移
-                                                for (int ch = 0; ch < 135; ch++)
-                                                {
-                                                    if (pressureCalibBuffers27.ContainsKey(ch) && pressureCalibBuffers27[ch].Count > 0)
-                                                        channelZeroOffsets27[ch] = pressureCalibBuffers27[ch].Average();
-                                                }
-
-                                                // 校零完成
-                                                isZeroing = false;
-                                                Array.Clear(channelZeroingCounts27, 0, channelZeroingCounts27.Length); // 清理计数
-
-                                                Action showMsg = () => MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                                                if (console_textBox.InvokeRequired)
-                                                    console_textBox.BeginInvoke(showMsg);
-                                                else
-                                                    showMsg();
-                                            }
-                                        }*/
                     if (uiData.Count != 175) return; // 数据长度检查
 
                     // === 校零采集逻辑 ===
@@ -1540,22 +1489,18 @@ namespace fingerPressure
             {
                 var pane = zedGraphControl1.GraphPane;
                 var pane_temp = zedGraphControl19.GraphPane;
-
                 // 控制 X 轴显示范围
                 double xMin = packetIndex - MaxVisiblePackets;
                 if (xMin < 0) xMin = 0;
                 double xMax = packetIndex;
-
                 pane.XAxis.Scale.Min = xMin;
                 pane.XAxis.Scale.Max = xMax;
                 pane.YAxis.Scale.MagAuto = false;
                 pane.YAxis.Scale.Mag = 0;
-
                 pane_temp.XAxis.Scale.Min = xMin;
                 pane_temp.XAxis.Scale.Max = xMax;
                 pane_temp.YAxis.Scale.MagAuto = false;
                 pane_temp.YAxis.Scale.Mag = 0;
-
 
                 // === 更新滚动图（zedGraphControl1） ===
                 while (graphQueue.TryDequeue(out graphUpdate))
@@ -1566,7 +1511,6 @@ namespace fingerPressure
                         if (chuanganqiIndex == graphUpdate.SensorIndex)
                         {
                             needRefresh = true;
-
                             if (!channelData2.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
@@ -1574,7 +1518,6 @@ namespace fingerPressure
                                 channelData2[graphUpdate.Channel] = list;
                                 channelCurves2[graphUpdate.Channel] = curve;
                             }
-
                             if (graphUpdate.Index >= xMin)
                             {
                                 channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
@@ -1582,38 +1525,36 @@ namespace fingerPressure
                         }
                     }
                 }
-
                 if (needRefresh)
                 {
                     zedGraphControl1.AxisChange();
                     zedGraphControl1.Invalidate();
                 }
 
-                while (tempQueue.TryDequeue(out graphUpdateTemp))
+                // === 更新温度滚动图（zedGraphControl19） ===
+                needRefresh = false; // 重置标志
+                while (tempQueue.TryDequeue(out graphUpdate))
                 {
                     if (choosedFinger19 != -1)
                     {
                         int chuanganqiIndex = choosedFinger19;
-                        if (chuanganqiIndex == graphUpdateTemp.SensorIndex)
+                        if (chuanganqiIndex == graphUpdate.SensorIndex)
                         {
                             needRefresh = true;
-
-                            if (!channelData_temp.ContainsKey(graphUpdateTemp.Channel))
+                            if (!channelData_temp.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                var curve = pane.AddCurve($"CH{graphUpdateTemp.Channel + 1}", list, GetColor(graphUpdateTemp.Channel), SymbolType.None);
-                                channelData_temp[graphUpdateTemp.Channel] = list;
-                                channelCurves_temp[graphUpdateTemp.Channel] = curve;
+                                var curve = pane_temp.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                channelData_temp[graphUpdate.Channel] = list;
+                                channelCurves_temp[graphUpdate.Channel] = curve;
                             }
-
-                            if (graphUpdateTemp.Index >= xMin)
+                            if (graphUpdate.Index >= xMin)
                             {
-                                channelData_temp[graphUpdateTemp.Channel].Add(graphUpdateTemp.Index, graphUpdateTemp.Temperature);
+                                channelData_temp[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Temperature);
                             }
                         }
                     }
                 }
-
                 if (needRefresh)
                 {
                     zedGraphControl19.AxisChange();
@@ -1621,113 +1562,92 @@ namespace fingerPressure
                 }
 
                 // === 更新点图和云图 Panels ===
+                HashSet<int> updatedSensors = new HashSet<int>(); // 新增：跟踪更新的传感器
+
+                // 处理压力队列
                 while (dotQueue_Pres.TryDequeue(out var dequeuedUpdate))
                 {
                     var dotUpdate = dequeuedUpdate; // 建立副本，避免闭包问题
                     if (dotUpdate == null)
                         continue; // 跳过 null 元素
-
                     int sensorIndex = dotUpdate.SensorIndex;
-
                     if (sensorIndex < 0 || sensorIndex >= 5)
-                        return; // 越界检查
-
-                    // --- 压力点值 ---
+                        continue; // 越界检查
+                    updatedSensors.Add(sensorIndex); // 记录更新
+                                                     // --- 压力点值 ---
                     Array.Copy(dotUpdate.PressureValues, sensorIndex * 8, panelValuesPerSensor[sensorIndex], 0, 8);
-
-                    int startIndex = sensorIndex * 8;
-                    int addr = sensorIndex + 1;
-
-                    // 更新点图 Panel
-                    var panelPoint = this.Controls.Find($"panel_finger{addr}_point", true).FirstOrDefault() as DoubleBufferedPanel;
-                    if (panelPoint != null)
-                    {
-                        if (guiyihua)
-                        {
-                            panelPoint.Guiyihua = true;
-                        }
-                        else
-                        {
-                            panelPoint.Guiyihua = false;
-                        }
-                        Array.Copy(panelValuesPerSensor[sensorIndex], panelPoint.Values, 8);
-                        panelPoint.Invalidate();
-                    }
-
-                    // 更新云图 Panel
-                    var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                    var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
-                    var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
-                    if (panelCloud != null)
-                    {
-                        if (guiyihua)
-                        {
-                            panelCloud.Guiyihua = true;
-                        }
-                        else
-                        {
-                            panelCloud.Guiyihua = false;
-                        }
-                        Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
-                        panelCloud.Invalidate();
-
-                        // 更新最大最小值标签
-                        if (panelCloud.Values.Length > 0)
-                        {
-                            double maxVal = panelCloud.Values.Max();
-                            double minVal = panelCloud.Values.Min();
-
-                            if (labelMax != null)
-                                labelMax.Text = $"Max: {maxVal:F0}";
-
-                            if (labelMin != null)
-                                labelMin.Text = $"Min: {minVal:F0}";
-                        }
-                    }
-
                 }
+
+                // 处理温度队列
                 while (dotQueue_Temp.TryDequeue(out var dequeuedUpdate))
                 {
                     var dotUpdate = dequeuedUpdate; // 建立副本，避免闭包问题
                     if (dotUpdate == null)
                         continue; // 跳过 null 元素
-
                     int sensorIndex = dotUpdate.SensorIndex;
-
                     if (sensorIndex < 0 || sensorIndex >= 5)
-                        return; // 越界检查
-
+                        continue; // 越界检查
+                    updatedSensors.Add(sensorIndex); // 记录更新
                     Array.Copy(dotUpdate.TempValues, sensorIndex * 8, cloudValuesPerSensor[sensorIndex], 0, 8);
+                }
 
-                    int startIndex = sensorIndex * 8;
+                // 只更新有变化的传感器面板
+                foreach (int sensorIndex in updatedSensors)
+                {
                     int addr = sensorIndex + 1;
+                    // --- 压力点图 ---
+                    var panelPoint = this.Controls.Find($"panel_finger{addr}_point", true).FirstOrDefault() as DoubleBufferedPanel;
+                    if (panelPoint != null)
+                    {
+                        panelPoint.Guiyihua = guiyihua;
+                        Array.Copy(panelValuesPerSensor[sensorIndex], panelPoint.Values, 8);
+                        panelPoint.Invalidate();
+                    }
 
+                    // --- 压力云图 ---
+                    var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                    var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
+                    var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
+                    if (panelCloud != null)
+                    {
+                        panelCloud.Guiyihua = guiyihua;
+                        Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
+                        panelCloud.Invalidate();
+                        // 更新最大最小值标签
+                        if (panelCloud.Values.Length > 0)
+                        {
+                            double maxVal = panelCloud.Values.Max();
+                            double minVal = panelCloud.Values.Min();
+                            if (labelMax != null)
+                                labelMax.Text = $"Max: {maxVal:F0}";
+                            if (labelMin != null)
+                                labelMin.Text = $"Min: {minVal:F0}";
+                        }
+                    }
 
+                    // --- 温度点图 ---
                     var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel_Temp;
                     if (panelPoint2 != null)
                     {
-                        Array.Copy(dotUpdate.TempValues, startIndex, panelPoint2.Values, 0, 8);
+                        Array.Copy(cloudValuesPerSensor[sensorIndex], panelPoint2.Values, 8);
                         panelPoint2.Invalidate();
                     }
 
-                    // 更新云图 Panel
+                    // --- 温度云图 ---
                     var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
                     var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
                     var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
                     if (panelCloud2 != null)
                     {
-                        Array.Copy(dotUpdate.TempValues, startIndex, panelCloud2.Values, 0, 8);
+                        Array.Copy(cloudValuesPerSensor[sensorIndex], panelCloud2.Values, 8);
                         panelCloud2.Invalidate();
-
                         // 更新最大最小值标签
                         if (panelCloud2.Values.Length > 0)
                         {
                             double maxVal = panelCloud2.Values.Max();
                             double minVal = panelCloud2.Values.Min();
-
                             if (labelMax_temp != null)
                                 labelMax_temp.Text = $"Max: {maxVal:F1}";
-
                             if (labelMin_temp != null)
                                 labelMin_temp.Text = $"Min: {minVal:F1}";
                         }
@@ -1736,137 +1656,7 @@ namespace fingerPressure
             }
             else if (chuanGanQiType == "Yingbianhua")
             {
-                /*                // === 更新滚动图（zedGraphControl2） ===
-                                while (graphQueue.TryDequeue(out graphUpdate))
-                                {
-                                    needRefresh = true;
 
-                                    if (!channelData2.ContainsKey(graphUpdate.Channel))
-                                    {
-                                        var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                        var curve = pane.AddCurve(
-                                            $"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}",
-                                            list,
-                                            GetColor(graphUpdate.Channel),
-                                            SymbolType.None);
-                                        channelData2[graphUpdate.Channel] = list;
-                                        channelCurves2[graphUpdate.Channel] = curve;
-                                    }
-
-                                    if (graphUpdate.Index >= xMin)
-                                    {
-                                        channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
-                                    }
-                                }
-
-                                if (needRefresh)
-                                {
-                                    zedGraphControl2.AxisChange();
-                                    zedGraphControl2.Invalidate();
-                                }
-
-                                // === 更新点图和云图 Panels ===
-                                DotMatrixUpdate dotUpdate;
-                                while (dotQueue.TryDequeue(out dotUpdate))
-                                {
-                                    int sensorCount = 5;
-                                    int pressureCount = 27;
-                                    int groupSize = 3;   // 每3个通道归为一组
-
-                                    for (int s = 0; s < sensorCount; s++)
-                                    {
-                                        //温度
-                                        var labelTemp27 = this.Controls.Find($"label_finger{s + 1}_temp27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                                        if (labelTemp27 != null)
-                                        {
-                                            double[] values = new double[pressureCount];
-                                            Array.Copy(dotUpdate.TempValues, 0, values, 0, sensorCount);
-
-                                            labelTemp27.Text = $"{fingerNames[s]}      温度: {values[s]}";
-                                        }
-
-                                        //// === 压力点图 ===
-                                        var panelPoint = this.Controls.Find($"panel_finger{s + 1}_point27", true).FirstOrDefault() as DoubleBufferedPanel27;
-                                        if (panelPoint != null)
-                                        {
-                                            double[] values = new double[pressureCount];
-                                            Array.Copy(dotUpdate.PressureValues, s * pressureCount, values, 0, pressureCount);
-                                            panelPoint.Values = values;
-                                            panelPoint.Invalidate();
-                                        }
-
-                                        // === 压力云图 ===
-                                        var panelCloud = this.Controls.Find($"panel_finger{s + 1}_cloud27", true).FirstOrDefault() as DoubleBufferedPanelCloud27;
-                                        var labelMax = this.Controls.Find($"label_finger{s + 1}_max27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                                        var labelMin = this.Controls.Find($"label_finger{s + 1}_min27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                                        if (panelCloud != null)
-                                        {
-                                            int pointCount = pressureCount / groupSize; // 27 / 3 = 9
-
-                                            double[] values = new double[pointCount];
-                                            for (int g = 0; g < pointCount; g++)
-                                            {
-                                                double sum = 0;
-                                                for (int k = 0; k < groupSize; k++)
-                                                {
-                                                    int idx = s * pressureCount + g * groupSize + k;
-                                                    sum += dotUpdate.PressureValues[idx];
-                                                }
-                                                values[g] = sum / groupSize;
-                                            }
-
-                                            panelCloud.Values = values; // 9 个点
-                                            panelCloud.Invalidate();
-
-                                            // 更新最大最小值标签
-                                            if (values.Length > 0)
-                                            {
-                                                double maxVal = values.Max();
-                                                double minVal = values.Min();
-
-                                                if (labelMax != null)
-                                                    labelMax.Text = $"Max: {maxVal:F1}";
-
-                                                if (labelMin != null)
-                                                    labelMin.Text = $"Min: {minVal:F1}";
-                                            }
-                                        }
-
-                                        // === 显示模型推理结果 ===
-                                        if(comboBox4.SelectedIndex != -1)
-                                        {
-                                            int chuanganqiIndex = comboBox4.SelectedIndex;
-                                            if (latestResults.TryGetValue(chuanganqiIndex, out var result))
-                                            {
-                                                label_fxy.Text = $"Fxy: {result.Fx:F2}";
-                                                label_fyx.Text = $"Fyx: {result.Fy:F2}";
-                                                label_fz.Text = $"Fz: {result.Fz:F2}";
-                                                label_label.Text = $"Label: {result.Label}";
-                                                label_prob.Text = $"概率: {result.MaxProb:F2}";
-                                            }
-                                        }
-
-
-
-                                        //// === 温度点图 ===
-                                        //var panelPointTemp = this.Controls.Find($"panel_finger{s + 1}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel;
-                                        //if (panelPointTemp != null)
-                                        //{
-                                        //    double[] values = { dotUpdate.TempValues[s] };
-                                        //    panelPointTemp.Values = values;
-                                        //    panelPointTemp.Invalidate();
-                                        //}
-
-                                        //// === 温度云图 ===
-                                        //var panelCloudTemp = this.Controls.Find($"panel_finger{s + 1}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                                        //if (panelCloudTemp != null)
-                                        //{
-                                        //    double[] values = { dotUpdate.TempValues[s] };
-                                        //    panelCloudTemp.Values = values;
-                                        //    panelCloudTemp.Invalidate();
-                                        //}
-                                    }
-                                }*/
                 var pane3 = zedGraphControl3.GraphPane;
 
                 // 控制 X 轴显示范围
@@ -1879,41 +1669,6 @@ namespace fingerPressure
                 pane3.YAxis.Scale.MagAuto = false;
                 pane3.YAxis.Scale.Mag = 0;
 
-                /*                while (graphQueue.TryDequeue(out graphUpdate))
-                                {
-
-                                    if (choosedFinger3 != -1)
-                                    {
-                                        int chuanganqiIndex = choosedFinger3;
-                                        if (chuanganqiIndex == graphUpdate.SensorIndex)
-                                        {
-                                            needRefresh = true;
-
-                                            if (!channelData2.ContainsKey(graphUpdate.Channel))
-                                            {
-                                                var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                                var curve = pane3.AddCurve(
-                                                    $"CH{graphUpdate.SensorIndex+1}-{graphUpdate.Channel + 1}",
-                                                    list,
-                                                    GetColor(graphUpdate.Channel),
-                                                    SymbolType.None);
-                                                channelData2[graphUpdate.Channel] = list;
-                                                channelCurves2[graphUpdate.Channel] = curve;
-                                            }
-
-                                            if (graphUpdate.Index >= xMin)
-                                                channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
-
-                *//*
-                                            label_ax.Text = $"Ax: {graphUpdate.GyroValues[0]:F2}";
-                                            label_ay.Text = $"Ay: {graphUpdate.GyroValues[1]:F2}";
-                                            label_az.Text = $"Az: {graphUpdate.GyroValues[2]:F2}";
-                                            label_gx.Text = $"Gx: {graphUpdate.GyroValues[3]:F2}";
-                                            label_gy.Text = $"Gy: {graphUpdate.GyroValues[4]:F2}";
-                                            label_gz.Text = $"Gz: {graphUpdate.GyroValues[5]:F2}";*//*
-                                        }
-                                    }
-                                }*/
                 while (graphQueue.TryDequeue(out graphUpdate))
                 {
                     if (choosedFinger3 != -1)
@@ -1940,20 +1695,10 @@ namespace fingerPressure
 
                                 if (graphUpdate.Index >= xMin)
                                     channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
-
-                                /*
-                                label_ax.Text = $"Ax: {graphUpdate.GyroValues[0]:F2}";
-                                label_ay.Text = $"Ay: {graphUpdate.GyroValues[1]:F2}";
-                                label_az.Text = $"Az: {graphUpdate.GyroValues[2]:F2}";
-                                label_gx.Text = $"Gx: {graphUpdate.GyroValues[3]:F2}";
-                                label_gy.Text = $"Gy: {graphUpdate.GyroValues[4]:F2}";
-                                label_gz.Text = $"Gz: {graphUpdate.GyroValues[5]:F2}";
-                                */
                             }
                         }
                     }
                 }
-
 
                 // 每 GraphRefreshInterval tick 批量刷新滚动图
                 if (tickCount % GraphRefreshInterval == 0 && needRefresh)
@@ -1965,24 +1710,21 @@ namespace fingerPressure
                 // === 更新点图和云图 Panels，每 PanelRefreshInterval tick 批量刷新 ===
                 if (tickCount % PanelRefreshInterval == 0)
                 {
-                    //DotMatrixUpdate dotUpdate;
+                    int sensorCount = 5;
+                    int pressureCount = 27;
+                    int groupSize = 3; // 每 3 个通道归为一组，9 个点
+                    HashSet<int> updatedSensors = new HashSet<int>(); // 新增：跟踪更新的传感器
+
                     while (dotQueue_Pres27.TryDequeue(out var dequeuedUpdate))
                     {
                         var dotUpdate = dequeuedUpdate; // 建立副本，避免闭包问题
                         if (dotUpdate == null)
                             continue; // 跳过 null 元素
 
-                        int sensorCount = 5;
-                        int pressureCount = 27;
-                        int groupSize = 3; // 每 3 个通道归为一组，9 个点
-
-                        // 预分配数组避免重复分配
-                        //Array.Clear(panelValuesBuffer, 0, panelValuesBuffer.Length);
-                        //Array.Clear(cloudValuesBuffer, 0, cloudValuesBuffer.Length);
 
                         int sensorIndex = dotUpdate.SensorIndex;
-                        //for (int s = 0; s < sensorCount; s++)
-                        //{
+                        updatedSensors.Add(sensorIndex); // 记录更新
+
                         // --- 压力点值 ---
                         Array.Copy(dotUpdate.PressureValues, 0, panelValuesBuffer, sensorIndex * pressureCount, pressureCount);
 
@@ -1997,90 +1739,74 @@ namespace fingerPressure
                             }
                             cloudValuesBuffer[sensorIndex * 9 + g] = sum / groupSize;
                         }
-                        //}
 
-                        // 更新 UI 线程
+                        // 移动到 while 内，只更新当前 sensor
+                        // --- 温度标签 ---
+                        var labelTemp27 = this.Controls.Find($"label_finger{sensorIndex + 1}_temp27", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        if (labelTemp27 != null)
+                            labelTemp27.Text = $"{fingerNames[sensorIndex]} 温度: {dotUpdate.TempValues}";
 
-                        for (int s = 0; s < sensorCount; s++)
+                        // --- 显示模型推理结果 ---
+                        if (choosedFinger3 != -1 && choosedFinger3 == sensorIndex)
                         {
-                            // --- 压力点图 ---
-                            var panelPoint = this.Controls.Find($"panel_finger{s + 1}_point27", true).FirstOrDefault() as DoubleBufferedPanel27;
-                            if (panelPoint != null)
+                            if (latestResults.TryGetValue(sensorIndex, out var result))
                             {
-                                //double[] values = new double[pressureCount];
-                                //Array.Copy(panelValuesBuffer, s * pressureCount, values, 0, pressureCount);
-                                //panelPoint.Values = values;
-                                Array.Copy(panelValuesBuffer, s * pressureCount, panelPoint.Values, 0, pressureCount);
-                                panelPoint.Invalidate();
+                                label_fxy.Text = $"Fxy: {result.Fx:F2}";
+                                label_fyx.Text = $"Fyx: {result.Fy:F2}";
+                                label_fz.Text = $"Fz: {result.Fz:F2}";
+                                label_label.Text = $"Label: {result.Label}";
+                                label_prob.Text = $"概率: {result.MaxProb:F2}";
                             }
+                            label_ax.Text = $"Ax: {dotUpdate.GyroValues[0]:F2}";
+                            label_ay.Text = $"Ay: {dotUpdate.GyroValues[1]:F2}";
+                            label_az.Text = $"Az: {dotUpdate.GyroValues[2]:F2}";
+                            label_gx.Text = $"Gx: {dotUpdate.GyroValues[3]:F2}";
+                            label_gy.Text = $"Gy: {dotUpdate.GyroValues[4]:F2}";
+                            label_gz.Text = $"Gz: {dotUpdate.GyroValues[5]:F2}";
+                        }
+                    }
 
-                            // --- 压力云图 ---
-                            var panelCloud = this.Controls.Find($"panel_finger{s + 1}_cloud27", true).FirstOrDefault() as DoubleBufferedPanelCloud27;
-                            var labelMax = this.Controls.Find($"label_finger{s + 1}_max27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                            var labelMin = this.Controls.Find($"label_finger{s + 1}_min27", true).FirstOrDefault() as System.Windows.Forms.Label;
-
-                            if (panelCloud != null)
-                            {
-                                /*                                        double[] values = new double[9];
-                                                                        Array.Copy(cloudValuesBuffer, s * 9, values, 0, 9);
-                                                                        panelCloud.Values = values;*/
-                                Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
-                                panelCloud.Invalidate();
-                                if (portName == "COMPort_left")
-                                {
-                                    handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
-                                }
-                                else if (portName == "COMPort_right")
-                                {
-                                    handHeatmapControlRight.SetFingerValues(s, panelCloud.Values);
-                                }
-
-
-                                if (panelCloud.Values.Length > 0)
-                                {
-                                    if (labelMax != null)
-                                        labelMax.Text = $"Max: {panelCloud.Values.Max():F1}";
-                                    if (labelMin != null)
-                                        labelMin.Text = $"Min: {panelCloud.Values.Min():F1}";
-                                }
-                            }
-
-
-                            // --- 显示模型推理结果 ---
-                            if (choosedFinger3 != -1)
-                            {
-                                int chuanganqiIndex = choosedFinger3;
-                                if (latestResults.TryGetValue(chuanganqiIndex, out var result))
-                                {
-                                    label_fxy.Text = $"Fxy: {result.Fx:F2}";
-                                    label_fyx.Text = $"Fyx: {result.Fy:F2}";
-                                    label_fz.Text = $"Fz: {result.Fz:F2}";
-                                    label_label.Text = $"Label: {result.Label}";
-                                    label_prob.Text = $"概率: {result.MaxProb:F2}";
-                                }
-                                if (dotUpdate.SensorIndex == chuanganqiIndex)
-                                {
-                                    label_ax.Text = $"Ax: {dotUpdate.GyroValues[0]:F2}";
-                                    label_ay.Text = $"Ay: {dotUpdate.GyroValues[1]:F2}";
-                                    label_az.Text = $"Az: {dotUpdate.GyroValues[2]:F2}";
-                                    label_gx.Text = $"Gx: {dotUpdate.GyroValues[3]:F2}";
-                                    label_gy.Text = $"Gy: {dotUpdate.GyroValues[4]:F2}";
-                                    label_gz.Text = $"Gz: {dotUpdate.GyroValues[5]:F2}";
-                                }
-
-                            }
-
-                            // --- 温度标签 ---
-                            var labelTemp27 = this.Controls.Find($"label_finger{s + 1}_temp27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                            labelTemp27.Text = $"{fingerNames[s]} 温度: {dotUpdate.TempValues}";
-
+                    // 只更新有变化的传感器面板
+                    foreach (int s in updatedSensors)
+                    {
+                        // --- 压力点图 ---
+                        var panelPoint = this.Controls.Find($"panel_finger{s + 1}_point27", true).FirstOrDefault() as DoubleBufferedPanel27;
+                        if (panelPoint != null)
+                        {
+                            Array.Copy(panelValuesBuffer, s * pressureCount, panelPoint.Values, 0, pressureCount);
+                            panelPoint.Invalidate();
                         }
 
+                        // --- 压力云图 ---
+                        var panelCloud = this.Controls.Find($"panel_finger{s + 1}_cloud27", true).FirstOrDefault() as DoubleBufferedPanelCloud27;
+                        var labelMax = this.Controls.Find($"label_finger{s + 1}_max27", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMin = this.Controls.Find($"label_finger{s + 1}_min27", true).FirstOrDefault() as System.Windows.Forms.Label;
 
+                        if (panelCloud != null)
+                        {
+                            Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
+                            panelCloud.Invalidate(); // 只Invalidate有更新的
+
+                            if (portName == "COMPort_left")
+                            {
+                                handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
+                            }
+                            else if (portName == "COMPort_right")
+                            {
+                                handHeatmapControlRight.SetFingerValues(s, panelCloud.Values);
+                            }
+
+                            if (panelCloud.Values.Length > 0)
+                            {
+                                if (labelMax != null)
+                                    labelMax.Text = $"Max: {panelCloud.Values.Max():F1}";
+                                if (labelMin != null)
+                                    labelMin.Text = $"Min: {panelCloud.Values.Min():F1}";
+                            }
+                        }
                     }
                 }
             }
-
 
         }
 
@@ -2529,129 +2255,6 @@ namespace fingerPressure
         {
             if (chuanGanQiType == "MEMS")
             {
-                /*                try
-                                {
-                                    if (packet.Length < 10) return;
-
-                                    int length = packet[2];
-                                    byte addr = packet[3];
-                                    byte type = packet[4];
-
-                                    // 复用数组
-                                    Span<double> values = stackalloc double[8];
-
-                                    int dataOffset = 13;
-
-                                    if (type == 0xF4) // 温度
-                                    {
-                                        for (int i = 0; i < 8; i++)
-                                        {
-                                            if (dataOffset + i * 2 + 1 >= packet.Length) break;
-                                            // 解析温度数据
-                                            double v = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(dataOffset + i * 2, 2));
-                                            values[7 - i] = v / 10;
-                                        }
-
-                                        // 将温度数据添加到字典
-                                        if (!addrDataDict.ContainsKey(addr))
-                                        {
-                                            addrDataDict[addr] = new SensorData();
-                                        }
-                                        addrDataDict[addr].TemperatureData.AddRange(values.ToArray());
-                                    }
-                                    else if (type == 0xF5) // 压力
-                                    {
-                                        for (int i = 0; i < 8; i++)
-                                        {
-                                            if (dataOffset + i * 4 + 3 >= packet.Length) break;
-                                            double v = BitConverter.ToInt32(packet, dataOffset + i * 4); // 保持小端或按协议
-                                            if (guiyihua)
-                                            {
-                                                v = v / 1000.0; // 压力值归一化，单位 kPa
-
-                                                // 保证最小值为 1
-                                                if (v > 0 && v < 1) v = 1;
-                                                if (v < 0 && v > -1) v = -1;
-                                            }
-
-                                            values[7 - i] = v; // 保持小端或按协议
-
-                                        }
-
-                                        // 将压力数据添加到字典
-                                        if (!addrDataDict.ContainsKey(addr))
-                                        {
-                                            addrDataDict[addr] = new SensorData();
-                                        }
-                                        addrDataDict[addr].PressureData.AddRange(values.ToArray());
-                                    }
-                                    else
-                                    {
-                                        LogToConsole($"未知包类型: {type:X2}");
-                                        return;
-                                    }
-
-                                    lastValidPacket = packet;
-
-                                    // 获取 List<string> 对象池
-                                    var uiData = uiDataPool.Rent();
-                                    uiData.Clear();
-                                    uiData.Add("S" + addr.ToString());
-                                    uiData.Add(type.ToString("X2"));
-                                    for (int i = 0; i < 8; i++)
-                                        uiData.Add(values[i].ToString());
-
-                                    while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                                    uiQueue.Add(uiData);
-
-                                    // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
-                                    if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
-                                    {
-                                        // 当数据满足条件时，加入 fileRawQueue
-                                        var fileData = uiDataPool.Rent();
-                                        fileData.Clear();
-                                        fileData.Add("S" + addr.ToString());
-
-                                        // 将温度数据和压力数据一起添加到 uiData
-                                        foreach (var value in addrDataDict[addr].TemperatureData)
-                                        {
-                                            fileData.Add(value.ToString());
-                                        }
-                                        foreach (var value in addrDataDict[addr].PressureData)
-                                        {
-                                            fileData.Add(value.ToString());
-                                        }
-
-                                        // 保存数据到 fileRawQueue
-                                        var now = HighResDateTime.Now;
-                                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
-                                        {
-                                            lastSaveTime = now;
-                                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                                            fileRawQueue.Add(fileData);
-                                        }
-
-                                        // 清除该 addr 的数据（温度和压力都清除）
-                                        addrDataDict[addr] = new SensorData();
-                                    }
-
-                                    long newCount = Interlocked.Increment(ref totalPacketCount);
-                                    if (packetCountLabel.InvokeRequired)
-                                    {
-                                        packetCountLabel.BeginInvoke(new Action(() =>
-                                        {
-                                            packetCountLabel.Text = $"接收包数: {newCount}";
-                                        }));
-                                    }
-                                    else
-                                    {
-                                        packetCountLabel.Text = $"接收包数: {newCount}";
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    LogToConsole("EnqueuePacket 异常: " + ex.Message);
-                                }*/
                 try
                 {
                     if (packet.Length < 10) return;
@@ -2998,7 +2601,7 @@ namespace fingerPressure
             if (type == 0 || type == 3) return raw; // 未选择  raw = 882           -210
             double r1 = 120;
             double r2 = 2200;
-            double z = 256;
+            double z = 1024;
             double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
             double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
             double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
@@ -3110,12 +2713,6 @@ namespace fingerPressure
                 }
             });
         }
-
-
-
-
-
-
 
         private void FormatWorkerLoop()
         {
