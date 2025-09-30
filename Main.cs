@@ -1534,6 +1534,7 @@ namespace fingerPressure
         {
             bool needRefresh = false;
             GraphUpdate graphUpdate;
+            GraphUpdate graphUpdateTemp;
 
             if (chuanGanQiType == "MEMS")
             {
@@ -1588,26 +1589,26 @@ namespace fingerPressure
                     zedGraphControl1.Invalidate();
                 }
 
-                while (tempQueue.TryDequeue(out graphUpdate))
+                while (tempQueue.TryDequeue(out graphUpdateTemp))
                 {
                     if (choosedFinger19 != -1)
                     {
                         int chuanganqiIndex = choosedFinger19;
-                        if (chuanganqiIndex == graphUpdate.SensorIndex)
+                        if (chuanganqiIndex == graphUpdateTemp.SensorIndex)
                         {
                             needRefresh = true;
 
-                            if (!channelData_temp.ContainsKey(graphUpdate.Channel))
+                            if (!channelData_temp.ContainsKey(graphUpdateTemp.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
-                                channelData_temp[graphUpdate.Channel] = list;
-                                channelCurves_temp[graphUpdate.Channel] = curve;
+                                var curve = pane.AddCurve($"CH{graphUpdateTemp.Channel + 1}", list, GetColor(graphUpdateTemp.Channel), SymbolType.None);
+                                channelData_temp[graphUpdateTemp.Channel] = list;
+                                channelCurves_temp[graphUpdateTemp.Channel] = curve;
                             }
 
-                            if (graphUpdate.Index >= xMin)
+                            if (graphUpdateTemp.Index >= xMin)
                             {
-                                channelData_temp[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Temperature);
+                                channelData_temp[graphUpdateTemp.Channel].Add(graphUpdateTemp.Index, graphUpdateTemp.Temperature);
                             }
                         }
                     }
@@ -2834,17 +2835,7 @@ namespace fingerPressure
                             int pos = dataOffset + sensorOffset + i * 2;
                             short raw = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(pos, 2));
 
-                            
-                            // 乘以系数 1.55
-                            if(danwei == 1)
-                            {
-                                scaled = raw * 1.55;
-                            }
-                            else
-                            {
-                                scaled = raw;
-                            }
-                                
+                            scaled = GetRealValue(raw, danwei);
 
                             uiData.Add(scaled.ToString("F2")); // 保留两位小数，可以根据需要改
                             pressureValues[s * pressureCount + i] = (float)scaled;
@@ -2986,6 +2977,43 @@ namespace fingerPressure
                                 }*/
             }
         }
+        //原始值 得到 微应变和电阻
+        private double GetRealValue(double raw, int type)
+        {
+            /*            if(type == 0 || type == 3) return raw; // 未选择  raw = 882
+                        double v1 = raw * 5.6 / 16383.0; // v1 = 0.30148324482695477
+                        double v2 = v1 + 336.0 / 2320.0; // v2 = 0.44631083103385133
+                        double r1 = v2 * 2320.0 / 2.8 - 120; // r1 = 249.80040285661971
+                        double r2 = 1 - v2 / 2.8; // r2 = 0.84060327463076734
+                        double r = r1 / r2; // r = 297.16801063657982
+                        if (type == 2)
+                        {
+                            return Math.Round(r / 0.00024, 2); // 1238200.04
+                        }
+                        else if (type == 1)
+                        {
+                            return Math.Round(r + 120, 2);
+                        }
+                        return raw;*/
+            if (type == 0 || type == 3) return raw; // 未选择  raw = 882           -210
+            double r1 = 120;
+            double r2 = 2200;
+            double z = 256;
+            double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
+            double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
+            double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
+            double dR = fenzi / fenmu; // 1.0288984712106068                -0.24484138805145328
+            if (type == 2)
+            {
+                return Math.Round(dR / 0.00024, 2);
+            }
+            else if (type == 1)
+            {
+                return Math.Round(dR + 120, 2);
+            }
+            return raw;
+        }
+
 
         private void StartInferenceThread()
         {
