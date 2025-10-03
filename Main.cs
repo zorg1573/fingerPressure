@@ -95,6 +95,7 @@ namespace fingerPressure
         private string excelSavePath = "";
         private string model1Path = "";
         private string model2Path = "";
+        private string csvPath = "";
 
         // 校零控制
         private bool isZeroing = false;
@@ -164,6 +165,21 @@ namespace fingerPressure
         private int choosedChannel = 0;
 
         private bool guiyihua = false;
+
+        //MEMS温度压力校准
+        private double Coarse_OFF = 0.375;
+        private double Coarse_GAIN = 2;
+        private double T0 = 0;
+        private double P0 = 0.5;
+        private double[] OFFSET0 = new double[40];
+        private double[] CTC1 = new double[40];
+        private double[] CTC2 = new double[40];
+        private double[] S0 = new double[40];
+        private double[] STC1 = new double[40];
+        private double[] STC2 = new double[40];
+        private double[] KS = new double[40];
+        private double[] KSS = new double[40];
+
 
         public struct SensorInferenceResult
         {
@@ -345,6 +361,7 @@ namespace fingerPressure
 
             LoadFromJson();
             LoadFromSettingJson();
+            
             if (textBox1.Text == null || textBox1.Text == "")
             {
                 textBox1.Text = "500";
@@ -383,6 +400,18 @@ namespace fingerPressure
             uCheckComboBox2.BindingDataList(data, "Value", "Text");
             // 默认全选
             uCheckComboBox2.CheckAll();
+
+            var data3 = new List<object>();
+
+            for (int j = 1; j <= 27; j++)
+            {
+                data3.Add(new { Value = j, Text = $"CH{j}" });
+            }
+
+            // 绑定到多选 ComboBox
+            uCheckComboBox3.BindingDataList(data3, "Value", "Text");
+            // 默认全选
+            uCheckComboBox3.CheckAll();
 
             var fingerList = new List<dynamic>
             {
@@ -428,24 +457,7 @@ namespace fingerPressure
                 StartPacketProcessingThread();
                 StartInferenceThread();
 
-                // 生成文件路径
-                string filePath = System.IO.Path.Combine(excelSavePath,
-                    $"packets_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
 
-                // 创建全局 StreamWriter，不写表头
-                packetWriter = new StreamWriter(filePath, true, new System.Text.UTF8Encoding(false));
-                if(chuanGanQiType == "Yingbianhua")
-                {
-                    packetWriter.WriteLine(string.Join(",", biaoTouName));
-                }
-                else if(chuanGanQiType == "MEMS")
-                {
-                    packetWriter.WriteLine(string.Join(",", biaoTouNameMEMS));
-                }
-                packetWriter.AutoFlush = true; // 每次写入自动刷新
-
-                // 启动后台写线程
-                StartWorkers();
                 /*                fileWriterThread = new Thread(FileWriterLoop);
                                 fileWriterThread.IsBackground = true;
                                 fileWriterThread.Start();*/
@@ -543,6 +555,52 @@ namespace fingerPressure
                 tabControl1.TabPages.Add(tp7);
             }
         }
+
+        public void LoadParameters()
+        {
+            try
+            {
+                var lines = File.ReadAllLines(csvPath);
+
+                if (!File.Exists(csvPath))
+                {
+                    MessageBox.Show("未找到校准文件");
+                    return;
+                }
+
+                // 从第5行开始 (索引 4)
+                for (int i = 4; i < lines.Length; i++)
+                {
+                    var parts = lines[i].Split(',');
+
+                    if (parts.Length < 11) continue; // 至少要有 A~K 列
+
+                    // A列: 通道号 (1~40)，转为数组索引 (0~39)
+                    if (!int.TryParse(parts[0], out int channel) || channel < 0 || channel > 39)
+                        continue;
+
+                    // D ~ K 列分别对应 8 个参数
+                    OFFSET0[channel] = ParseDouble(parts[3]);
+                    CTC1[channel] = ParseDouble(parts[4]);
+                    CTC2[channel] = ParseDouble(parts[5]);
+                    S0[channel] = ParseDouble(parts[6]);
+                    STC1[channel] = ParseDouble(parts[7]);
+                    STC2[channel] = ParseDouble(parts[8]);
+                    KS[channel] = ParseDouble(parts[9]);
+                    KSS[channel] = ParseDouble(parts[10]);
+                }
+            }catch(Exception ex)
+            {
+                MessageBox.Show("加载参数文件失败: " + ex.Message);
+            }
+
+        }
+
+        private double ParseDouble(string s)
+        {
+            return double.TryParse(s, out var v) ? v : 0.0;
+        }
+
         private void TestDraw()
         {
             timer = new System.Windows.Forms.Timer();
@@ -649,8 +707,28 @@ namespace fingerPressure
                     serialSendThread = new Thread(() => SerialSendLoop(cts.Token, fingerNum.Count));
                     serialSendThread.IsBackground = true;
                     serialSendThread.Start();
+                    LoadFromSettingJson();
+                    LoadParameters();
                 }
 
+                // 生成文件路径
+                string fileSavePath = System.IO.Path.Combine(excelSavePath,
+                    $"{chuanGanQiType}_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+
+                // 创建全局 StreamWriter，不写表头
+                packetWriter = new StreamWriter(fileSavePath, true, new System.Text.UTF8Encoding(false));
+                if (chuanGanQiType == "Yingbianhua")
+                {
+                    packetWriter.WriteLine(string.Join(",", biaoTouName));
+                }
+                else if (chuanGanQiType == "MEMS")
+                {
+                    packetWriter.WriteLine(string.Join(",", biaoTouNameMEMS));
+                }
+                packetWriter.AutoFlush = true; // 每次写入自动刷新
+
+                // 启动后台写线程
+                StartWorkers();
 
                 LogToConsole("串口已打开");
             }
@@ -1676,26 +1754,22 @@ namespace fingerPressure
                         int chuanganqiIndex = choosedFinger3;
                         if (chuanganqiIndex == graphUpdate.SensorIndex)
                         {
-                            // 判断是否需要显示该通道
-                            if (choosedChannel <= 0 || graphUpdate.Channel + 1 == choosedChannel)
+                            needRefresh = true;
+
+                            if (!channelData2.ContainsKey(graphUpdate.Channel))
                             {
-                                needRefresh = true;
-
-                                if (!channelData2.ContainsKey(graphUpdate.Channel))
-                                {
-                                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                    var curve = pane3.AddCurve(
-                                        $"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}",
-                                        list,
-                                        GetColor(graphUpdate.Channel),
-                                        SymbolType.None);
-                                    channelData2[graphUpdate.Channel] = list;
-                                    channelCurves2[graphUpdate.Channel] = curve;
-                                }
-
-                                if (graphUpdate.Index >= xMin)
-                                    channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
+                                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                                var curve = pane3.AddCurve(
+                                    $"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}",
+                                    list,
+                                    GetColor(graphUpdate.Channel),
+                                    SymbolType.None);
+                                channelData2[graphUpdate.Channel] = list;
+                                channelCurves2[graphUpdate.Channel] = curve;
                             }
+
+                            if (graphUpdate.Index >= xMin)
+                                channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
                         }
                     }
                 }
@@ -2248,7 +2322,7 @@ namespace fingerPressure
         }
 
         // 创建全局字典来存储每个 addr 对应的温度和压力数据
-        private Dictionary<byte, SensorData> addrDataDict = new Dictionary<byte, SensorData>();
+        private Dictionary<int, SensorData> addrDataDict = new Dictionary<int, SensorData>();
 
         // 处理接收到的包并更新字典
         private void EnqueuePacket(byte[] packet)
@@ -2260,7 +2334,7 @@ namespace fingerPressure
                     if (packet.Length < 10) return;
 
                     int length = packet[2];
-                    byte addr = packet[3];
+                    int addr = packet[3];
                     byte type = packet[4];
 
                     // 复用数组
@@ -2275,6 +2349,7 @@ namespace fingerPressure
                         {
                             if (dataOffset + i * 2 + 1 >= packet.Length) break;
                             double v = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(dataOffset + i * 2, 2));
+                            
                             values[7 - i] = v / 10;
                         }
 
@@ -2329,20 +2404,27 @@ namespace fingerPressure
 
                     lastValidPacket = packet;
 
-                    // 获取 List<string> 对象池
-                    var uiData = uiDataPool.Rent();
-                    uiData.Clear();
-                    uiData.Add("S" + addr.ToString());
-                    uiData.Add(type.ToString("X2"));
-                    for (int i = 0; i < 8; i++)
-                        uiData.Add(values[i].ToString());
 
-                    while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                    uiQueue.Add(uiData);
 
                     // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
                     if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
                     {
+                        // 获取 List<string> 对象池
+                        var uiData = uiDataPool.Rent();
+                        uiData.Clear();
+                        uiData.Add("S" + addr.ToString());
+                        uiData.Add(type.ToString("X2"));
+                        for (int i = 0; i < 8; i++)
+                        {
+                            int ch = (addr-1) * 8 + i;
+                            double realV = GetRealTempValue(addrDataDict[addr].TemperatureData[i], addrDataDict[addr].PressureData[i], ch);
+                            uiData.Add(realV.ToString());
+                        }
+
+
+                        while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                        uiQueue.Add(uiData);
+
                         // 当数据满足条件时，加入 fileRawQueue
                         var fileData = uiDataPool.Rent();
                         fileData.Clear();
@@ -2458,8 +2540,11 @@ namespace fingerPressure
                             uiData.Add(gyroBuffer[i].ToString());
                         }
                     }
+                    if (checkBox5.Checked)
+                    {
+                        inferenceQueue.Add(pressureValues);
+                    }
 
-                    inferenceQueue.Add(pressureValues);
 
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                     uiQueue.Add(uiData);
@@ -2583,40 +2668,37 @@ namespace fingerPressure
         //原始值 得到 微应变和电阻
         private double GetRealValue(double raw, int type)
         {
-            /*            if(type == 0 || type == 3) return raw; // 未选择  raw = 882
-                        double v1 = raw * 5.6 / 16383.0; // v1 = 0.30148324482695477
-                        double v2 = v1 + 336.0 / 2320.0; // v2 = 0.44631083103385133
-                        double r1 = v2 * 2320.0 / 2.8 - 120; // r1 = 249.80040285661971
-                        double r2 = 1 - v2 / 2.8; // r2 = 0.84060327463076734
-                        double r = r1 / r2; // r = 297.16801063657982
-                        if (type == 2)
-                        {
-                            return Math.Round(r / 0.00024, 2); // 1238200.04
-                        }
-                        else if (type == 1)
-                        {
-                            return Math.Round(r + 120, 2);
-                        }
-                        return raw;*/
             if (type == 0 || type == 3) return raw; // 未选择  raw = 882           -210
-            double r1 = 120;
-            double r2 = 2200;
-            double z = 1024;
-            double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
-            double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
-            double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
-            double dR = fenzi / fenmu; // 1.0288984712106068                -0.24484138805145328
+            /*            double r1 = 120;
+                        double r2 = 2200;
+                        double z = 1024;
+                        double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
+                        double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
+                        double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
+                        double dR = fenzi / fenmu; // 1.0288984712106068                -0.24484138805145328*/
+            double dR = raw * 480.0 / (16383.0 * 1024.0);
             if (type == 2)
             {
                 return Math.Round(dR / 0.00024, 2);
             }
             else if (type == 1)
             {
-                return Math.Round(dR + 120, 2);
+                return Math.Round(dR, 2);
             }
             return raw;
         }
+        private double GetRealTempValue(double tempRaw, double pressRaw, int ch)
+        {
 
+            double PDATAcal1 = (pressRaw - Coarse_OFF) * Coarse_GAIN;
+            double OFFSET = OFFSET0[ch] + CTC1[ch] * (tempRaw - T0) + CTC2[ch] * Math.Pow((tempRaw - T0), 2);
+            double S = S0[ch] + STC1[ch] * (tempRaw - T0) + STC2[ch] * Math.Pow((tempRaw - T0), 2);
+            double Pnl = (PDATAcal1 - OFFSET) * S;
+            double PDATAcal = Pnl + KS[ch] * Math.Pow(Pnl,2) + KSS[ch] * Math.Pow(Pnl,3) + P0;
+
+            return Math.Round(PDATAcal, 2);
+
+        }
 
         private void StartInferenceThread()
         {
@@ -3119,6 +3201,9 @@ namespace fingerPressure
                                         serialPort.DataReceived += SerialPort_DataReceived;
                                         serialPort.Open();*/
                     OpenSerialPort();
+
+
+
                     if (serialPort.IsOpen)
                     {
 
@@ -3153,6 +3238,12 @@ namespace fingerPressure
                 }
                 //serialPort.Close();
                 CloseSerialPort();
+
+                // 最后 flush & close
+                packetWriter?.Flush();
+                packetWriter?.Close();
+                packetWriter = null;
+
                 state_label.Text = "未连接";
             }
             catch (Exception ex)
@@ -3310,10 +3401,7 @@ namespace fingerPressure
             // 等待写线程结束
             fileWriterThread.Join();
 
-            // 最后 flush & close
-            packetWriter?.Flush();
-            packetWriter?.Close();
-            packetWriter = null;
+
 
             //memsPollingCts?.Cancel();
 
@@ -3470,6 +3558,10 @@ namespace fingerPressure
             if (data.TryGetValue("textBox3", out object value3))
             {
                 model2Path = value3.ToString();
+            }
+            if (data.TryGetValue("textBox4", out object value4))
+            {
+                csvPath = value4.ToString();
             }
 
         }
@@ -3686,6 +3778,7 @@ namespace fingerPressure
                 uCheckComboBox1.Visible = true;
                 label17.Visible = false;
                 comboBox8.Visible = false;
+                checkBox5.Visible = false;
             }
             else
             {
@@ -3697,6 +3790,7 @@ namespace fingerPressure
                 uCheckComboBox1.Visible = false;
                 label17.Visible = true;
                 comboBox8.Visible = true;
+                checkBox5.Visible = true;
             }
 
             UpdateTabPages();
@@ -3872,7 +3966,7 @@ namespace fingerPressure
         private void button9_Click(object sender, EventArgs e)
         {
             choosedFinger3 = comboBox4.SelectedIndex;
-            choosedChannel = comboBox7.SelectedIndex; // 注意：如果想允许“空”，可以用 SelectedIndex == -1 表示空
+            //choosedChannel = comboBox7.SelectedIndex; // 注意：如果想允许“空”，可以用 SelectedIndex == -1 表示空
 
             // 设置刷新间隔
             if (string.IsNullOrWhiteSpace(textBox2.Text) ||
@@ -3901,14 +3995,24 @@ namespace fingerPressure
 
             for (int ch = 0; ch < 27; ch++)
             {
-                // 只添加曲线：全部显示 或 当前通道等于 choosedChannel
-                if (choosedChannel <= 0 || ch + 1 == choosedChannel)
-                {
-                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                    var curve = pane3.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                    channelData2[ch] = list;
-                    channelCurves2[ch] = curve;
-                }
+                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                var curve = pane3.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                channelData2[ch] = list;
+                channelCurves2[ch] = curve;
+            }
+
+            // 获取选中的通道文本，例如 "CH1", "CH2" ...
+            List<string> selected = uCheckComboBox3.GetSelectedTexts();
+
+            foreach (var kv in channelCurves2)
+            {
+                int channel = kv.Key;
+                LineItem curve = kv.Value;
+
+                string curveName = $"CH{channel + 1}";
+
+                // 如果当前曲线在选中列表里显示，否则隐藏
+                curve.IsVisible = selected.Contains(curveName);
             }
 
             packetIndex = 0;

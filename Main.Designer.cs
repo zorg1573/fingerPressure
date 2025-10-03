@@ -141,7 +141,7 @@ namespace fingerPressure
             label_finger1_temp27 = new Label();
             panel4 = new Panel();
             splitContainer7 = new SplitContainer();
-            comboBox7 = new ComboBox();
+            uCheckComboBox3 = new UCheckComboBox(components);
             button9 = new Button();
             comboBox4 = new ComboBox();
             label11 = new Label();
@@ -209,6 +209,7 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            checkBox5 = new CheckBox();
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -392,12 +393,13 @@ namespace fingerPressure
             // 
             splitContainer2.Panel2.Controls.Add(panel1);
             splitContainer2.Size = new Size(1533, 475);
-            splitContainer2.SplitterDistance = 122;
+            splitContainer2.SplitterDistance = 129;
             splitContainer2.TabIndex = 0;
             // 
             // panel2
             // 
             panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel2.Controls.Add(checkBox5);
             panel2.Controls.Add(comboBox8);
             panel2.Controls.Add(label17);
             panel2.Controls.Add(label8);
@@ -428,7 +430,7 @@ namespace fingerPressure
             panel2.Dock = DockStyle.Fill;
             panel2.Location = new Point(0, 0);
             panel2.Name = "panel2";
-            panel2.Size = new Size(1533, 122);
+            panel2.Size = new Size(1533, 129);
             panel2.TabIndex = 31;
             // 
             // comboBox8
@@ -734,7 +736,7 @@ namespace fingerPressure
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(1533, 349);
+            panel1.Size = new Size(1533, 342);
             panel1.TabIndex = 0;
             // 
             // tabControl1
@@ -748,7 +750,7 @@ namespace fingerPressure
             tabControl1.Location = new Point(0, 0);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(1531, 347);
+            tabControl1.Size = new Size(1531, 340);
             tabControl1.TabIndex = 4;
             // 
             // tabPage2
@@ -975,6 +977,7 @@ namespace fingerPressure
             // 
             panel_finger1_point.BackColor = Color.White;
             panel_finger1_point.Dock = DockStyle.Fill;
+            panel_finger1_point.Guiyihua = false;
             panel_finger1_point.Location = new Point(3, 168);
             panel_finger1_point.Name = "panel_finger1_point";
             panel_finger1_point.Size = new Size(217, 140);
@@ -1087,6 +1090,7 @@ namespace fingerPressure
             // 
             panel_finger3_point.BackColor = Color.White;
             panel_finger3_point.Dock = DockStyle.Fill;
+            panel_finger3_point.Guiyihua = false;
             panel_finger3_point.Location = new Point(449, 168);
             panel_finger3_point.Name = "panel_finger3_point";
             panel_finger3_point.Size = new Size(217, 140);
@@ -1153,6 +1157,7 @@ namespace fingerPressure
             // 
             panel_finger4_point.BackColor = Color.White;
             panel_finger4_point.Dock = DockStyle.Fill;
+            panel_finger4_point.Guiyihua = false;
             panel_finger4_point.Location = new Point(672, 168);
             panel_finger4_point.Name = "panel_finger4_point";
             panel_finger4_point.Size = new Size(217, 140);
@@ -1219,6 +1224,7 @@ namespace fingerPressure
             // 
             panel_finger5_point.BackColor = Color.White;
             panel_finger5_point.Dock = DockStyle.Fill;
+            panel_finger5_point.Guiyihua = false;
             panel_finger5_point.Location = new Point(895, 168);
             panel_finger5_point.Name = "panel_finger5_point";
             panel_finger5_point.Size = new Size(221, 140);
@@ -1239,6 +1245,7 @@ namespace fingerPressure
             // 
             panel_finger2_point.BackColor = Color.White;
             panel_finger2_point.Dock = DockStyle.Fill;
+            panel_finger2_point.Guiyihua = false;
             panel_finger2_point.Location = new Point(226, 168);
             panel_finger2_point.Name = "panel_finger2_point";
             panel_finger2_point.Size = new Size(217, 140);
@@ -1360,7 +1367,7 @@ namespace fingerPressure
             tabPage1.Location = new Point(4, 26);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(1523, 317);
+            tabPage1.Size = new Size(1523, 310);
             tabPage1.TabIndex = 5;
             tabPage1.Text = "五指应变花";
             tabPage1.UseVisualStyleBackColor = true;
@@ -1378,7 +1385,7 @@ namespace fingerPressure
             // splitContainer6.Panel2
             // 
             splitContainer6.Panel2.Controls.Add(panel4);
-            splitContainer6.Size = new Size(1517, 311);
+            splitContainer6.Size = new Size(1517, 304);
             splitContainer6.SplitterDistance = 1229;
             splitContainer6.TabIndex = 1;
             // 
@@ -1412,16 +1419,16 @@ namespace fingerPressure
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50.0000076F));
-            tableLayoutPanel2.Size = new Size(1229, 311);
+            tableLayoutPanel2.Size = new Size(1229, 304);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // panel_finger5_point27
             // 
             panel_finger5_point27.BackColor = Color.White;
             panel_finger5_point27.Dock = DockStyle.Fill;
-            panel_finger5_point27.Location = new Point(983, 168);
+            panel_finger5_point27.Location = new Point(983, 164);
             panel_finger5_point27.Name = "panel_finger5_point27";
-            panel_finger5_point27.Size = new Size(243, 140);
+            panel_finger5_point27.Size = new Size(243, 137);
             panel_finger5_point27.TabIndex = 23;
             panel_finger5_point27.Values = new double[]
     {
@@ -1458,9 +1465,9 @@ namespace fingerPressure
             // 
             panel_finger4_point27.BackColor = Color.White;
             panel_finger4_point27.Dock = DockStyle.Fill;
-            panel_finger4_point27.Location = new Point(738, 168);
+            panel_finger4_point27.Location = new Point(738, 164);
             panel_finger4_point27.Name = "panel_finger4_point27";
-            panel_finger4_point27.Size = new Size(239, 140);
+            panel_finger4_point27.Size = new Size(239, 137);
             panel_finger4_point27.TabIndex = 22;
             panel_finger4_point27.Values = new double[]
     {
@@ -1497,9 +1504,9 @@ namespace fingerPressure
             // 
             panel_finger3_point27.BackColor = Color.White;
             panel_finger3_point27.Dock = DockStyle.Fill;
-            panel_finger3_point27.Location = new Point(493, 168);
+            panel_finger3_point27.Location = new Point(493, 164);
             panel_finger3_point27.Name = "panel_finger3_point27";
-            panel_finger3_point27.Size = new Size(239, 140);
+            panel_finger3_point27.Size = new Size(239, 137);
             panel_finger3_point27.TabIndex = 21;
             panel_finger3_point27.Values = new double[]
     {
@@ -1536,9 +1543,9 @@ namespace fingerPressure
             // 
             panel_finger2_point27.BackColor = Color.White;
             panel_finger2_point27.Dock = DockStyle.Fill;
-            panel_finger2_point27.Location = new Point(248, 168);
+            panel_finger2_point27.Location = new Point(248, 164);
             panel_finger2_point27.Name = "panel_finger2_point27";
-            panel_finger2_point27.Size = new Size(239, 140);
+            panel_finger2_point27.Size = new Size(239, 137);
             panel_finger2_point27.TabIndex = 20;
             panel_finger2_point27.Values = new double[]
     {
@@ -1575,9 +1582,9 @@ namespace fingerPressure
             // 
             panel_finger1_point27.BackColor = Color.White;
             panel_finger1_point27.Dock = DockStyle.Fill;
-            panel_finger1_point27.Location = new Point(3, 168);
+            panel_finger1_point27.Location = new Point(3, 164);
             panel_finger1_point27.Name = "panel_finger1_point27";
-            panel_finger1_point27.Size = new Size(239, 140);
+            panel_finger1_point27.Size = new Size(239, 137);
             panel_finger1_point27.TabIndex = 19;
             panel_finger1_point27.Values = new double[]
     {
@@ -1651,9 +1658,10 @@ namespace fingerPressure
             panel_finger1_cloud27.Controls.Add(label_finger1_min27);
             panel_finger1_cloud27.Controls.Add(label_finger1_max27);
             panel_finger1_cloud27.Dock = DockStyle.Fill;
+            panel_finger1_cloud27.Guiyihua = false;
             panel_finger1_cloud27.Location = new Point(3, 23);
             panel_finger1_cloud27.Name = "panel_finger1_cloud27";
-            panel_finger1_cloud27.Size = new Size(239, 139);
+            panel_finger1_cloud27.Size = new Size(239, 135);
             panel_finger1_cloud27.TabIndex = 4;
             panel_finger1_cloud27.Values = new double[]
     {
@@ -1674,7 +1682,7 @@ namespace fingerPressure
             label_finger1_min27.AutoSize = true;
             label_finger1_min27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger1_min27.ForeColor = Color.Black;
-            label_finger1_min27.Location = new Point(48, 117);
+            label_finger1_min27.Location = new Point(48, 113);
             label_finger1_min27.Name = "label_finger1_min27";
             label_finger1_min27.Size = new Size(37, 17);
             label_finger1_min27.TabIndex = 3;
@@ -1686,7 +1694,7 @@ namespace fingerPressure
             label_finger1_max27.AutoSize = true;
             label_finger1_max27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger1_max27.ForeColor = Color.Black;
-            label_finger1_max27.Location = new Point(48, 99);
+            label_finger1_max27.Location = new Point(48, 95);
             label_finger1_max27.Name = "label_finger1_max27";
             label_finger1_max27.Size = new Size(40, 17);
             label_finger1_max27.TabIndex = 2;
@@ -1697,9 +1705,10 @@ namespace fingerPressure
             panel_finger2_cloud27.Controls.Add(label_finger2_min27);
             panel_finger2_cloud27.Controls.Add(label_finger2_max27);
             panel_finger2_cloud27.Dock = DockStyle.Fill;
+            panel_finger2_cloud27.Guiyihua = false;
             panel_finger2_cloud27.Location = new Point(248, 23);
             panel_finger2_cloud27.Name = "panel_finger2_cloud27";
-            panel_finger2_cloud27.Size = new Size(239, 139);
+            panel_finger2_cloud27.Size = new Size(239, 135);
             panel_finger2_cloud27.TabIndex = 5;
             panel_finger2_cloud27.Values = new double[]
     {
@@ -1720,7 +1729,7 @@ namespace fingerPressure
             label_finger2_min27.AutoSize = true;
             label_finger2_min27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger2_min27.ForeColor = Color.Black;
-            label_finger2_min27.Location = new Point(49, 117);
+            label_finger2_min27.Location = new Point(49, 113);
             label_finger2_min27.Name = "label_finger2_min27";
             label_finger2_min27.Size = new Size(37, 17);
             label_finger2_min27.TabIndex = 3;
@@ -1732,7 +1741,7 @@ namespace fingerPressure
             label_finger2_max27.AutoSize = true;
             label_finger2_max27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger2_max27.ForeColor = Color.Black;
-            label_finger2_max27.Location = new Point(49, 99);
+            label_finger2_max27.Location = new Point(49, 95);
             label_finger2_max27.Name = "label_finger2_max27";
             label_finger2_max27.Size = new Size(40, 17);
             label_finger2_max27.TabIndex = 2;
@@ -1743,9 +1752,10 @@ namespace fingerPressure
             panel_finger3_cloud27.Controls.Add(label_finger3_min27);
             panel_finger3_cloud27.Controls.Add(label_finger3_max27);
             panel_finger3_cloud27.Dock = DockStyle.Fill;
+            panel_finger3_cloud27.Guiyihua = false;
             panel_finger3_cloud27.Location = new Point(493, 23);
             panel_finger3_cloud27.Name = "panel_finger3_cloud27";
-            panel_finger3_cloud27.Size = new Size(239, 139);
+            panel_finger3_cloud27.Size = new Size(239, 135);
             panel_finger3_cloud27.TabIndex = 6;
             panel_finger3_cloud27.Values = new double[]
     {
@@ -1766,7 +1776,7 @@ namespace fingerPressure
             label_finger3_min27.AutoSize = true;
             label_finger3_min27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger3_min27.ForeColor = Color.Black;
-            label_finger3_min27.Location = new Point(50, 117);
+            label_finger3_min27.Location = new Point(50, 113);
             label_finger3_min27.Name = "label_finger3_min27";
             label_finger3_min27.Size = new Size(37, 17);
             label_finger3_min27.TabIndex = 3;
@@ -1778,7 +1788,7 @@ namespace fingerPressure
             label_finger3_max27.AutoSize = true;
             label_finger3_max27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger3_max27.ForeColor = Color.Black;
-            label_finger3_max27.Location = new Point(50, 99);
+            label_finger3_max27.Location = new Point(50, 95);
             label_finger3_max27.Name = "label_finger3_max27";
             label_finger3_max27.Size = new Size(40, 17);
             label_finger3_max27.TabIndex = 2;
@@ -1789,9 +1799,10 @@ namespace fingerPressure
             panel_finger4_cloud27.Controls.Add(label_finger4_min27);
             panel_finger4_cloud27.Controls.Add(label_finger4_max27);
             panel_finger4_cloud27.Dock = DockStyle.Fill;
+            panel_finger4_cloud27.Guiyihua = false;
             panel_finger4_cloud27.Location = new Point(738, 23);
             panel_finger4_cloud27.Name = "panel_finger4_cloud27";
-            panel_finger4_cloud27.Size = new Size(239, 139);
+            panel_finger4_cloud27.Size = new Size(239, 135);
             panel_finger4_cloud27.TabIndex = 7;
             panel_finger4_cloud27.Values = new double[]
     {
@@ -1812,7 +1823,7 @@ namespace fingerPressure
             label_finger4_min27.AutoSize = true;
             label_finger4_min27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger4_min27.ForeColor = Color.Black;
-            label_finger4_min27.Location = new Point(57, 117);
+            label_finger4_min27.Location = new Point(57, 113);
             label_finger4_min27.Name = "label_finger4_min27";
             label_finger4_min27.Size = new Size(37, 17);
             label_finger4_min27.TabIndex = 3;
@@ -1824,7 +1835,7 @@ namespace fingerPressure
             label_finger4_max27.AutoSize = true;
             label_finger4_max27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger4_max27.ForeColor = Color.Black;
-            label_finger4_max27.Location = new Point(57, 99);
+            label_finger4_max27.Location = new Point(57, 95);
             label_finger4_max27.Name = "label_finger4_max27";
             label_finger4_max27.Size = new Size(40, 17);
             label_finger4_max27.TabIndex = 2;
@@ -1835,9 +1846,10 @@ namespace fingerPressure
             panel_finger5_cloud27.Controls.Add(label_finger5_min27);
             panel_finger5_cloud27.Controls.Add(label_finger5_max27);
             panel_finger5_cloud27.Dock = DockStyle.Fill;
+            panel_finger5_cloud27.Guiyihua = false;
             panel_finger5_cloud27.Location = new Point(983, 23);
             panel_finger5_cloud27.Name = "panel_finger5_cloud27";
-            panel_finger5_cloud27.Size = new Size(243, 139);
+            panel_finger5_cloud27.Size = new Size(243, 135);
             panel_finger5_cloud27.TabIndex = 8;
             panel_finger5_cloud27.Values = new double[]
     {
@@ -1858,7 +1870,7 @@ namespace fingerPressure
             label_finger5_min27.AutoSize = true;
             label_finger5_min27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger5_min27.ForeColor = Color.Black;
-            label_finger5_min27.Location = new Point(53, 117);
+            label_finger5_min27.Location = new Point(53, 113);
             label_finger5_min27.Name = "label_finger5_min27";
             label_finger5_min27.Size = new Size(37, 17);
             label_finger5_min27.TabIndex = 3;
@@ -1870,7 +1882,7 @@ namespace fingerPressure
             label_finger5_max27.AutoSize = true;
             label_finger5_max27.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             label_finger5_max27.ForeColor = Color.Black;
-            label_finger5_max27.Location = new Point(53, 99);
+            label_finger5_max27.Location = new Point(53, 95);
             label_finger5_max27.Name = "label_finger5_max27";
             label_finger5_max27.Size = new Size(40, 17);
             label_finger5_max27.TabIndex = 2;
@@ -1891,7 +1903,7 @@ namespace fingerPressure
             panel4.Dock = DockStyle.Fill;
             panel4.Location = new Point(0, 0);
             panel4.Name = "panel4";
-            panel4.Size = new Size(284, 311);
+            panel4.Size = new Size(284, 304);
             panel4.TabIndex = 0;
             // 
             // splitContainer7
@@ -1903,7 +1915,7 @@ namespace fingerPressure
             // 
             // splitContainer7.Panel1
             // 
-            splitContainer7.Panel1.Controls.Add(comboBox7);
+            splitContainer7.Panel1.Controls.Add(uCheckComboBox3);
             splitContainer7.Panel1.Controls.Add(button9);
             splitContainer7.Panel1.Controls.Add(comboBox4);
             splitContainer7.Panel1.Controls.Add(label11);
@@ -1911,18 +1923,20 @@ namespace fingerPressure
             // splitContainer7.Panel2
             // 
             splitContainer7.Panel2.Controls.Add(tabControl2);
-            splitContainer7.Size = new Size(284, 311);
-            splitContainer7.SplitterDistance = 36;
+            splitContainer7.Size = new Size(284, 304);
+            splitContainer7.SplitterDistance = 35;
             splitContainer7.TabIndex = 0;
             // 
-            // comboBox7
+            // uCheckComboBox3
             // 
-            comboBox7.FormattingEnabled = true;
-            comboBox7.Items.AddRange(new object[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27" });
-            comboBox7.Location = new Point(132, 7);
-            comboBox7.Name = "comboBox7";
-            comboBox7.Size = new Size(69, 25);
-            comboBox7.TabIndex = 43;
+            uCheckComboBox3.DropDownHeight = 1;
+            uCheckComboBox3.DropDownStyle = ComboBoxStyle.DropDownList;
+            uCheckComboBox3.FormattingEnabled = true;
+            uCheckComboBox3.IntegralHeight = false;
+            uCheckComboBox3.Location = new Point(132, 7);
+            uCheckComboBox3.Name = "uCheckComboBox3";
+            uCheckComboBox3.Size = new Size(66, 25);
+            uCheckComboBox3.TabIndex = 43;
             // 
             // button9
             // 
@@ -1967,7 +1981,7 @@ namespace fingerPressure
             tabControl2.Location = new Point(0, 0);
             tabControl2.Name = "tabControl2";
             tabControl2.SelectedIndex = 0;
-            tabControl2.Size = new Size(284, 271);
+            tabControl2.Size = new Size(284, 265);
             tabControl2.TabIndex = 0;
             // 
             // tabPage5
@@ -1976,7 +1990,7 @@ namespace fingerPressure
             tabPage5.Location = new Point(4, 26);
             tabPage5.Name = "tabPage5";
             tabPage5.Padding = new Padding(3);
-            tabPage5.Size = new Size(276, 241);
+            tabPage5.Size = new Size(276, 235);
             tabPage5.TabIndex = 0;
             tabPage5.Text = "曲线图";
             tabPage5.UseVisualStyleBackColor = true;
@@ -1994,7 +2008,7 @@ namespace fingerPressure
             zedGraphControl3.ScrollMinX = 0D;
             zedGraphControl3.ScrollMinY = 0D;
             zedGraphControl3.ScrollMinY2 = 0D;
-            zedGraphControl3.Size = new Size(270, 235);
+            zedGraphControl3.Size = new Size(270, 229);
             zedGraphControl3.TabIndex = 0;
             zedGraphControl3.UseExtendedPrintDialog = true;
             // 
@@ -2830,6 +2844,16 @@ namespace fingerPressure
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
             // 
+            // checkBox5
+            // 
+            checkBox5.AutoSize = true;
+            checkBox5.Location = new Point(7, 100);
+            checkBox5.Name = "checkBox5";
+            checkBox5.Size = new Size(99, 21);
+            checkBox5.TabIndex = 70;
+            checkBox5.Text = "加载算法模型";
+            checkBox5.UseVisualStyleBackColor = true;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
@@ -3126,8 +3150,9 @@ namespace fingerPressure
         private UCheckComboBox uCheckComboBox1;
         private Label label8;
         private TableLayoutPanel tableLayoutPanel4;
-        private ComboBox comboBox7;
         private ComboBox comboBox8;
         private Label label17;
+        private UCheckComboBox uCheckComboBox3;
+        private CheckBox checkBox5;
     }
 }

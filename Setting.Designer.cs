@@ -46,6 +46,9 @@ namespace fingerPressure
             label1 = new Label();
             flowLayoutPanel1 = new FlowLayoutPanel();
             pictureBox4 = new PictureBox();
+            button6 = new Button();
+            textBox4 = new TextBox();
+            label3 = new Label();
             panel1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox4).BeginInit();
@@ -54,6 +57,9 @@ namespace fingerPressure
             // panel1
             // 
             panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel1.Controls.Add(button6);
+            panel1.Controls.Add(textBox4);
+            panel1.Controls.Add(label3);
             panel1.Controls.Add(button5);
             panel1.Controls.Add(button4);
             panel1.Controls.Add(button3);
@@ -68,7 +74,7 @@ namespace fingerPressure
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(20, 60);
             panel1.Name = "panel1";
-            panel1.Size = new Size(490, 208);
+            panel1.Size = new Size(514, 252);
             panel1.TabIndex = 16;
             // 
             // button5
@@ -153,7 +159,7 @@ namespace fingerPressure
             button2.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 150, 255);
             button2.Font = new Font("微软雅黑", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             button2.ForeColor = Color.Black;
-            button2.Location = new Point(261, 147);
+            button2.Location = new Point(288, 189);
             button2.Name = "button2";
             button2.Size = new Size(85, 44);
             button2.TabIndex = 40;
@@ -169,7 +175,7 @@ namespace fingerPressure
             button1.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 150, 255);
             button1.Font = new Font("微软雅黑", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             button1.ForeColor = Color.Black;
-            button1.Location = new Point(119, 147);
+            button1.Location = new Point(146, 189);
             button1.Name = "button1";
             button1.Size = new Size(85, 44);
             button1.TabIndex = 39;
@@ -192,7 +198,7 @@ namespace fingerPressure
             flowLayoutPanel1.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             flowLayoutPanel1.Controls.Add(pictureBox4);
             flowLayoutPanel1.FlowDirection = FlowDirection.RightToLeft;
-            flowLayoutPanel1.Location = new Point(455, 6);
+            flowLayoutPanel1.Location = new Point(479, 6);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(74, 33);
             flowLayoutPanel1.TabIndex = 43;
@@ -208,11 +214,39 @@ namespace fingerPressure
             pictureBox4.TabStop = false;
             pictureBox4.Click += pictureBox4_Click;
             // 
+            // button6
+            // 
+            button6.Location = new Point(431, 147);
+            button6.Name = "button6";
+            button6.Size = new Size(49, 23);
+            button6.TabIndex = 51;
+            button6.Text = "浏览";
+            button6.UseVisualStyleBackColor = true;
+            button6.Click += button6_Click;
+            // 
+            // textBox4
+            // 
+            textBox4.Font = new Font("宋体", 10.5F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            textBox4.Location = new Point(165, 147);
+            textBox4.Name = "textBox4";
+            textBox4.Size = new Size(260, 23);
+            textBox4.TabIndex = 50;
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            label3.Location = new Point(24, 148);
+            label3.Name = "label3";
+            label3.Size = new Size(151, 16);
+            label3.TabIndex = 49;
+            label3.Text = "温度补偿文件路径：";
+            // 
             // Setting
             // 
             AutoScaleDimensions = new SizeF(6F, 12F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(530, 288);
+            ClientSize = new Size(554, 332);
             Controls.Add(flowLayoutPanel1);
             Controls.Add(panel1);
             Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
@@ -242,5 +276,8 @@ namespace fingerPressure
         private Button button5;
         private Button button4;
         private Button button3;
+        private Button button6;
+        private TextBox textBox4;
+        private Label label3;
     }
 }

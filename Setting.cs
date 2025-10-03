@@ -125,5 +125,20 @@ namespace fingerPressure
                 }
             }
         }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog dialog = new OpenFileDialog())
+            {
+                dialog.Title = "请选择温度补偿文件";
+                dialog.Filter = "CSV(*.csv)|*.csv";
+                dialog.Multiselect = false;
+
+                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.FileName))
+                {
+                    textBox4.Text = dialog.FileName;
+                }
+            }
+        }
     }
 }
