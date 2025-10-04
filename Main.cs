@@ -157,7 +157,7 @@ namespace fingerPressure
         private List<string> biaoTouName = new List<string> { "LogTime", "Sensor1", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp1", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor2", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp2", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor3", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp3", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor4", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp4", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor5", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp5", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", };
         private List<string> biaoTouNameMEMS = new List<string> { "LogTime", "Sensor", "Temp1", "Temp2", "Temp3", "Temp4", "Temp5", "Temp6", "Temp7", "Temp8", "Press1", "Press2", "Press3", "Press4", "Press5", "Press6", "Press7", "Press8" };
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
-        private string[] danweiNames = { "原始值","电阻值","应变值","压力值" };
+        private string[] danweiNames = { "原始值", "电阻值", "应变值", "压力值" };
         private int danwei = 0; //电阻 应变 压力
         private int choosedFinger1 = -1; // 默认大拇指
         private int choosedFinger3 = -1; // 默认大拇指
@@ -361,7 +361,7 @@ namespace fingerPressure
 
             LoadFromJson();
             LoadFromSettingJson();
-            
+
             if (textBox1.Text == null || textBox1.Text == "")
             {
                 textBox1.Text = "500";
@@ -589,7 +589,8 @@ namespace fingerPressure
                     KS[channel] = ParseDouble(parts[9]);
                     KSS[channel] = ParseDouble(parts[10]);
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 MessageBox.Show("加载参数文件失败: " + ex.Message);
             }
@@ -702,7 +703,7 @@ namespace fingerPressure
                 serialThread = new Thread(() => SerialReadLoop(cts.Token));
                 serialThread.IsBackground = true;
                 serialThread.Start();
-                if(chuanGanQiType == "MEMS")
+                if (chuanGanQiType == "MEMS")
                 {
                     serialSendThread = new Thread(() => SerialSendLoop(cts.Token, fingerNum.Count));
                     serialSendThread.IsBackground = true;
@@ -1028,8 +1029,8 @@ namespace fingerPressure
                         }
                     }
                 }*/
-        private void SerialSendLoop(CancellationToken token,int count)
-        {   
+        private void SerialSendLoop(CancellationToken token, int count)
+        {
             int memsSensorIndex = 0;
             double pollIntervalMs = Math.Max(2.0, 20.0 / count);
 
@@ -2349,7 +2350,7 @@ namespace fingerPressure
                         {
                             if (dataOffset + i * 2 + 1 >= packet.Length) break;
                             double v = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(dataOffset + i * 2, 2));
-                            
+
                             values[7 - i] = v / 10;
                         }
 
@@ -2414,11 +2415,21 @@ namespace fingerPressure
                         uiData.Clear();
                         uiData.Add("S" + addr.ToString());
                         uiData.Add(type.ToString("X2"));
-                        for (int i = 0; i < 8; i++)
+                        if (type == 0xF5)
                         {
-                            int ch = (addr-1) * 8 + i;
-                            double realV = GetRealTempValue(addrDataDict[addr].TemperatureData[i], addrDataDict[addr].PressureData[i], ch);
-                            uiData.Add(realV.ToString());
+                            for (int i = 0; i < 8; i++)
+                            {
+                                int ch = (addr - 1) * 8 + i;
+                                double realV = GetRealTempValue(addrDataDict[addr].TemperatureData[i], addrDataDict[addr].PressureData[i], ch);
+                                uiData.Add(realV.ToString());
+                            }
+                        }
+                        else if (type == 0xF4)
+                        {
+                            for (int i = 0; i < 8; i++)
+                            {
+                                uiData.Add(values[i].ToString());
+                            }
                         }
 
 
@@ -2669,14 +2680,14 @@ namespace fingerPressure
         private double GetRealValue(double raw, int type)
         {
             if (type == 0 || type == 3) return raw; // 未选择  raw = 882           -210
-            /*            double r1 = 120;
-                        double r2 = 2200;
-                        double z = 1024;
-                        double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
-                        double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
-                        double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
-                        double dR = fenzi / fenmu; // 1.0288984712106068                -0.24484138805145328*/
-            double dR = raw * 480.0 / (16383.0 * 1024.0);
+            double r1 = 120;
+            double r2 = 2200;
+            double z = 8;
+            double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
+            double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
+            double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
+            double dR = fenzi / fenmu; // 1.0288984712106068                -0.24484138805145328*/
+            //double dR = raw * 480.0 / (16383.0 * 1024.0);
             if (type == 2)
             {
                 return Math.Round(dR / 0.00024, 2);
@@ -2694,7 +2705,7 @@ namespace fingerPressure
             double OFFSET = OFFSET0[ch] + CTC1[ch] * (tempRaw - T0) + CTC2[ch] * Math.Pow((tempRaw - T0), 2);
             double S = S0[ch] + STC1[ch] * (tempRaw - T0) + STC2[ch] * Math.Pow((tempRaw - T0), 2);
             double Pnl = (PDATAcal1 - OFFSET) * S;
-            double PDATAcal = Pnl + KS[ch] * Math.Pow(Pnl,2) + KSS[ch] * Math.Pow(Pnl,3) + P0;
+            double PDATAcal = Pnl + KS[ch] * Math.Pow(Pnl, 2) + KSS[ch] * Math.Pow(Pnl, 3) + P0;
 
             return Math.Round(PDATAcal, 2);
 
@@ -3416,6 +3427,7 @@ namespace fingerPressure
             isZeroing = true;
             zeroingPacketCount = 0;
             pressureCalibBuffers.Clear();
+            pressureCalibBuffers27.Clear();
         }
 
 
