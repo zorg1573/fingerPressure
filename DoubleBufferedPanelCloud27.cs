@@ -536,7 +536,7 @@ namespace fingerPressure
         private Bitmap heatmapCache; // 新增：热力图缓存
         //private bool valuesChanged = true; // 新增：标记值是否变化
         private float fontHeight; // 字体高度缓存
-        private bool guiyihua = false; // 是否归一化显示
+        private int danwei = 0; // 是否归一化显示
 
         public DoubleBufferedPanelCloud27()
         {
@@ -571,10 +571,10 @@ namespace fingerPressure
             }
         }
 
-        public bool Guiyihua
+        public int Danwei
         {
-            get => guiyihua;
-            set { guiyihua = value; }
+            get => danwei;
+            set { danwei = value; }
         }
 
         private void CacheFontHeight()
@@ -633,7 +633,9 @@ namespace fingerPressure
 
         private Color GetColorFromValue(double value)
         {
-            double maxAbs = guiyihua ? 500 : 10000;
+            double maxAbs = 80;
+            if (danwei == 1) maxAbs = 1.5;
+            if (danwei == 2) maxAbs = 6000;
             if (value < 0) value = 0;
             if (value > maxAbs) value = maxAbs;
             // 归一化到 0~1

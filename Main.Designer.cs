@@ -1658,7 +1658,7 @@ namespace fingerPressure
             panel_finger1_cloud27.Controls.Add(label_finger1_min27);
             panel_finger1_cloud27.Controls.Add(label_finger1_max27);
             panel_finger1_cloud27.Dock = DockStyle.Fill;
-            panel_finger1_cloud27.Guiyihua = false;
+            panel_finger1_cloud27.Danwei = 0;
             panel_finger1_cloud27.Location = new Point(3, 23);
             panel_finger1_cloud27.Name = "panel_finger1_cloud27";
             panel_finger1_cloud27.Size = new Size(239, 135);
@@ -1705,7 +1705,7 @@ namespace fingerPressure
             panel_finger2_cloud27.Controls.Add(label_finger2_min27);
             panel_finger2_cloud27.Controls.Add(label_finger2_max27);
             panel_finger2_cloud27.Dock = DockStyle.Fill;
-            panel_finger2_cloud27.Guiyihua = false;
+            panel_finger2_cloud27.Danwei = 0;
             panel_finger2_cloud27.Location = new Point(248, 23);
             panel_finger2_cloud27.Name = "panel_finger2_cloud27";
             panel_finger2_cloud27.Size = new Size(239, 135);
@@ -1752,7 +1752,7 @@ namespace fingerPressure
             panel_finger3_cloud27.Controls.Add(label_finger3_min27);
             panel_finger3_cloud27.Controls.Add(label_finger3_max27);
             panel_finger3_cloud27.Dock = DockStyle.Fill;
-            panel_finger3_cloud27.Guiyihua = false;
+            panel_finger3_cloud27.Danwei = 0;
             panel_finger3_cloud27.Location = new Point(493, 23);
             panel_finger3_cloud27.Name = "panel_finger3_cloud27";
             panel_finger3_cloud27.Size = new Size(239, 135);
@@ -1799,7 +1799,7 @@ namespace fingerPressure
             panel_finger4_cloud27.Controls.Add(label_finger4_min27);
             panel_finger4_cloud27.Controls.Add(label_finger4_max27);
             panel_finger4_cloud27.Dock = DockStyle.Fill;
-            panel_finger4_cloud27.Guiyihua = false;
+            panel_finger4_cloud27.Danwei = 0;
             panel_finger4_cloud27.Location = new Point(738, 23);
             panel_finger4_cloud27.Name = "panel_finger4_cloud27";
             panel_finger4_cloud27.Size = new Size(239, 135);
@@ -1846,7 +1846,7 @@ namespace fingerPressure
             panel_finger5_cloud27.Controls.Add(label_finger5_min27);
             panel_finger5_cloud27.Controls.Add(label_finger5_max27);
             panel_finger5_cloud27.Dock = DockStyle.Fill;
-            panel_finger5_cloud27.Guiyihua = false;
+            panel_finger5_cloud27.Danwei = 0;
             panel_finger5_cloud27.Location = new Point(983, 23);
             panel_finger5_cloud27.Name = "panel_finger5_cloud27";
             panel_finger5_cloud27.Size = new Size(243, 135);

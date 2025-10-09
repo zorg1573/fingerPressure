@@ -11,6 +11,12 @@ namespace fingerPressure
         private Rectangle[] fingerRects;    // 每根手指矩形区域（旋转前）
         private double[][] fingerValues;    // 5 根手指，每根 9 通道数据
         private float[] fingerAngles;       // 每根手指旋转角度（度）
+        //private int danwei = 0;
+        //public int Danwei
+        //{
+        //    get => danwei;
+        //    set { danwei = value; }
+        //}
 
         public HandHeatmapControl()
         {
@@ -251,7 +257,9 @@ namespace fingerPressure
 
         private Color GetColorFromValue(double value)
         {
-            double maxAbs = 10000;
+            double maxAbs = 6000;
+            //if (danwei == 1) maxAbs = 1.5;
+            //if (danwei == 2) maxAbs = 6000;
 
             // 限幅
             if (value < 0) value = 0;

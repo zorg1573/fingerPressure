@@ -99,6 +99,7 @@ namespace fingerPressure
 
         // 校零控制
         private bool isZeroing = false;
+        private volatile bool isSaving = false;
         private int zeroingPacketCount = 0;
         private const int ZeroingTargetPackets = 5;
         private Dictionary<int, List<double>> tempCalibBuffers = new();
@@ -349,6 +350,7 @@ namespace fingerPressure
         }
         private void Main_Load(object sender, EventArgs e)
         {
+            isSaving = false;
             // 先把页面保存下来
             tp1 = tabPage1;
             tp2 = tabPage2;
@@ -1296,6 +1298,7 @@ namespace fingerPressure
 
                             // 校零完成
                             isZeroing = false;
+                            isSaving = true;
                             Array.Clear(channelZeroingCounts, 0, channelZeroingCounts.Length);
                             Array.Clear(activeChannels, 0, activeChannels.Length); // 清理激活状态
 
@@ -1446,6 +1449,7 @@ namespace fingerPressure
 
                             // 校零完成
                             isZeroing = false;
+                            isSaving = true;
                             Array.Clear(channelZeroingCounts27, 0, channelZeroingCounts27.Length); // 清理计数
 
                             Action showMsg = () => MessageBox.Show("校零完成", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1860,6 +1864,7 @@ namespace fingerPressure
 
                         if (panelCloud != null)
                         {
+                            panelCloud.Danwei = danwei;
                             Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
                             panelCloud.Invalidate(); // 只Invalidate有更新的
 
@@ -2438,6 +2443,7 @@ namespace fingerPressure
                         while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                         uiQueue.Add(uiData);
 
+
                         // 当数据满足条件时，加入 fileRawQueue
                         var fileData = uiDataPool.Rent();
                         fileData.Clear();
@@ -2452,14 +2458,16 @@ namespace fingerPressure
                         {
                             fileData.Add(value.ToString());
                         }
-
-                        // 保存数据到 fileRawQueue
-                        var now = HighResDateTime.Now;
-                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                        if (isSaving)
                         {
-                            lastSaveTime = now;
-                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                            fileRawQueue.Add(fileData);
+                            // 保存数据到 fileRawQueue
+                            var now = HighResDateTime.Now;
+                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                            {
+                                lastSaveTime = now;
+                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                fileRawQueue.Add(fileData);
+                            }
                         }
 
                         // 清除该 addr 的数据（温度和压力都清除）
@@ -2566,13 +2574,17 @@ namespace fingerPressure
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                     uiQueue.Add(uiData);
 
-                    var now = HighResDateTime.Now;
-                    if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                    if (isSaving)
                     {
-                        lastSaveTime = now;
-                        if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                        fileRawQueue.Add(fileData);
+                        var now = HighResDateTime.Now;
+                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                        {
+                            lastSaveTime = now;
+                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                            fileRawQueue.Add(fileData);
+                        }
                     }
+
 
                     long newCount = Interlocked.Increment(ref totalPacketCount);
                     if (packetCountLabel.InvokeRequired)
@@ -2685,15 +2697,15 @@ namespace fingerPressure
         //原始值 得到 微应变和电阻
         private double GetRealValue(double raw, int type)
         {
-            if (type == 0 || type == 3) return raw; // 未选择  raw = 882           -210
+            if (type == 0 || type == 3) return raw; 
             double r1 = 120;
-            double r2 = 2200;
-            double z = 8;
-            double dV = raw / (8196.0 * z); // 0.00042036511713030748           -0.00010008693265007321
-            double fenzi = (r1 + r2) * dV; // 0.9752470717423134            -0.23220168374816985
-            double fenmu = 1 - dV - r1 / (r1 + r2); // 0.94785549695183524  0.9483759490016157
-            double dR = fenzi / fenmu; // 1.0288984712106068                -0.24484138805145328*/
-            //double dR = raw * 480.0 / (16383.0 * 1024.0);
+            double r2 = 1000;
+            double z = 256;
+            double dV = raw / (8196.0 * z); 
+            double fenzi = (r1 + r2) * dV; 
+            double fenmu = 1 - dV - r1 / (r1 + r2); 
+            double dR = fenzi / fenmu; 
+            
             if (type == 2)
             {
                 return Math.Round(dR / 0.00024, 2);
@@ -2817,24 +2829,27 @@ namespace fingerPressure
         {
             try
             {
-                foreach (var packet in fileRawQueue.GetConsumingEnumerable())
-                {
-                    string line = "";
-                    if (chuanGanQiType == "MEMS")
+
+                    foreach (var packet in fileRawQueue.GetConsumingEnumerable())
                     {
-                        line = FormatPacketToOneCsvLineFast(packet);
-                    }
-                    else
-                    {
-                        line = FormatPacketToOneCsvLineFast27(packet);
+                        string line = "";
+                        if (chuanGanQiType == "MEMS")
+                        {
+                            line = FormatPacketToOneCsvLineFast(packet);
+                        }
+                        else
+                        {
+                            line = FormatPacketToOneCsvLineFast27(packet);
+                        }
+
+                        if (line == null) continue;
+
+                        // fileQueue 有界 + 丢最旧，确保不堆积
+                        if (fileQueue.Count >= 20000) fileQueue.TryTake(out _);
+                        fileQueue.Add(line);
                     }
 
-                    if (line == null) continue;
 
-                    // fileQueue 有界 + 丢最旧，确保不堆积
-                    if (fileQueue.Count >= 20000) fileQueue.TryTake(out _);
-                    fileQueue.Add(line);
-                }
             }
             catch (Exception ex)
             {
@@ -3414,7 +3429,6 @@ namespace fingerPressure
             uiQueue.CompleteAdding();
             fileQueue.CompleteAdding();
             fileRawQueue.CompleteAdding();
-
             // 等待写线程结束
             fileWriterThread.Join();
 
@@ -4121,6 +4135,7 @@ namespace fingerPressure
         private void comboBox8_SelectedIndexChanged(object sender, EventArgs e)
         {
             danwei = comboBox8.SelectedIndex;
+            isSaving = false;
 
             GraphPane pane3 = zedGraphControl3.GraphPane;
             pane3.Title.Text = $"27通道{danweiNames[danwei]}总览";
