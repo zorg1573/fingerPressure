@@ -534,9 +534,9 @@ namespace fingerPressure
         private Rectangle[] dotRects; // 点阵矩形缓存
         private Bitmap backgroundCache; // 背景缓存
         private Bitmap heatmapCache; // 新增：热力图缓存
-        //private bool valuesChanged = true; // 新增：标记值是否变化
+        private bool valuesChanged = true; // 新增：标记值是否变化
         private float fontHeight; // 字体高度缓存
-        private int danwei = 0; // 是否归一化显示
+        private int danwei = 0;
 
         public DoubleBufferedPanelCloud27()
         {
@@ -547,7 +547,7 @@ namespace fingerPressure
             this.UpdateStyles();
             this.Resize += (_, __) =>
             {
-                //valuesChanged = true; // 大小变化时强制重计算
+                valuesChanged = true; // 大小变化时强制重计算
                 GenerateBackgroundCache();
             };
             this.FontChanged += (_, __) => CacheFontHeight();
@@ -565,7 +565,7 @@ namespace fingerPressure
                 if (value != null && value.Length == values.Length)
                 {
                     Array.Copy(value, values, values.Length);
-                    //valuesChanged = true; // 标记变化
+                    valuesChanged = true; // 标记变化
                     Invalidate(); // 触发重绘
                 }
             }
@@ -633,9 +633,9 @@ namespace fingerPressure
 
         private Color GetColorFromValue(double value)
         {
-            double maxAbs = 80;
-            if (danwei == 1) maxAbs = 1.5;
-            if (danwei == 2) maxAbs = 6000;
+            double maxAbs = 200;
+            if (danwei == 1) maxAbs = 0.25;
+            if (danwei == 2) maxAbs = 400;
             if (value < 0) value = 0;
             if (value > maxAbs) value = maxAbs;
             // 归一化到 0~1
@@ -673,7 +673,8 @@ namespace fingerPressure
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             // 只当值变化或缓存为空时重计算
-            //if (valuesChanged || backgroundCache == null || heatmapCache == null)
+            if (valuesChanged || backgroundCache == null || heatmapCache == null)
+            {
                 GenerateBackgroundCache(); // 只在需要时生成背景
 
                 // 计算点中心坐标
@@ -726,10 +727,10 @@ namespace fingerPressure
                             ptr[pixelOffset + 3] = color.A;
                         }
                     }
-                //}
+                }
                 heatmapCache.UnlockBits(bmpData);
 
-                //valuesChanged = false; // 重置标记
+                valuesChanged = false; // 重置标记
             }
 
             // 先画背景缓存

@@ -1557,10 +1557,11 @@ namespace fingerPressure
         //private readonly double[] panelValuesBuffer8 = new double[5 * 8]; // 预分配数组，零分配
         //private readonly double[] cloudValuesBuffer8 = new double[5 * 8];  // 每个 Panel 9 个点
         private readonly double[] panelValuesBuffer = new double[5 * 27]; // 预分配数组，零分配
-        private readonly double[] cloudValuesBuffer = new double[5 * 9];  // 每个 Panel 9 个点
+        //private readonly double[] cloudValuesBuffer = new double[5 * 9];  // 每个 Panel 9 个点
         private readonly double[] gyroValuesBuffer = new double[5 * 6];  // 每个 Panel 9 个点
         private readonly double[][] panelValuesPerSensor = Enumerable.Range(0, 5).Select(_ => new double[8]).ToArray();
         private readonly double[][] cloudValuesPerSensor = Enumerable.Range(0, 5).Select(_ => new double[8]).ToArray();
+        private readonly double[][] cloud27ValuesPerSensor = Enumerable.Range(0, 5).Select(_ => new double[9]).ToArray();
 
 
         private void RefreshTimer_Tick(object sender, EventArgs e)
@@ -1695,8 +1696,9 @@ namespace fingerPressure
                     if (panelCloud != null)
                     {
                         panelCloud.Guiyihua = guiyihua;
-                        Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
-                        panelCloud.Invalidate();
+                        panelCloud.Values = panelValuesPerSensor[sensorIndex];
+                        //Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
+                        //panelCloud.Invalidate();
                         // 更新最大最小值标签
                         if (panelCloud.Values.Length > 0)
                         {
@@ -1817,7 +1819,8 @@ namespace fingerPressure
                                 int idx = g * groupSize + k;
                                 sum += dotUpdate.PressureValues[idx];
                             }
-                            cloudValuesBuffer[sensorIndex * 9 + g] = sum / groupSize;
+                            //cloudValuesBuffer[sensorIndex * 9 + g] = sum / groupSize;
+                            cloud27ValuesPerSensor[sensorIndex][g] = sum / groupSize;
                         }
 
                         // 移动到 while 内，只更新当前 sensor
@@ -1865,8 +1868,9 @@ namespace fingerPressure
                         if (panelCloud != null)
                         {
                             panelCloud.Danwei = danwei;
-                            Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
-                            panelCloud.Invalidate(); // 只Invalidate有更新的
+                            panelCloud.Values = cloud27ValuesPerSensor[s];
+                            //Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
+                            //panelCloud.Invalidate(); // 只Invalidate有更新的
 
                             if (portName == "COMPort_left")
                             {
@@ -2699,13 +2703,16 @@ namespace fingerPressure
         {
             if (type == 0 || type == 3) return raw; 
             double r1 = 120;
-            double r2 = 1000;
-            double z = 256;
-            double dV = raw / (8196.0 * z); 
+            double r2 = 2200;
+            double z = 512;
+            double v = 2.18;
+/*            double dV = raw * 2.8 / (8192.0 * z) / v; 
             double fenzi = (r1 + r2) * dV; 
             double fenmu = 1 - dV - r1 / (r1 + r2); 
-            double dR = fenzi / fenmu; 
-            
+            double dR = fenzi / fenmu; */
+            double dV = raw * 2.8 / (8192.0 * z);
+            double fenmu = 1 - (dV / v) - r1 / (r1 + r2);
+            double dR = r2 / fenmu - r1 - r2;
             if (type == 2)
             {
                 return Math.Round(dR / 0.00024, 2);
