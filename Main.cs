@@ -1482,6 +1482,7 @@ namespace fingerPressure
                                 int channelIndex = s * pressureCount + p;
                                 double pressure = rawPressure - channelZeroOffsets27[channelIndex];
                                 dotUpdate_Pres27.PressureValues[p] = pressure;
+                                //dotUpdate_Pres27.PressureValues[p] = rawPressure;
                                 //pressures[p] = pressure;
                             }
                         }
@@ -2008,6 +2009,7 @@ namespace fingerPressure
         }
 
         private static ListStringPool uiDataPool = new ListStringPool();
+        private static ListStringPool fileDataPool = new ListStringPool();
 
         /*        private void EnqueuePacket(byte[] packet)
                 {
@@ -2512,11 +2514,13 @@ namespace fingerPressure
 
                     var uiData = uiDataPool.Rent();
                     uiData.Clear();
+                    var fileData = fileDataPool.Rent();
+                    fileData.Clear();
 
                     for (int s = 0; s < sensorCount; s++)
                     {
                         uiData.Add($"S{s + 1}");
-
+                        fileData.Add($"S{s + 1}");
                         // 压力值
                         int sensorOffset = s * (pressureCount * 2 + 2 + 12); // 注意这里改为 +2
                         /*                        for (int i = 0; i < pressureCount; i++)
@@ -2530,10 +2534,11 @@ namespace fingerPressure
                         {
                             int pos = dataOffset + sensorOffset + i * 2;
                             short raw = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(pos, 2));
-
+                            int channelIndex = s * 27 + i;
                             scaled = GetRealValue(raw, danwei);
-
+                            double zeroOffset = scaled - channelZeroOffsets27[channelIndex];
                             uiData.Add(scaled.ToString("F2")); // 保留两位小数，可以根据需要改
+                            fileData.Add(zeroOffset.ToString("F2"));
                             pressureValues[s * pressureCount + i] = (float)scaled;
                         }
 
@@ -2541,7 +2546,7 @@ namespace fingerPressure
                         int tempPos = dataOffset + sensorOffset + pressureCount * 2;
                         short temp = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(tempPos, 2));
                         uiData.Add(temp.ToString());
-
+                        fileData.Add(temp.ToString());
                         // 陀螺仪
                         int gyroOffset = tempPos + 2; // 温度占了 2 字节
                         for (int i = 0; i < 6; i++)
@@ -2549,6 +2554,7 @@ namespace fingerPressure
                             int pos = gyroOffset + i * 2;
                             gyroBuffer[i] = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(pos, 2));
                             uiData.Add(gyroBuffer[i].ToString());
+                            fileData.Add(gyroBuffer[i].ToString());
                         }
                     }
                     if (checkBox5.Checked)
@@ -2565,7 +2571,7 @@ namespace fingerPressure
                     {
                         lastSaveTime = now;
                         if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                        fileRawQueue.Add(uiData);
+                        fileRawQueue.Add(fileData);
                     }
 
                     long newCount = Interlocked.Increment(ref totalPacketCount);
@@ -3087,9 +3093,9 @@ namespace fingerPressure
             //zedGraphControl2.AxisChange(); // 应用更改
 
             GraphPane pane3 = zedGraphControl3.GraphPane;
-            pane3.Title.Text = "27通道电阻总览";
+            pane3.Title.Text = "27通道原始值总览";
             pane3.XAxis.Title.Text = "数据包编号";
-            pane3.YAxis.Title.Text = "电阻";
+            pane3.YAxis.Title.Text = "原始值";
             pane3.YAxis.Scale.MinAuto = true;
             pane3.YAxis.Scale.MaxAuto = true;
             //强制 X 轴显示为整数
