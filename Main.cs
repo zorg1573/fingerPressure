@@ -1,5 +1,7 @@
 using fingerPressure.MODEL;
 using fingerPressure.Properties;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.Optimization;
 using MetroFramework.Forms;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -11,6 +13,7 @@ using System.Diagnostics.Metrics;
 using System.IO.Ports;
 using System.Linq;
 using System.Numerics.Tensors;
+using System.Security.AccessControl;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -150,7 +153,7 @@ namespace fingerPressure
         //调用模型
         private InferenceSession sessionModel1;
         private InferenceSession sessionModel2;
-        private BlockingCollection<float[]> inferenceQueue = new BlockingCollection<float[]>(new ConcurrentQueue<float[]>());
+        private BlockingCollection<float[]> aimodelQueue = new BlockingCollection<float[]>(new ConcurrentQueue<float[]>());
 
         /*        private StreamWriter monitorWriter;
                 private Thread monitorThread;
@@ -265,6 +268,13 @@ namespace fingerPressure
 
         HandHeatmapControl handHeatmapControlLeft = new HandHeatmapControl();
         HandHeatmapControl handHeatmapControlRight = new HandHeatmapControl();
+
+        private static readonly double[,] sensorPositions =
+        {
+            {9.527, 13.919}, {5.528, 13.915}, {10.528, 9.919},
+            {7.531, 9.921}, {4.523, 9.919}, {11.033, 5.920},
+            {7.533, 5.913}, {4.033, 5.920}
+        };
 
         //private CancellationTokenSource memsPollingCts;
 
@@ -1817,7 +1827,7 @@ namespace fingerPressure
                             for (int k = 0; k < groupSize; k++)
                             {
                                 int idx = g * groupSize + k;
-                                sum += dotUpdate.PressureValues[idx];
+                                sum += Math.Abs(dotUpdate.PressureValues[idx]);
                             }
                             //cloudValuesBuffer[sensorIndex * 9 + g] = sum / groupSize;
                             cloud27ValuesPerSensor[sensorIndex][g] = sum / groupSize;
@@ -2335,6 +2345,7 @@ namespace fingerPressure
 
         // 创建全局字典来存储每个 addr 对应的温度和压力数据
         private Dictionary<int, SensorData> addrDataDict = new Dictionary<int, SensorData>();
+        private double[] realV = new double[8];
 
         // 处理接收到的包并更新字典
         private void EnqueuePacket(byte[] packet)
@@ -2428,11 +2439,13 @@ namespace fingerPressure
                         uiData.Add(type.ToString("X2"));
                         if (type == 0xF5)
                         {
+                            realV = ComputeForces(addrDataDict[addr].PressureData.ToArray());
                             for (int i = 0; i < 8; i++)
                             {
-                                int ch = (addr - 1) * 8 + i;
-                                double realV = GetRealTempValue(addrDataDict[addr].TemperatureData[i], addrDataDict[addr].PressureData[i], ch);
-                                uiData.Add(realV.ToString());
+                                //int ch = (addr - 1) * 8 + i;
+                                //double realV = GetRealTempValue(addrDataDict[addr].TemperatureData[i], addrDataDict[addr].PressureData[i], ch);
+                                //uiData.Add(realV.ToString());
+                                uiData.Add(realV[i].ToString());
                             }
                         }
                         else if (type == 0xF4)
@@ -2458,7 +2471,7 @@ namespace fingerPressure
                         {
                             fileData.Add(value.ToString());
                         }
-                        foreach (var value in addrDataDict[addr].PressureData)
+                        foreach (var value in realV)
                         {
                             fileData.Add(value.ToString());
                         }
@@ -2571,7 +2584,7 @@ namespace fingerPressure
                     }
                     if (checkBox5.Checked)
                     {
-                        inferenceQueue.Add(pressureValues);
+                        aimodelQueue.Add(pressureValues);
                     }
 
 
@@ -2735,7 +2748,59 @@ namespace fingerPressure
             return Math.Round(PDATAcal, 2);
 
         }
+        // 二维高斯函数
+        private static double Gaussian2D(double x, double y, double amp, double x0, double y0, double sigma)
+        {
+            return amp * Math.Exp(-((x - x0) * (x - x0) + (y - y0) * (y - y0)) / (2 * sigma * sigma));
+        }
 
+        /// <summary>
+        /// 输入8个通道值，返回拟合后的8个力值
+        /// </summary>
+        public static double[] ComputeForces(double[] inputChannels)
+        {
+            if (inputChannels.Length != 8)
+                throw new ArgumentException("必须输入8个通道值");
+
+            // 初始猜测 (Vector<double>)
+            var initialGuess = Vector<double>.Build.Dense(new[] { inputChannels.Max(), 7.0, 7.0, 2.0 });
+
+            // 定义目标函数
+            var objective = ObjectiveFunction.Value(
+                (Vector<double> parameters) =>
+                {
+                    double amp = parameters[0];
+                    double x0 = parameters[1];
+                    double y0 = parameters[2];
+                    double sigma = parameters[3];
+                    double error = 0.0;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        double gx = sensorPositions[i, 0];
+                        double gy = sensorPositions[i, 1];
+                        double pred = Gaussian2D(gx, gy, amp, x0, y0, sigma);
+                        error += Math.Pow(pred - inputChannels[i], 2);
+                    }
+                    return error;
+                });
+
+            // 使用 Nelder-Mead 拟合
+            var optimizer = new NelderMeadSimplex(1e-8, 10000);
+            var result = optimizer.FindMinimum(objective, initialGuess);
+
+            double[] opt = result.MinimizingPoint.ToArray();
+
+            // 根据拟合结果计算每个传感器力值
+            double[] fittedForces = new double[8];
+            for (int i = 0; i < 8; i++)
+            {
+                double x = sensorPositions[i, 0];
+                double y = sensorPositions[i, 1];
+                fittedForces[i] = Gaussian2D(x, y, opt[0], opt[1], opt[2], opt[3]);
+            }
+
+            return fittedForces;
+        }
         private void StartInferenceThread()
         {
             Task.Run(() =>
@@ -2744,7 +2809,7 @@ namespace fingerPressure
                 float[] model1OutputBuffer = new float[15];  // 5 sensors × 3 forces
                 float[] model2ProbBuffer = new float[405];   // 5 sensors × 81 probs
 
-                foreach (var input in inferenceQueue.GetConsumingEnumerable())
+                foreach (var input in aimodelQueue.GetConsumingEnumerable())
                 {
                     try
                     {
@@ -2803,7 +2868,7 @@ namespace fingerPressure
 
                             for (int i = 0; i < 81; i++)
                             {
-                                float prob = model2ProbBuffer[baseProbIdx + i];
+                                float prob = model2ProbBuffer[baseProbIdx + i]; 
                                 if (prob > maxProb)
                                 {
                                     maxProb = prob;
@@ -3760,7 +3825,7 @@ namespace fingerPressure
         private void button8_Click(object sender, EventArgs e)
         {
             // 1. 加载 ONNX 模型
-            using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\fingerApp\\pymode\\model1.onnx");
+            using var session = new InferenceSession(model1Path);
 
             // 2. 准备输入数据：25 个 float
             float[] inputData = new float[54]
@@ -3848,7 +3913,7 @@ namespace fingerPressure
 
         private void button10_Click(object sender, EventArgs e)
         {
-            using var session = new InferenceSession("C:\\Users\\Administrator\\Desktop\\fingerApp\\pymode\\model2_new.onnx");
+            using var session = new InferenceSession(model2Path);
 
             // 假设只推理一条数据：27 个 float
             float[] inputData = new float[27]
