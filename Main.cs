@@ -171,18 +171,18 @@ namespace fingerPressure
         private bool guiyihua = false;
 
         //MEMS温度压力校准
-        private double Coarse_OFF = 0.375;
-        private double Coarse_GAIN = 2;
-        private double T0 = 0;
-        private double P0 = 0.5;
-        private double[] OFFSET0 = new double[40];
-        private double[] CTC1 = new double[40];
-        private double[] CTC2 = new double[40];
-        private double[] S0 = new double[40];
-        private double[] STC1 = new double[40];
-        private double[] STC2 = new double[40];
-        private double[] KS = new double[40];
-        private double[] KSS = new double[40];
+        /*        private double Coarse_OFF = 0.375;
+                private double Coarse_GAIN = 2;
+                private double T0 = 0;
+                private double P0 = 0.5;
+                private double[] OFFSET0 = new double[40];
+                private double[] CTC1 = new double[40];
+                private double[] CTC2 = new double[40];
+                private double[] S0 = new double[40];
+                private double[] STC1 = new double[40];
+                private double[] STC2 = new double[40];
+                private double[] KS = new double[40];
+                private double[] KSS = new double[40];*/
 
 
         public struct SensorInferenceResult
@@ -268,13 +268,6 @@ namespace fingerPressure
 
         HandHeatmapControl handHeatmapControlLeft = new HandHeatmapControl();
         HandHeatmapControl handHeatmapControlRight = new HandHeatmapControl();
-
-        private static readonly double[,] sensorPositions =
-        {
-            {9.527, 13.919}, {5.528, 13.915}, {10.528, 9.919},
-            {7.531, 9.921}, {4.523, 9.919}, {11.033, 5.920},
-            {7.533, 5.913}, {4.033, 5.920}
-        };
 
         //private CancellationTokenSource memsPollingCts;
 
@@ -425,6 +418,22 @@ namespace fingerPressure
             // 默认全选
             uCheckComboBox3.CheckAll();
 
+            var data4 = new List<object>();
+
+            for (int j = 1; j <= 8; j++)
+            {
+                data4.Add(new { Value = j, Text = $"CH{j}" });
+            }
+
+            // 绑定到多选 ComboBox
+            uCheckComboBox4.BindingDataList(data4, "Value", "Text");
+            // 默认全选
+            uCheckComboBox4.CheckAll();
+
+            uCheckComboBox5.BindingDataList(data4, "Value", "Text");
+            // 默认全选
+            uCheckComboBox5.CheckAll();
+
             var fingerList = new List<dynamic>
             {
                 new { Value = 1, Text = "大拇指" },
@@ -474,7 +483,7 @@ namespace fingerPressure
                                 fileWriterThread.IsBackground = true;
                                 fileWriterThread.Start();*/
 
-                //TestDraw();
+                TestDraw();
 
                 /*                // 打开监控日志文件
                                 monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
@@ -568,46 +577,46 @@ namespace fingerPressure
             }
         }
 
-        public void LoadParameters()
-        {
-            try
-            {
-                var lines = File.ReadAllLines(csvPath);
-
-                if (!File.Exists(csvPath))
+        /*        public void LoadParameters()
                 {
-                    MessageBox.Show("未找到校准文件");
-                    return;
-                }
+                    try
+                    {
+                        var lines = File.ReadAllLines(csvPath);
 
-                // 从第5行开始 (索引 4)
-                for (int i = 4; i < lines.Length; i++)
-                {
-                    var parts = lines[i].Split(',');
+                        if (!File.Exists(csvPath))
+                        {
+                            MessageBox.Show("未找到校准文件");
+                            return;
+                        }
 
-                    if (parts.Length < 11) continue; // 至少要有 A~K 列
+                        // 从第5行开始 (索引 4)
+                        for (int i = 4; i < lines.Length; i++)
+                        {
+                            var parts = lines[i].Split(',');
 
-                    // A列: 通道号 (1~40)，转为数组索引 (0~39)
-                    if (!int.TryParse(parts[0], out int channel) || channel < 0 || channel > 39)
-                        continue;
+                            if (parts.Length < 11) continue; // 至少要有 A~K 列
 
-                    // D ~ K 列分别对应 8 个参数
-                    OFFSET0[channel] = ParseDouble(parts[3]);
-                    CTC1[channel] = ParseDouble(parts[4]);
-                    CTC2[channel] = ParseDouble(parts[5]);
-                    S0[channel] = ParseDouble(parts[6]);
-                    STC1[channel] = ParseDouble(parts[7]);
-                    STC2[channel] = ParseDouble(parts[8]);
-                    KS[channel] = ParseDouble(parts[9]);
-                    KSS[channel] = ParseDouble(parts[10]);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("加载参数文件失败: " + ex.Message);
-            }
+                            // A列: 通道号 (1~40)，转为数组索引 (0~39)
+                            if (!int.TryParse(parts[0], out int channel) || channel < 0 || channel > 39)
+                                continue;
 
-        }
+                            // D ~ K 列分别对应 8 个参数
+                            OFFSET0[channel] = ParseDouble(parts[3]);
+                            CTC1[channel] = ParseDouble(parts[4]);
+                            CTC2[channel] = ParseDouble(parts[5]);
+                            S0[channel] = ParseDouble(parts[6]);
+                            STC1[channel] = ParseDouble(parts[7]);
+                            STC2[channel] = ParseDouble(parts[8]);
+                            KS[channel] = ParseDouble(parts[9]);
+                            KSS[channel] = ParseDouble(parts[10]);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("加载参数文件失败: " + ex.Message);
+                    }
+
+                }*/
 
         private double ParseDouble(string s)
         {
@@ -655,7 +664,7 @@ namespace fingerPressure
             else
             {
                 double[] values = new double[8];
-
+                //values = [ 0,0,0,0,0,500000, 500000, 0];
                 for (int i = 0; i < 8; i++)
                 {
                     // 每个通道相位差，保证 9 个点不同步
@@ -665,13 +674,59 @@ namespace fingerPressure
                     double ratio = (Math.Sin(counter * Math.PI / maxSteps + phaseShift) + 1) / 2.0;
 
                     // 映射到 0~10000
-                    values[i] = ratio * 500000;
+                    values[i] = ratio * 5000;
                 }
 
                 // 更新到你的热力图控件
                 panel_finger1_cloud.Values = values;
 
                 counter++;
+                /*                double[] values = new double[8];
+
+                                // 模拟不同阶段的按压模式
+                                int mode = (counter / 100) % 3; // 每 100 帧切换一种模式
+
+                                switch (mode)
+                                {
+                                    case 0: // 单点按压（循环每个通道）
+                                        {
+                                            int activeIndex = (counter / 20) % 8;
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                values[i] = (i == activeIndex) ? 500000 : 0;
+                                            }
+                                            break;
+                                        }
+
+                                    case 1: // 相邻双点按压（观察中间是否变深）
+                                        {
+                                            int activeIndex = (counter / 40) % 7; // 相邻点对
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                if (i == activeIndex || i == activeIndex + 1)
+                                                    values[i] = 500000;
+                                                else
+                                                    values[i] = 0;
+                                            }
+                                            break;
+                                        }
+
+                                    case 2: // 平滑的波动模式（整体起伏）
+                                        {
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                double phaseShift = (i / 8.0) * Math.PI * 2;
+                                                double ratio = (Math.Sin(counter * Math.PI / 60 + phaseShift) + 1) / 2.0;
+                                                values[i] = ratio * 500000;
+                                            }
+                                            break;
+                                        }
+                                }
+
+                                // 更新热力图
+                                panel_finger1_cloud.Values = values;
+
+                                counter++;*/
             }
 
 
@@ -721,7 +776,7 @@ namespace fingerPressure
                     serialSendThread.IsBackground = true;
                     serialSendThread.Start();
                     LoadFromSettingJson();
-                    LoadParameters();
+                    //LoadParameters();
                 }
 
                 // 生成文件路径
@@ -2344,8 +2399,7 @@ namespace fingerPressure
         }
 
         // 创建全局字典来存储每个 addr 对应的温度和压力数据
-        private Dictionary<int, SensorData> addrDataDict = new Dictionary<int, SensorData>();
-        private double[] realV = new double[8];
+        private ConcurrentDictionary<int, SensorData> addrDataDict = new ConcurrentDictionary<int, SensorData>();
 
         // 处理接收到的包并更新字典
         private void EnqueuePacket(byte[] packet)
@@ -2427,69 +2481,82 @@ namespace fingerPressure
 
                     lastValidPacket = packet;
 
-
-
                     // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
                     if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
                     {
-                        // 获取 List<string> 对象池
-                        var uiData = uiDataPool.Rent();
-                        uiData.Clear();
-                        uiData.Add("S" + addr.ToString());
-                        uiData.Add(type.ToString("X2"));
-                        if (type == 0xF5)
+/*                        Task.Run(() =>
                         {
-                            realV = ComputeForces(addrDataDict[addr].PressureData.ToArray());
-                            for (int i = 0; i < 8; i++)
+                            try
                             {
-                                //int ch = (addr - 1) * 8 + i;
-                                //double realV = GetRealTempValue(addrDataDict[addr].TemperatureData[i], addrDataDict[addr].PressureData[i], ch);
-                                //uiData.Add(realV.ToString());
-                                uiData.Add(realV[i].ToString());
-                            }
-                        }
-                        else if (type == 0xF4)
-                        {
-                            for (int i = 0; i < 8; i++)
-                            {
-                                uiData.Add(values[i].ToString());
-                            }
-                        }
+                                // 复制压力数据以避免线程安全问题
+                                if (addrDataDict[addr].PressureData.Count == 8)
+                                {*/
+                                    //double[] pressureDataBuffer = FitGaussian2D(addrDataDict[addr].PressureData.ToArray());
+                                    //double[] pressureDataBuffer = addrDataDict[addr].PressureData.ToArray();
+                                    // 获取 List<string> 对象池
+                                    var uiData = uiDataPool.Rent();
+                                    uiData.Clear();
+                                    uiData.Add("S" + addr.ToString());
+                                    uiData.Add(type.ToString("X2"));
+                                    if (type == 0xF5)
+                                    {
+                                        for (int i = 0; i < 8; i++)
+                                        {
+                                            uiData.Add(addrDataDict[addr].PressureData[i].ToString());
+                                        }
+                                    }
+                                    else if (type == 0xF4)
+                                    {
+                                        for (int i = 0; i < 8; i++)
+                                        {
+                                            uiData.Add(addrDataDict[addr].TemperatureData[i].ToString());
+                                        }
+                                    }
 
 
-                        while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                        uiQueue.Add(uiData);
+                                    while (uiQueue.Count > 100) uiQueue.TryTake(out _);
+                                    uiQueue.Add(uiData);
 
 
-                        // 当数据满足条件时，加入 fileRawQueue
-                        var fileData = uiDataPool.Rent();
-                        fileData.Clear();
-                        fileData.Add("S" + addr.ToString());
+                                    // 当数据满足条件时，加入 fileRawQueue
+                                    var fileData = uiDataPool.Rent();
+                                    fileData.Clear();
+                                    fileData.Add("S" + addr.ToString());
 
-                        // 将温度数据和压力数据一起添加到 uiData
-                        foreach (var value in addrDataDict[addr].TemperatureData)
-                        {
-                            fileData.Add(value.ToString());
-                        }
-                        foreach (var value in realV)
-                        {
-                            fileData.Add(value.ToString());
-                        }
-                        if (isSaving)
-                        {
-                            // 保存数据到 fileRawQueue
-                            var now = HighResDateTime.Now;
-                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
-                            {
-                                lastSaveTime = now;
-                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                                fileRawQueue.Add(fileData);
-                            }
-                        }
+                                    // 将温度数据和压力数据一起添加到 uiData
+                                    foreach (var value in addrDataDict[addr].TemperatureData)
+                                    {
+                                        fileData.Add(value.ToString());
+                                    }
+                                    foreach (var value in addrDataDict[addr].PressureData)
+                                    {
+                                        fileData.Add(value.ToString());
+                                    }
+                                    if (isSaving)
+                                    {
+                                        // 保存数据到 fileRawQueue
+                                        var now = HighResDateTime.Now;
+                                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                                        {
+                                            lastSaveTime = now;
+                                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                            fileRawQueue.Add(fileData);
+                                        }
+                                    }
 
-                        // 清除该 addr 的数据（温度和压力都清除）
-                        addrDataDict[addr] = new SensorData();
-                    }
+                                    // 清除该 addr 的数据（温度和压力都清除）
+                                    addrDataDict[addr].TemperatureData.Clear();
+                                    addrDataDict[addr].PressureData.Clear();
+/*                                }
+
+                }
+                catch (Exception ex)
+                {
+                    LogToConsole($"FitGaussian2D 处理失败: {ex.Message}");
+                }
+
+            });*/
+        }
 
                     long newCount = Interlocked.Increment(ref totalPacketCount);
                     if (packetCountLabel.InvokeRequired)
@@ -2714,15 +2781,15 @@ namespace fingerPressure
         //原始值 得到 微应变和电阻
         private double GetRealValue(double raw, int type)
         {
-            if (type == 0 || type == 3) return raw; 
+            if (type == 0 || type == 3) return raw;
             double r1 = 120;
             double r2 = 2200;
             double z = 512;
             double v = 2.18;
-/*            double dV = raw * 2.8 / (8192.0 * z) / v; 
-            double fenzi = (r1 + r2) * dV; 
-            double fenmu = 1 - dV - r1 / (r1 + r2); 
-            double dR = fenzi / fenmu; */
+            /*            double dV = raw * 2.8 / (8192.0 * z) / v; 
+                        double fenzi = (r1 + r2) * dV; 
+                        double fenmu = 1 - dV - r1 / (r1 + r2); 
+                        double dR = fenzi / fenmu; */
             double dV = raw * 2.8 / (8192.0 * z);
             double fenmu = 1 - (dV / v) - r1 / (r1 + r2);
             double dR = r2 / fenmu - r1 - r2;
@@ -2736,71 +2803,216 @@ namespace fingerPressure
             }
             return raw;
         }
-        private double GetRealTempValue(double tempRaw, double pressRaw, int ch)
+        // 二维高斯函数定义
+        private static Func<double[], double, double, double, double, double> Gaussian2D =
+            (xy, amplitude, x0, y0, sigma) =>
+            {
+                double x = xy[0];
+                double y = xy[1];
+                return amplitude * Math.Exp(-((x - x0) * (x - x0) + (y - y0) * (y - y0)) / (2 * sigma * sigma));
+            };
+
+        // 固定传感器位置（与原代码一致）
+        private static readonly double[,] sensorPositions = new double[,]
         {
-
-            double PDATAcal1 = (pressRaw - Coarse_OFF) * Coarse_GAIN;
-            double OFFSET = OFFSET0[ch] + CTC1[ch] * (tempRaw - T0) + CTC2[ch] * Math.Pow((tempRaw - T0), 2);
-            double S = S0[ch] + STC1[ch] * (tempRaw - T0) + STC2[ch] * Math.Pow((tempRaw - T0), 2);
-            double Pnl = (PDATAcal1 - OFFSET) * S;
-            double PDATAcal = Pnl + KS[ch] * Math.Pow(Pnl, 2) + KSS[ch] * Math.Pow(Pnl, 3) + P0;
-
-            return Math.Round(PDATAcal, 2);
-
-        }
-        // 二维高斯函数
-        private static double Gaussian2D(double x, double y, double amp, double x0, double y0, double sigma)
-        {
-            return amp * Math.Exp(-((x - x0) * (x - x0) + (y - y0) * (y - y0)) / (2 * sigma * sigma));
-        }
+        {9.527, 13.919}, {5.528, 13.915}, {10.528, 9.919},
+        {7.531, 9.921}, {4.523, 9.919}, {11.033, 5.920},
+        {7.533, 5.913}, {4.033, 5.920}
+        };
 
         /// <summary>
-        /// 输入8个通道值，返回拟合后的8个力值
+        /// 输入8个通道值，输出8个拟合值
         /// </summary>
-        public static double[] ComputeForces(double[] inputChannels)
+        /// <param name="readings">8个通道的读数值</param>
+        /// <returns>8个拟合后的值</returns>
+        public static double[] FitGaussian2D(double[] readings)
         {
-            if (inputChannels.Length != 8)
-                throw new ArgumentException("必须输入8个通道值");
+            if (readings.Length != 8)
+                throw new ArgumentException("输入必须为8个通道值");
 
-            // 初始猜测 (Vector<double>)
-            var initialGuess = Vector<double>.Build.Dense(new[] { inputChannels.Max(), 7.0, 7.0, 2.0 });
+            // 添加虚拟传感器
+            var virtualPositions = AddVirtualSensors(sensorPositions, spacing: 2.0, border: 4.0);
+            double[] zVirtual = new double[virtualPositions.GetLength(0)]; // 全0
 
-            // 定义目标函数
-            var objective = ObjectiveFunction.Value(
-                (Vector<double> parameters) =>
-                {
-                    double amp = parameters[0];
-                    double x0 = parameters[1];
-                    double y0 = parameters[2];
-                    double sigma = parameters[3];
-                    double error = 0.0;
-                    for (int i = 0; i < 8; i++)
-                    {
-                        double gx = sensorPositions[i, 0];
-                        double gy = sensorPositions[i, 1];
-                        double pred = Gaussian2D(gx, gy, amp, x0, y0, sigma);
-                        error += Math.Pow(pred - inputChannels[i], 2);
-                    }
-                    return error;
-                });
+            // 合并真实+虚拟点
+            double[,] allPositions = ConcatPositions(sensorPositions, virtualPositions);
+            double[] allReadings = readings.Concat(zVirtual).ToArray();
 
-            // 使用 Nelder-Mead 拟合
-            var optimizer = new NelderMeadSimplex(1e-8, 10000);
-            var result = optimizer.FindMinimum(objective, initialGuess);
-
-            double[] opt = result.MinimizingPoint.ToArray();
-
-            // 根据拟合结果计算每个传感器力值
-            double[] fittedForces = new double[8];
+            // 改善初始猜测：幅值用最大读数，x0/y0用加权平均位置
+            double maxAmp = readings.Max();
+            double sumWeights = readings.Sum();
+            double initX0 = 0, initY0 = 0;
             for (int i = 0; i < 8; i++)
             {
-                double x = sensorPositions[i, 0];
-                double y = sensorPositions[i, 1];
-                fittedForces[i] = Gaussian2D(x, y, opt[0], opt[1], opt[2], opt[3]);
+                initX0 += sensorPositions[i, 0] * readings[i] / sumWeights;
+                initY0 += sensorPositions[i, 1] * readings[i] / sumWeights;
+            }
+            var initialGuess = Vector<double>.Build.DenseOfArray(new[] { maxAmp, initX0, initY0, 2.0 });
+
+            // 定义目标函数（最小二乘误差）
+            var objectiveFunction = ObjectiveFunction.Value(x =>
+            {
+                double amp = x[0], x0 = x[1], y0 = x[2], sigma = x[3];
+                double error = 0.0;
+                for (int i = 0; i < allReadings.Length; i++)
+                {
+                    double gx = allPositions[i, 0];
+                    double gy = allPositions[i, 1];
+                    double pred = Gaussian2D(new[] { gx, gy }, amp, x0, y0, sigma);
+                    error += Math.Pow(pred - allReadings[i], 2);
+                }
+                return error;
+            });
+
+            // 使用Nelder-Mead优化，增加迭代上限和最小尺度
+            var minimizer = new NelderMeadSimplex(1e-8, 20000);
+            var result = minimizer.FindMinimum(objectiveFunction, initialGuess);
+            double[] popt = result.MinimizingPoint.ToArray();
+
+            // 输出拟合参数（调试用，可注释）
+            Console.WriteLine($"Fitted parameters: amp={popt[0]}, x0={popt[1]}, y0={popt[2]}, sigma={popt[3]}");
+
+            // 计算8个传感器的拟合值
+            double[] fittedValues = new double[8];
+            for (int i = 0; i < 8; i++)
+            {
+                fittedValues[i] = Gaussian2D(
+                    new[] { sensorPositions[i, 0], sensorPositions[i, 1] },
+                    popt[0], popt[1], popt[2], popt[3]);
             }
 
-            return fittedForces;
+            return fittedValues;
         }
+
+        // 添加虚拟传感器（修复重复和重叠）
+        private static double[,] AddVirtualSensors(double[,] realPos, double spacing = 2.0, double border = 4.0)
+        {
+            double xMin = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 0]).Min() - border;
+            double xMax = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 0]).Max() + border;
+            double yMin = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 1]).Min() - border;
+            double yMax = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 1]).Max() + border;
+
+            // 使用 HashSet 去除重复
+            var uniquePoints = new System.Collections.Generic.HashSet<(double, double)>();
+
+            // 底部和顶部
+            for (double x = xMin; x <= xMax + 1e-6; x += spacing) // 加 epsilon 避免浮点误差
+            {
+                uniquePoints.Add((Math.Round(x, 3), Math.Round(yMin, 3))); //  rounding 以防浮点
+                uniquePoints.Add((Math.Round(x, 3), Math.Round(yMax, 3)));
+            }
+
+            // 左侧和右侧（包括端点，但 HashSet 会去重）
+            for (double y = yMin; y <= yMax + 1e-6; y += spacing)
+            {
+                uniquePoints.Add((Math.Round(xMin, 3), Math.Round(y, 3)));
+                uniquePoints.Add((Math.Round(xMax, 3), Math.Round(y, 3)));
+            }
+
+            // 转换为列表
+            var list = uniquePoints.Select(p => new[] { p.Item1, p.Item2 }).ToList();
+
+            // 去除与真实传感器重叠的点（距离 <= 0.5）
+            for (int i = 0; i < realPos.GetLength(0); i++)
+            {
+                double rx = realPos[i, 0], ry = realPos[i, 1];
+                list = list.Where(vp =>
+                {
+                    double dist = Math.Sqrt(Math.Pow(vp[0] - rx, 2) + Math.Pow(vp[1] - ry, 2));
+                    return dist > 0.5;
+                }).ToList();
+            }
+
+            return To2D(list);
+        }
+
+        // 合并坐标矩阵（与原代码一致）
+        private static double[,] ConcatPositions(double[,] a, double[,] b)
+        {
+            int rowsA = a.GetLength(0);
+            int rowsB = b.GetLength(0);
+            var res = new double[rowsA + rowsB, 2];
+            for (int i = 0; i < rowsA; i++) { res[i, 0] = a[i, 0]; res[i, 1] = a[i, 1]; }
+            for (int i = 0; i < rowsB; i++) { res[i + rowsA, 0] = b[i, 0]; res[i + rowsA, 1] = b[i, 1]; }
+            return res;
+        }
+
+        // 列表转二维数组（与原代码一致）
+        private static double[,] To2D(System.Collections.Generic.List<double[]> list)
+        {
+            double[,] arr = new double[list.Count, 2];
+            for (int i = 0; i < list.Count; i++)
+            {
+                arr[i, 0] = list[i][0];
+                arr[i, 1] = list[i][1];
+            }
+            return arr;
+        }
+        /*        private double GetRealTempValue(double tempRaw, double pressRaw, int ch)
+                {
+
+                    double PDATAcal1 = (pressRaw - Coarse_OFF) * Coarse_GAIN;
+                    double OFFSET = OFFSET0[ch] + CTC1[ch] * (tempRaw - T0) + CTC2[ch] * Math.Pow((tempRaw - T0), 2);
+                    double S = S0[ch] + STC1[ch] * (tempRaw - T0) + STC2[ch] * Math.Pow((tempRaw - T0), 2);
+                    double Pnl = (PDATAcal1 - OFFSET) * S;
+                    double PDATAcal = Pnl + KS[ch] * Math.Pow(Pnl, 2) + KSS[ch] * Math.Pow(Pnl, 3) + P0;
+
+                    return Math.Round(PDATAcal, 2);
+
+                }*/
+        /*        // 二维高斯函数
+                private static double Gaussian2D(double x, double y, double amp, double x0, double y0, double sigma)
+                {
+                    return amp * Math.Exp(-((x - x0) * (x - x0) + (y - y0) * (y - y0)) / (2 * sigma * sigma));
+                }
+
+                /// <summary>
+                /// 输入8个通道值，返回拟合后的8个力值
+                /// </summary>
+                public static double[] ComputeForces(double[] inputChannels)
+                {
+                    if (inputChannels.Length != 8)
+                        throw new ArgumentException("必须输入8个通道值");
+
+                    // 初始猜测 (Vector<double>)
+                    var initialGuess = Vector<double>.Build.Dense(new[] { inputChannels.Max(), 7.0, 7.0, 2.0 });
+
+                    // 定义目标函数
+                    var objective = ObjectiveFunction.Value(
+                        (Vector<double> parameters) =>
+                        {
+                            double amp = parameters[0];
+                            double x0 = parameters[1];
+                            double y0 = parameters[2];
+                            double sigma = parameters[3];
+                            double error = 0.0;
+                            for (int i = 0; i < 8; i++)
+                            {
+                                double gx = sensorPositions[i, 0];
+                                double gy = sensorPositions[i, 1];
+                                double pred = Gaussian2D(gx, gy, amp, x0, y0, sigma);
+                                error += Math.Pow(pred - inputChannels[i], 2);
+                            }
+                            return error;
+                        });
+
+                    // 使用 Nelder-Mead 拟合
+                    var optimizer = new NelderMeadSimplex(1e-8, 10000);
+                    var result = optimizer.FindMinimum(objective, initialGuess);
+
+                    double[] opt = result.MinimizingPoint.ToArray();
+
+                    // 根据拟合结果计算每个传感器力值
+                    double[] fittedForces = new double[8];
+                    for (int i = 0; i < 8; i++)
+                    {
+                        double x = sensorPositions[i, 0];
+                        double y = sensorPositions[i, 1];
+                        fittedForces[i] = Gaussian2D(x, y, opt[0], opt[1], opt[2], opt[3]);
+                    }
+
+                    return fittedForces;
+                }*/
         private void StartInferenceThread()
         {
             Task.Run(() =>
@@ -2868,7 +3080,7 @@ namespace fingerPressure
 
                             for (int i = 0; i < 81; i++)
                             {
-                                float prob = model2ProbBuffer[baseProbIdx + i]; 
+                                float prob = model2ProbBuffer[baseProbIdx + i];
                                 if (prob > maxProb)
                                 {
                                     maxProb = prob;
@@ -2902,24 +3114,24 @@ namespace fingerPressure
             try
             {
 
-                    foreach (var packet in fileRawQueue.GetConsumingEnumerable())
+                foreach (var packet in fileRawQueue.GetConsumingEnumerable())
+                {
+                    string line = "";
+                    if (chuanGanQiType == "MEMS")
                     {
-                        string line = "";
-                        if (chuanGanQiType == "MEMS")
-                        {
-                            line = FormatPacketToOneCsvLineFast(packet);
-                        }
-                        else
-                        {
-                            line = FormatPacketToOneCsvLineFast27(packet);
-                        }
-
-                        if (line == null) continue;
-
-                        // fileQueue 有界 + 丢最旧，确保不堆积
-                        if (fileQueue.Count >= 20000) fileQueue.TryTake(out _);
-                        fileQueue.Add(line);
+                        line = FormatPacketToOneCsvLineFast(packet);
                     }
+                    else
+                    {
+                        line = FormatPacketToOneCsvLineFast27(packet);
+                    }
+
+                    if (line == null) continue;
+
+                    // fileQueue 有界 + 丢最旧，确保不堆积
+                    if (fileQueue.Count >= 20000) fileQueue.TryTake(out _);
+                    fileQueue.Add(line);
+                }
 
 
             }
@@ -3396,7 +3608,7 @@ namespace fingerPressure
                 var pane = zedGraphControl1.GraphPane;
                 pane.CurveList.Clear();
 
-                for (int ch = 0; ch < 40; ch++)
+                for (int ch = 0; ch < 8; ch++)
                 {
                     var list = new RollingPointPairList(MaxVisiblePackets + 100);
                     var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3411,7 +3623,7 @@ namespace fingerPressure
                 var pane19 = zedGraphControl19.GraphPane;
                 pane19.CurveList.Clear();
 
-                for (int ch = 0; ch < 40; ch++)
+                for (int ch = 0; ch < 8; ch++)
                 {
                     var list = new RollingPointPairList(MaxVisiblePackets + 100);
                     var curve = pane19.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3502,7 +3714,8 @@ namespace fingerPressure
             fileQueue.CompleteAdding();
             fileRawQueue.CompleteAdding();
             // 等待写线程结束
-            fileWriterThread.Join();
+            if (fileWriterThread != null)
+                fileWriterThread.Join();
 
 
 
@@ -3663,10 +3876,10 @@ namespace fingerPressure
             {
                 model2Path = value3.ToString();
             }
-            if (data.TryGetValue("textBox4", out object value4))
-            {
-                csvPath = value4.ToString();
-            }
+            /*            if (data.TryGetValue("textBox4", out object value4))
+                        {
+                            csvPath = value4.ToString();
+                        }*/
 
         }
 
@@ -3779,10 +3992,52 @@ namespace fingerPressure
 
         private void button4_Click(object sender, EventArgs e)
         {
+            /*            choosedFinger1 = comboBox3.SelectedIndex;
+
+                        // 设置刷新间隔
+                        if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
+                        {
+                            MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                        refreshTimer.Interval = refreshMs;
+
+                        LoadMeasureSetJson();
+
+                        if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
+                        {
+                            MaxVisiblePackets = maxVisible;
+                        }
+                        else
+                        {
+                            MaxVisiblePackets = -1; // 显示全部
+                            LogToConsole_NotLog("未设置或输入无效，显示全部数据");
+                        }
+
+                        // 清空图表数据并重建曲线
+                        channelData2.Clear();
+                        channelCurves2.Clear();
+                        var pane = zedGraphControl1.GraphPane;
+                        pane.CurveList.Clear();
+
+                        for (int ch = 0; ch < 40; ch++)
+                        {
+                            var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                            var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                            channelData2[ch] = list;
+                            channelCurves2[ch] = curve;
+                        }
+
+                        packetIndex = 0;
+
+                        // 重绘主图
+                        zedGraphControl1.AxisChange();
+                        zedGraphControl1.Invalidate();*/
             choosedFinger1 = comboBox3.SelectedIndex;
 
             // 设置刷新间隔
-            if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
+            if (string.IsNullOrWhiteSpace(textBox2.Text) ||
+                !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
             {
                 MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -3792,9 +4047,7 @@ namespace fingerPressure
             LoadMeasureSetJson();
 
             if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
-            {
                 MaxVisiblePackets = maxVisible;
-            }
             else
             {
                 MaxVisiblePackets = -1; // 显示全部
@@ -3804,15 +4057,29 @@ namespace fingerPressure
             // 清空图表数据并重建曲线
             channelData2.Clear();
             channelCurves2.Clear();
-            var pane = zedGraphControl1.GraphPane;
-            pane.CurveList.Clear();
+            var pane1 = zedGraphControl1.GraphPane;
+            pane1.CurveList.Clear();
 
-            for (int ch = 0; ch < 40; ch++)
+            for (int ch = 0; ch < 8; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                var curve = pane1.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
                 channelData2[ch] = list;
                 channelCurves2[ch] = curve;
+            }
+
+            // 获取选中的通道文本，例如 "CH1", "CH2" ...
+            List<string> selected = uCheckComboBox4.GetSelectedTexts();
+
+            foreach (var kv in channelCurves2)
+            {
+                int channel = kv.Key;
+                LineItem curve = kv.Value;
+
+                string curveName = $"CH{channel + 1}";
+
+                // 如果当前曲线在选中列表里显示，否则隐藏
+                curve.IsVisible = selected.Contains(curveName);
             }
 
             packetIndex = 0;
@@ -4157,12 +4424,26 @@ namespace fingerPressure
             var pane = zedGraphControl19.GraphPane;
             pane.CurveList.Clear();
 
-            for (int ch = 0; ch < 40; ch++)
+            for (int ch = 0; ch < 8; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
                 var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
                 channelData_temp[ch] = list;
                 channelCurves_temp[ch] = curve;
+            }
+
+            // 获取选中的通道文本，例如 "CH1", "CH2" ...
+            List<string> selected = uCheckComboBox5.GetSelectedTexts();
+
+            foreach (var kv in channelCurves_temp)
+            {
+                int channel = kv.Key;
+                LineItem curve = kv.Value;
+
+                string curveName = $"CH{channel + 1}";
+
+                // 如果当前曲线在选中列表里显示，否则隐藏
+                curve.IsVisible = selected.Contains(curveName);
             }
 
             packetIndex = 0;

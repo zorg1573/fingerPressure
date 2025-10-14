@@ -108,6 +108,7 @@ namespace fingerPressure
             label13 = new Label();
             panel3 = new Panel();
             splitContainer5 = new SplitContainer();
+            uCheckComboBox4 = new UCheckComboBox(components);
             button4 = new Button();
             comboBox3 = new ComboBox();
             label10 = new Label();
@@ -210,6 +211,7 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            uCheckComboBox5 = new UCheckComboBox(components);
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -1308,6 +1310,7 @@ namespace fingerPressure
             // 
             // splitContainer5.Panel1
             // 
+            splitContainer5.Panel1.Controls.Add(uCheckComboBox4);
             splitContainer5.Panel1.Controls.Add(button4);
             splitContainer5.Panel1.Controls.Add(comboBox3);
             splitContainer5.Panel1.Controls.Add(label10);
@@ -1319,6 +1322,17 @@ namespace fingerPressure
             splitContainer5.SplitterDistance = 36;
             splitContainer5.TabIndex = 0;
             // 
+            // uCheckComboBox4
+            // 
+            uCheckComboBox4.DropDownHeight = 1;
+            uCheckComboBox4.DropDownStyle = ComboBoxStyle.DropDownList;
+            uCheckComboBox4.FormattingEnabled = true;
+            uCheckComboBox4.IntegralHeight = false;
+            uCheckComboBox4.Location = new Point(132, 7);
+            uCheckComboBox4.Name = "uCheckComboBox4";
+            uCheckComboBox4.Size = new Size(60, 25);
+            uCheckComboBox4.TabIndex = 43;
+            // 
             // button4
             // 
             button4.BackColor = Color.White;
@@ -1327,7 +1341,7 @@ namespace fingerPressure
             button4.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 150, 255);
             button4.Font = new Font("微软雅黑", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             button4.ForeColor = Color.Black;
-            button4.Location = new Point(132, 4);
+            button4.Location = new Point(198, 4);
             button4.Name = "button4";
             button4.Size = new Size(69, 32);
             button4.TabIndex = 42;
@@ -2654,6 +2668,7 @@ namespace fingerPressure
             // 
             // splitContainer9.Panel1
             // 
+            splitContainer9.Panel1.Controls.Add(uCheckComboBox5);
             splitContainer9.Panel1.Controls.Add(button11);
             splitContainer9.Panel1.Controls.Add(comboBox6);
             splitContainer9.Panel1.Controls.Add(label37);
@@ -2673,7 +2688,7 @@ namespace fingerPressure
             button11.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 150, 255);
             button11.Font = new Font("微软雅黑", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             button11.ForeColor = Color.Black;
-            button11.Location = new Point(132, 4);
+            button11.Location = new Point(198, 4);
             button11.Name = "button11";
             button11.Size = new Size(69, 32);
             button11.TabIndex = 42;
@@ -2853,6 +2868,17 @@ namespace fingerPressure
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
+            // 
+            // uCheckComboBox5
+            // 
+            uCheckComboBox5.DropDownHeight = 1;
+            uCheckComboBox5.DropDownStyle = ComboBoxStyle.DropDownList;
+            uCheckComboBox5.FormattingEnabled = true;
+            uCheckComboBox5.IntegralHeight = false;
+            uCheckComboBox5.Location = new Point(132, 7);
+            uCheckComboBox5.Name = "uCheckComboBox5";
+            uCheckComboBox5.Size = new Size(60, 25);
+            uCheckComboBox5.TabIndex = 43;
             // 
             // Main
             // 
@@ -3154,5 +3180,7 @@ namespace fingerPressure
         private Label label17;
         private UCheckComboBox uCheckComboBox3;
         private CheckBox checkBox5;
+        private UCheckComboBox uCheckComboBox4;
+        private UCheckComboBox uCheckComboBox5;
     }
 }
