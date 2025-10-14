@@ -663,70 +663,71 @@ namespace fingerPressure
             }
             else
             {
-                double[] values = new double[8];
-                //values = [ 0,0,0,0,0,500000, 500000, 0];
-                for (int i = 0; i < 8; i++)
-                {
-                    // 每个通道相位差，保证 9 个点不同步
-                    double phaseShift = (i / 8.0) * Math.PI * 2;
-
-                    // ratio 在 0~1~0 循环，加入相位偏移
-                    double ratio = (Math.Sin(counter * Math.PI / maxSteps + phaseShift) + 1) / 2.0;
-
-                    // 映射到 0~10000
-                    values[i] = ratio * 5000;
-                }
-
-                // 更新到你的热力图控件
-                panel_finger1_cloud.Values = values;
-
-                counter++;
                 /*                double[] values = new double[8];
-
-                                // 模拟不同阶段的按压模式
-                                int mode = (counter / 100) % 3; // 每 100 帧切换一种模式
-
-                                switch (mode)
+                                //values = [ 0,0,0,0,0,500000, 500000, 0];
+                                for (int i = 0; i < 8; i++)
                                 {
-                                    case 0: // 单点按压（循环每个通道）
-                                        {
-                                            int activeIndex = (counter / 20) % 8;
-                                            for (int i = 0; i < 8; i++)
-                                            {
-                                                values[i] = (i == activeIndex) ? 500000 : 0;
-                                            }
-                                            break;
-                                        }
+                                    // 每个通道相位差，保证 9 个点不同步
+                                    double phaseShift = (i / 8.0) * Math.PI * 2;
 
-                                    case 1: // 相邻双点按压（观察中间是否变深）
-                                        {
-                                            int activeIndex = (counter / 40) % 7; // 相邻点对
-                                            for (int i = 0; i < 8; i++)
-                                            {
-                                                if (i == activeIndex || i == activeIndex + 1)
-                                                    values[i] = 500000;
-                                                else
-                                                    values[i] = 0;
-                                            }
-                                            break;
-                                        }
+                                    // ratio 在 0~1~0 循环，加入相位偏移
+                                    double ratio = (Math.Sin(counter * Math.PI / maxSteps + phaseShift) + 1) / 2.0;
 
-                                    case 2: // 平滑的波动模式（整体起伏）
-                                        {
-                                            for (int i = 0; i < 8; i++)
-                                            {
-                                                double phaseShift = (i / 8.0) * Math.PI * 2;
-                                                double ratio = (Math.Sin(counter * Math.PI / 60 + phaseShift) + 1) / 2.0;
-                                                values[i] = ratio * 500000;
-                                            }
-                                            break;
-                                        }
+                                    // 映射到 0~10000
+                                    values[i] = ratio * 400000;
                                 }
 
-                                // 更新热力图
+                                // 更新到你的热力图控件
                                 panel_finger1_cloud.Values = values;
 
                                 counter++;*/
+                double[] values = new double[8];
+
+                // 模拟不同阶段的按压模式
+                int mode = (counter / 100) % 3; // 每 100 帧切换一种模式
+                //int mode = 2;
+
+                switch (mode)
+                {
+                    case 0: // 单点按压（循环每个通道）
+                        {
+                            int activeIndex = (counter / 20) % 8;
+                            for (int i = 0; i < 8; i++)
+                            {
+                                values[i] = (i == activeIndex) ? 500000 : 0;
+                            }
+                            break;
+                        }
+
+                    case 1: // 相邻双点按压（观察中间是否变深）
+                        {
+                            int activeIndex = (counter / 40) % 7; // 相邻点对
+                            for (int i = 0; i < 8; i++)
+                            {
+                                if (i == activeIndex || i == activeIndex + 1)
+                                    values[i] = 500000;
+                                else
+                                    values[i] = 0;
+                            }
+                            break;
+                        }
+
+                    case 2: // 平滑的波动模式（整体起伏）
+                        {
+                            for (int i = 0; i < 8; i++)
+                            {
+                                double phaseShift = (i / 8.0) * Math.PI * 2;
+                                double ratio = (Math.Sin(counter * Math.PI / 60 + phaseShift) + 1) / 2.0;
+                                values[i] = ratio * 400000;
+                            }
+                            break;
+                        }
+                }
+
+                // 更新热力图
+                panel_finger1_cloud.Values = values;
+
+                counter++;
             }
 
 
