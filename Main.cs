@@ -2804,7 +2804,7 @@ namespace fingerPressure
             }
             return raw;
         }
-/*        // 二维高斯函数定义
+        // 二维高斯函数定义
         private static Func<double[], double, double, double, double, double> Gaussian2D =
             (xy, amplitude, x0, y0, sigma) =>
             {
@@ -2948,7 +2948,7 @@ namespace fingerPressure
                 arr[i, 1] = list[i][1];
             }
             return arr;
-        }*/
+        }
         /*        private double GetRealTempValue(double tempRaw, double pressRaw, int ch)
                 {
 
@@ -4503,51 +4503,42 @@ namespace fingerPressure
             if (zReal == null || zReal.Length != 8)
                 throw new ArgumentException("必须输入8个通道的读数。");
 
-            // === 1️⃣ 固定8个真实传感器坐标 ===
-            double[,] realPositions = new double[,]
-            {
-                {9.527, 13.919}, {5.528, 13.915}, {10.528, 9.919},
-                {7.531, 9.921}, {4.523, 9.919}, {11.033, 5.920},
-                {7.533, 5.913}, {4.033, 5.920}
-            };
+            // 添加虚拟传感器
+            var virtualPositions = AddVirtualSensors(sensorPositions, spacing: 2.0, border: 4.0);
+            double[] zVirtual = new double[virtualPositions.GetLength(0)]; // 全0
 
-            // === 2️⃣ 二维高斯函数 ===
-            Func<double[], double, double, double, double, double> Gaussian2D =
-                (xy, amp, x0, y0, sigma) =>
-                {
-                    double x = xy[0];
-                    double y = xy[1];
-                    return amp * Math.Exp(-((x - x0) * (x - x0) + (y - y0) * (y - y0)) / (2 * sigma * sigma));
-                };
-
-            // === 3️⃣ 添加虚拟传感器（保持原逻辑） ===
-            double[,] virtualPositions = AddVirtualSensors(realPositions, 2.0, 4.0);
-            double[] zVirtual = new double[virtualPositions.GetLength(0)];
-
-            // 合并真实与虚拟数据
-            double[,] allPositions = ConcatPositions(realPositions, virtualPositions);
+            // 合并真实+虚拟点
+            double[,] allPositions = ConcatPositions(sensorPositions, virtualPositions);
             double[] allReadings = zReal.Concat(zVirtual).ToArray();
 
-            // === 4️⃣ 定义目标函数 ===
+            // 改善初始猜测：幅值用最大读数，x0/y0用加权平均位置
+            double maxAmp = zReal.Max();
+            double sumWeights = zReal.Sum();
+            double initX0 = 0, initY0 = 0;
+            for (int i = 0; i < 8; i++)
+            {
+                initX0 += sensorPositions[i, 0] * zReal[i] / sumWeights;
+                initY0 += sensorPositions[i, 1] * zReal[i] / sumWeights;
+            }
+            var initialGuess = Vector<double>.Build.DenseOfArray(new[] { maxAmp, initX0, initY0, 2.0 });
+
+            // 定义目标函数（最小二乘误差）
             var objectiveFunction = ObjectiveFunction.Value(x =>
             {
                 double amp = x[0], x0 = x[1], y0 = x[2], sigma = x[3];
-                double err = 0.0;
+                double error = 0.0;
                 for (int i = 0; i < allReadings.Length; i++)
                 {
                     double gx = allPositions[i, 0];
                     double gy = allPositions[i, 1];
                     double pred = Gaussian2D(new[] { gx, gy }, amp, x0, y0, sigma);
-                    err += Math.Pow(pred - allReadings[i], 2);
+                    error += Math.Pow(pred - allReadings[i], 2);
                 }
-                return err;
+                return error;
             });
 
-            // === 5️⃣ 初始猜测（与原版完全一致） ===
-            var initialGuess = Vector<double>.Build.DenseOfArray(new[] { 1.0, 5.0, 5.0, 1.5 });
-
-            // === 6️⃣ 优化求解 ===
-            var minimizer = new NelderMeadSimplex(1e-8, 10000);
+            // 使用Nelder-Mead优化，增加迭代上限和最小尺度
+            var minimizer = new NelderMeadSimplex(1e-8, 20000);
             var result = minimizer.FindMinimum(objectiveFunction, initialGuess);
             double[] popt = result.MinimizingPoint.ToArray();
 
@@ -4558,48 +4549,8 @@ namespace fingerPressure
         // ---------------------------------------------
         // ↓ 以下辅助函数保持原始逻辑不变
         // ---------------------------------------------
-        private static double[,] AddVirtualSensors(double[,] realPos, double spacing, double border)
-        {
-            double xMin = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 0]).Min() - border;
-            double xMax = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 0]).Max() + border;
-            double yMin = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 1]).Min() - border;
-            double yMax = Enumerable.Range(0, realPos.GetLength(0)).Select(i => realPos[i, 1]).Max() + border;
 
-            var list = new System.Collections.Generic.List<double[]>();
-            for (double x = xMin; x <= xMax; x += spacing)
-            {
-                list.Add(new[] { x, yMin });
-                list.Add(new[] { x, yMax });
-            }
-            for (double y = yMin; y <= yMax; y += spacing)
-            {
-                list.Add(new[] { xMin, y });
-                list.Add(new[] { xMax, y });
-            }
-            return To2D(list);
-        }
-
-        private static double[,] ConcatPositions(double[,] a, double[,] b)
-        {
-            int rowsA = a.GetLength(0), rowsB = b.GetLength(0);
-            var res = new double[rowsA + rowsB, 2];
-            for (int i = 0; i < rowsA; i++) { res[i, 0] = a[i, 0]; res[i, 1] = a[i, 1]; }
-            for (int i = 0; i < rowsB; i++) { res[i + rowsA, 0] = b[i, 0]; res[i + rowsA, 1] = b[i, 1]; }
-            return res;
-        }
-
-        private static double[,] To2D(System.Collections.Generic.List<double[]> list)
-        {
-            double[,] arr = new double[list.Count, 2];
-            for (int i = 0; i < list.Count; i++)
-            {
-                arr[i, 0] = list[i][0];
-                arr[i, 1] = list[i][1];
-            }
-            return arr;
-        }
-
-/*        private void button7_Click(object sender, EventArgs e)
+        private void button7_Click(object sender, EventArgs e)
         {
             double[] z = { 3510, 5835, 7109, 3106, 6301, 6917, 5146, 7557 };
             var result = Fit(z);
@@ -4629,12 +4580,7 @@ namespace fingerPressure
             panelCloud.Amplitude = result.Amp;
             panelCloud.Sigma = result.Sigma;
             panelCloud.Invalidate();
-        }*/
-
-
-
-
-
+        }
     }
 
 }

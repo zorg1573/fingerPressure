@@ -279,7 +279,7 @@ namespace fingerPressure
 }
 */
 
-/*using System;
+using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -322,8 +322,8 @@ namespace fingerPressure
                 if (value != null && value.Length == values.Length)
                 {
                     Array.Copy(value, values, values.Length);
-                } 
-            } 
+                }
+            }
         }
         public Rectangle[] DotRectss
         {
@@ -487,8 +487,8 @@ namespace fingerPressure
         }
     }
 }
-*/
-using System;
+
+/*using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -772,4 +772,4 @@ namespace fingerPressure
             }
         }
     }
-}
+}*/

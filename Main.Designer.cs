@@ -445,7 +445,7 @@ namespace fingerPressure
             button7.TabIndex = 71;
             button7.Text = "button7";
             button7.UseVisualStyleBackColor = true;
-            button7.Visible = false;
+            button7.Click += button7_Click;
             // 
             // checkBox5
             // 
@@ -1018,7 +1018,6 @@ namespace fingerPressure
             // 
             // panel_finger2_cloud
             // 
-
             panel_finger2_cloud.Controls.Add(label_finger2_max);
             panel_finger2_cloud.Controls.Add(label_finger2_min);
             panel_finger2_cloud.Dock = DockStyle.Fill;
@@ -2419,7 +2418,6 @@ namespace fingerPressure
             // 
             // panel_finger3_cloud_temp
             // 
-
             panel_finger3_cloud_temp.Controls.Add(label_finger3_min_temp);
             panel_finger3_cloud_temp.Controls.Add(label_finger3_max_temp);
             panel_finger3_cloud_temp.Dock = DockStyle.Fill;
