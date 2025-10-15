@@ -694,7 +694,7 @@ namespace fingerPressure
                             int activeIndex = (counter / 20) % 8;
                             for (int i = 0; i < 8; i++)
                             {
-                                values[i] = (i == activeIndex) ? 500000 : 0;
+                                values[i] = (i == activeIndex) ? 400000 : 0;
                             }
                             break;
                         }
@@ -705,7 +705,7 @@ namespace fingerPressure
                             for (int i = 0; i < 8; i++)
                             {
                                 if (i == activeIndex || i == activeIndex + 1)
-                                    values[i] = 500000;
+                                    values[i] = 400000;
                                 else
                                     values[i] = 0;
                             }
@@ -3581,6 +3581,7 @@ namespace fingerPressure
                 MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+            flashTime = refreshMs;
             refreshTimer.Interval = refreshMs;
 
             LoadMeasureSetJson();

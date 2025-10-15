@@ -18,6 +18,8 @@ namespace fingerPressure
         private bool guiyihua = false;
         private double[] gaussianParams;
         private bool paramsValid = false;
+        private bool valuesChanged = true; // 新增：标记值是否变化
+        Bitmap heatmap;
 
         public DoubleBufferedPanelCloud()
         {
@@ -27,7 +29,11 @@ namespace fingerPressure
                           ControlStyles.OptimizedDoubleBuffer, true);
             this.UpdateStyles();
 
-            this.Resize += (_, __) => GenerateBackgroundCache();
+            this.Resize += (_, __) =>
+            {
+                valuesChanged = true; // 大小变化时强制重计算
+                GenerateBackgroundCache();
+            };
             this.FontChanged += (_, __) => CacheFontHeight();
             CacheFontHeight();
         }
@@ -41,6 +47,7 @@ namespace fingerPressure
                 {
                     Array.Copy(value, values, values.Length);
                     paramsValid = false;
+                    valuesChanged = true; // 标记变化
                     Invalidate();
                 }
             }
@@ -160,7 +167,8 @@ namespace fingerPressure
                 b = 0;
             }
 
-            int a = (int)(255 * Math.Pow(ratio, 0.5)); // 提升可见度
+            //int a = (int)(255 * Math.Pow(ratio, 0.5)); // 提升可见度
+            int a = (int)(255 * ratio);
             return Color.FromArgb(a, r, g, b);
         }
 
@@ -172,57 +180,61 @@ namespace fingerPressure
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            GenerateBackgroundCache();
-
-            if (backgroundCache != null)
-                g.DrawImageUnscaled(backgroundCache, Point.Empty);
-            if (dotRects == null || values.Length == 0) return;
-
-            double maxAbs = guiyihua ? 500 : 500000;
-            using (Bitmap heatmap = new Bitmap(this.Width, this.Height, PixelFormat.Format32bppArgb))
+            if (valuesChanged || backgroundCache == null || heatmap == null)
             {
-                var bmpData = heatmap.LockBits(new Rectangle(0, 0, heatmap.Width, heatmap.Height),
-                                               ImageLockMode.WriteOnly,
-                                               PixelFormat.Format32bppArgb);
-                unsafe
-                {
-                    byte* ptr = (byte*)bmpData.Scan0;
-                    int stride = bmpData.Stride;
+                GenerateBackgroundCache();
 
-                    for (int y = 0; y < this.Height; y++)
+                if (backgroundCache != null)
+                    g.DrawImageUnscaled(backgroundCache, Point.Empty);
+                if (dotRects == null || values.Length == 0) return;
+
+                double maxAbs = guiyihua ? 500 : 500000;
+                using (heatmap = new Bitmap(this.Width, this.Height, PixelFormat.Format32bppArgb))
+                {
+                    var bmpData = heatmap.LockBits(new Rectangle(0, 0, heatmap.Width, heatmap.Height),
+                                                   ImageLockMode.WriteOnly,
+                                                   PixelFormat.Format32bppArgb);
+                    unsafe
                     {
-                        byte* row = ptr + (y * stride);
-                        for (int x = 0; x < this.Width; x++)
+                        byte* ptr = (byte*)bmpData.Scan0;
+                        int stride = bmpData.Stride;
+
+                        for (int y = 0; y < this.Height; y++)
                         {
-                            double v = CombinedGaussian(x, y);
-                            if (v > maxAbs) v = maxAbs;
-                            Color c = GetColorFromValue(v);
-                            row[x * 4 + 0] = c.B;
-                            row[x * 4 + 1] = c.G;
-                            row[x * 4 + 2] = c.R;
-                            row[x * 4 + 3] = c.A;
+                            byte* row = ptr + (y * stride);
+                            for (int x = 0; x < this.Width; x++)
+                            {
+                                double v = CombinedGaussian(x, y);
+                                if (v > maxAbs) v = maxAbs;
+                                Color c = GetColorFromValue(v);
+                                row[x * 4 + 0] = c.B;
+                                row[x * 4 + 1] = c.G;
+                                row[x * 4 + 2] = c.R;
+                                row[x * 4 + 3] = c.A;
+                            }
                         }
                     }
+                    heatmap.UnlockBits(bmpData);
+                    g.DrawImage(heatmap, 0, 0);
+                    valuesChanged = false; // 重置标记
                 }
-                heatmap.UnlockBits(bmpData);
-                g.DrawImage(heatmap, 0, 0);
             }
             DrawForceArrow8(g);
 
-            /*            // 绘制传感器点
-                        for (int i = 0; i < values.Length && i < dotRects.Length; i++)
-                        {
-                            var rect = dotRects[i];
-                            double value = values[i];
-                            using (Brush brush = new SolidBrush(GetColorFromValue(value)))
-                                g.FillEllipse(brush, rect);
+/*            // 绘制传感器点
+            for (int i = 0; i < values.Length && i < dotRects.Length; i++)
+            {
+                var rect = dotRects[i];
+                double value = values[i];
+                using (Brush brush = new SolidBrush(GetColorFromValue(value)))
+                    g.FillEllipse(brush, rect);
 
-                            string text = value.ToString("F0");
-                            SizeF ts = g.MeasureString(text, this.Font);
-                            g.DrawString(text, this.Font, Brushes.Black,
-                                rect.X + (rect.Width - ts.Width) / 2,
-                                rect.Y + (rect.Height - ts.Height) / 2);
-                        }*/
+                string text = value.ToString("F0");
+                SizeF ts = g.MeasureString(text, this.Font);
+                g.DrawString(text, this.Font, Brushes.Black,
+                    rect.X + (rect.Width - ts.Width) / 2,
+                    rect.Y + (rect.Height - ts.Height) / 2);
+            }*/
         }
         private void DrawForceArrow8(Graphics g)
         {

@@ -195,6 +195,7 @@ namespace fingerPressure
             label36 = new Label();
             panel5 = new Panel();
             splitContainer9 = new SplitContainer();
+            uCheckComboBox5 = new UCheckComboBox(components);
             button11 = new Button();
             comboBox6 = new ComboBox();
             label37 = new Label();
@@ -211,7 +212,6 @@ namespace fingerPressure
             pictureBox3 = new PictureBox();
             pictureBox4 = new PictureBox();
             flowLayoutPanel1 = new FlowLayoutPanel();
-            uCheckComboBox5 = new UCheckComboBox(components);
             toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -969,9 +969,8 @@ namespace fingerPressure
             label_finger1_max.ForeColor = Color.Black;
             label_finger1_max.Location = new Point(38, 94);
             label_finger1_max.Name = "label_finger1_max";
-            label_finger1_max.Size = new Size(40, 17);
+            label_finger1_max.Size = new Size(0, 17);
             label_finger1_max.TabIndex = 1;
-            label_finger1_max.Text = "MAX:";
             // 
             // label_finger1_min
             // 
@@ -981,9 +980,8 @@ namespace fingerPressure
             label_finger1_min.ForeColor = Color.Black;
             label_finger1_min.Location = new Point(38, 111);
             label_finger1_min.Name = "label_finger1_min";
-            label_finger1_min.Size = new Size(37, 17);
+            label_finger1_min.Size = new Size(0, 17);
             label_finger1_min.TabIndex = 0;
-            label_finger1_min.Text = "MIN:";
             // 
             // panel_finger1_point
             // 
@@ -1036,9 +1034,8 @@ namespace fingerPressure
             label_finger2_max.ForeColor = Color.Black;
             label_finger2_max.Location = new Point(38, 94);
             label_finger2_max.Name = "label_finger2_max";
-            label_finger2_max.Size = new Size(40, 17);
+            label_finger2_max.Size = new Size(0, 17);
             label_finger2_max.TabIndex = 3;
-            label_finger2_max.Text = "MAX:";
             // 
             // label_finger2_min
             // 
@@ -1048,9 +1045,8 @@ namespace fingerPressure
             label_finger2_min.ForeColor = Color.Black;
             label_finger2_min.Location = new Point(38, 111);
             label_finger2_min.Name = "label_finger2_min";
-            label_finger2_min.Size = new Size(37, 17);
+            label_finger2_min.Size = new Size(0, 17);
             label_finger2_min.TabIndex = 2;
-            label_finger2_min.Text = "MIN:";
             // 
             // panel_finger3_cloud
             // 
@@ -1082,9 +1078,8 @@ namespace fingerPressure
             label_finger3_max.ForeColor = Color.Black;
             label_finger3_max.Location = new Point(32, 94);
             label_finger3_max.Name = "label_finger3_max";
-            label_finger3_max.Size = new Size(40, 17);
+            label_finger3_max.Size = new Size(0, 17);
             label_finger3_max.TabIndex = 3;
-            label_finger3_max.Text = "MAX:";
             // 
             // label_finger3_min
             // 
@@ -1094,9 +1089,8 @@ namespace fingerPressure
             label_finger3_min.ForeColor = Color.Black;
             label_finger3_min.Location = new Point(32, 111);
             label_finger3_min.Name = "label_finger3_min";
-            label_finger3_min.Size = new Size(37, 17);
+            label_finger3_min.Size = new Size(0, 17);
             label_finger3_min.TabIndex = 2;
-            label_finger3_min.Text = "MIN:";
             // 
             // panel_finger3_point
             // 
@@ -1149,9 +1143,8 @@ namespace fingerPressure
             label_finger4_max.ForeColor = Color.Black;
             label_finger4_max.Location = new Point(37, 94);
             label_finger4_max.Name = "label_finger4_max";
-            label_finger4_max.Size = new Size(40, 17);
+            label_finger4_max.Size = new Size(0, 17);
             label_finger4_max.TabIndex = 5;
-            label_finger4_max.Text = "MAX:";
             // 
             // label_finger4_min
             // 
@@ -1161,9 +1154,8 @@ namespace fingerPressure
             label_finger4_min.ForeColor = Color.Black;
             label_finger4_min.Location = new Point(37, 111);
             label_finger4_min.Name = "label_finger4_min";
-            label_finger4_min.Size = new Size(37, 17);
+            label_finger4_min.Size = new Size(0, 17);
             label_finger4_min.TabIndex = 4;
-            label_finger4_min.Text = "MIN:";
             // 
             // panel_finger4_point
             // 
@@ -1216,9 +1208,8 @@ namespace fingerPressure
             label_finger5_max.ForeColor = Color.Black;
             label_finger5_max.Location = new Point(49, 94);
             label_finger5_max.Name = "label_finger5_max";
-            label_finger5_max.Size = new Size(40, 17);
+            label_finger5_max.Size = new Size(0, 17);
             label_finger5_max.TabIndex = 7;
-            label_finger5_max.Text = "MAX:";
             // 
             // label_finger5_min
             // 
@@ -1228,9 +1219,8 @@ namespace fingerPressure
             label_finger5_min.ForeColor = Color.Black;
             label_finger5_min.Location = new Point(49, 111);
             label_finger5_min.Name = "label_finger5_min";
-            label_finger5_min.Size = new Size(37, 17);
+            label_finger5_min.Size = new Size(0, 17);
             label_finger5_min.TabIndex = 6;
-            label_finger5_min.Text = "MIN:";
             // 
             // panel_finger5_point
             // 
@@ -2680,6 +2670,17 @@ namespace fingerPressure
             splitContainer9.SplitterDistance = 36;
             splitContainer9.TabIndex = 0;
             // 
+            // uCheckComboBox5
+            // 
+            uCheckComboBox5.DropDownHeight = 1;
+            uCheckComboBox5.DropDownStyle = ComboBoxStyle.DropDownList;
+            uCheckComboBox5.FormattingEnabled = true;
+            uCheckComboBox5.IntegralHeight = false;
+            uCheckComboBox5.Location = new Point(132, 7);
+            uCheckComboBox5.Name = "uCheckComboBox5";
+            uCheckComboBox5.Size = new Size(60, 25);
+            uCheckComboBox5.TabIndex = 43;
+            // 
             // button11
             // 
             button11.BackColor = Color.White;
@@ -2868,17 +2869,6 @@ namespace fingerPressure
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(106, 33);
             flowLayoutPanel1.TabIndex = 42;
-            // 
-            // uCheckComboBox5
-            // 
-            uCheckComboBox5.DropDownHeight = 1;
-            uCheckComboBox5.DropDownStyle = ComboBoxStyle.DropDownList;
-            uCheckComboBox5.FormattingEnabled = true;
-            uCheckComboBox5.IntegralHeight = false;
-            uCheckComboBox5.Location = new Point(132, 7);
-            uCheckComboBox5.Name = "uCheckComboBox5";
-            uCheckComboBox5.Size = new Size(60, 25);
-            uCheckComboBox5.TabIndex = 43;
             // 
             // Main
             // 
