@@ -42,6 +42,7 @@ namespace fingerPressure
             splitContainer1 = new SplitContainer();
             splitContainer2 = new SplitContainer();
             panel2 = new Panel();
+            button7 = new Button();
             checkBox5 = new CheckBox();
             comboBox8 = new ComboBox();
             label17 = new Label();
@@ -401,6 +402,7 @@ namespace fingerPressure
             // panel2
             // 
             panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel2.Controls.Add(button7);
             panel2.Controls.Add(checkBox5);
             panel2.Controls.Add(comboBox8);
             panel2.Controls.Add(label17);
@@ -434,6 +436,16 @@ namespace fingerPressure
             panel2.Name = "panel2";
             panel2.Size = new Size(1533, 129);
             panel2.TabIndex = 31;
+            // 
+            // button7
+            // 
+            button7.Location = new Point(696, 91);
+            button7.Name = "button7";
+            button7.Size = new Size(75, 23);
+            button7.TabIndex = 71;
+            button7.Text = "button7";
+            button7.UseVisualStyleBackColor = true;
+            button7.Visible = false;
             // 
             // checkBox5
             // 
@@ -1006,6 +1018,7 @@ namespace fingerPressure
             // 
             // panel_finger2_cloud
             // 
+
             panel_finger2_cloud.Controls.Add(label_finger2_max);
             panel_finger2_cloud.Controls.Add(label_finger2_min);
             panel_finger2_cloud.Dock = DockStyle.Fill;
@@ -2406,6 +2419,7 @@ namespace fingerPressure
             // 
             // panel_finger3_cloud_temp
             // 
+
             panel_finger3_cloud_temp.Controls.Add(label_finger3_min_temp);
             panel_finger3_cloud_temp.Controls.Add(label_finger3_max_temp);
             panel_finger3_cloud_temp.Dock = DockStyle.Fill;
@@ -3172,5 +3186,6 @@ namespace fingerPressure
         private CheckBox checkBox5;
         private UCheckComboBox uCheckComboBox4;
         private UCheckComboBox uCheckComboBox5;
+        private Button button7;
     }
 }
