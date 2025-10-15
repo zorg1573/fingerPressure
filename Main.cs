@@ -384,6 +384,22 @@ namespace fingerPressure
             // 默认全选
             uCheckComboBox2.CheckAll();
 
+            var data4 = new List<object>();
+
+            for (int j = 1; j <= 8; j++)
+            {
+                data4.Add(new { Value = j, Text = $"CH{j}" });
+            }
+
+            // 绑定到多选 ComboBox
+            uCheckComboBox4.BindingDataList(data4, "Value", "Text");
+            // 默认全选
+            uCheckComboBox4.CheckAll();
+
+            uCheckComboBox3.BindingDataList(data4, "Value", "Text");
+            // 默认全选
+            uCheckComboBox3.CheckAll();
+
             var fingerList = new List<dynamic>
             {
                 new { Value = 1, Text = "大拇指" },
@@ -3201,7 +3217,7 @@ namespace fingerPressure
                 var pane = zedGraphControl1.GraphPane;
                 pane.CurveList.Clear();
 
-                for (int ch = 0; ch < 40; ch++)
+                for (int ch = 0; ch < 8; ch++)
                 {
                     var list = new RollingPointPairList(MaxVisiblePackets + 100);
                     var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3216,7 +3232,7 @@ namespace fingerPressure
                 var pane19 = zedGraphControl19.GraphPane;
                 pane19.CurveList.Clear();
 
-                for (int ch = 0; ch < 40; ch++)
+                for (int ch = 0; ch < 8; ch++)
                 {
                     var list = new RollingPointPairList(MaxVisiblePackets + 100);
                     var curve = pane19.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
@@ -3419,13 +3435,19 @@ namespace fingerPressure
             if (data.TryGetValue("textBox2", out object value2))
             {
                 textBox2.Text = value2.ToString();
-                flashTime = int.Parse(textBox2.Text);
+                if(textBox2.Text != "")
+                {
+                    flashTime = int.Parse(textBox2.Text);
+                }
             }
 
             if (data.TryGetValue("comboBox1", out object value4))
             {
                 comboBox1.SelectedIndex = int.Parse(value4.ToString());
-                updateSaveRate(); // 更新保存频率
+                if(comboBox1.SelectedIndex != -1)
+                {
+                    updateSaveRate(); // 更新保存频率
+                }
             }
 
             if (data.TryGetValue("comboBox2", out object value5))
@@ -3586,7 +3608,8 @@ namespace fingerPressure
             choosedFinger1 = comboBox3.SelectedIndex;
 
             // 设置刷新间隔
-            if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
+            if (string.IsNullOrWhiteSpace(textBox2.Text) ||
+                !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
             {
                 MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -3596,9 +3619,7 @@ namespace fingerPressure
             LoadMeasureSetJson();
 
             if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
-            {
                 MaxVisiblePackets = maxVisible;
-            }
             else
             {
                 MaxVisiblePackets = -1; // 显示全部
@@ -3608,15 +3629,29 @@ namespace fingerPressure
             // 清空图表数据并重建曲线
             channelData2.Clear();
             channelCurves2.Clear();
-            var pane = zedGraphControl1.GraphPane;
-            pane.CurveList.Clear();
+            var pane1 = zedGraphControl1.GraphPane;
+            pane1.CurveList.Clear();
 
-            for (int ch = 0; ch < 40; ch++)
+            for (int ch = 0; ch < 8; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
+                var curve = pane1.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
                 channelData2[ch] = list;
                 channelCurves2[ch] = curve;
+            }
+
+            // 获取选中的通道文本，例如 "CH1", "CH2" ...
+            List<string> selected = uCheckComboBox3.GetSelectedTexts();
+
+            foreach (var kv in channelCurves2)
+            {
+                int channel = kv.Key;
+                LineItem curve = kv.Value;
+
+                string curveName = $"CH{channel + 1}";
+
+                // 如果当前曲线在选中列表里显示，否则隐藏
+                curve.IsVisible = selected.Contains(curveName);
             }
 
             packetIndex = 0;
@@ -3949,12 +3984,26 @@ namespace fingerPressure
             var pane = zedGraphControl19.GraphPane;
             pane.CurveList.Clear();
 
-            for (int ch = 0; ch < 40; ch++)
+            for (int ch = 0; ch < 8; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
                 var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
                 channelData_temp[ch] = list;
                 channelCurves_temp[ch] = curve;
+            }
+
+            // 获取选中的通道文本，例如 "CH1", "CH2" ...
+            List<string> selected = uCheckComboBox4.GetSelectedTexts();
+
+            foreach (var kv in channelCurves_temp)
+            {
+                int channel = kv.Key;
+                LineItem curve = kv.Value;
+
+                string curveName = $"CH{channel + 1}";
+
+                // 如果当前曲线在选中列表里显示，否则隐藏
+                curve.IsVisible = selected.Contains(curveName);
             }
 
             packetIndex = 0;
