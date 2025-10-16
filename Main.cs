@@ -483,7 +483,7 @@ namespace fingerPressure
                                 fileWriterThread.IsBackground = true;
                                 fileWriterThread.Start();*/
 
-                //TestDraw();
+                TestDraw();
 
                 /*                // 打开监控日志文件
                                 monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
@@ -626,7 +626,7 @@ namespace fingerPressure
         private void TestDraw()
         {
             timer = new System.Windows.Forms.Timer();
-            timer.Interval = 10; // 每200ms更新一次
+            timer.Interval = 50; // 每200ms更新一次
             timer.Tick += Timer_Tick;
             timer.Start();
         }
@@ -686,15 +686,22 @@ namespace fingerPressure
                 // 模拟不同阶段的按压模式
                 int mode = (counter / 100) % 3; // 每 100 帧切换一种模式
                 //int mode = 2;
-
-                switch (mode)
+                values = [   3510,
+                5835,
+                7109,
+                3106,
+                6301,
+                6917,
+                5146,
+                7557];
+/*                switch (mode)
                 {
                     case 0: // 单点按压（循环每个通道）
                         {
                             int activeIndex = (counter / 20) % 8;
                             for (int i = 0; i < 8; i++)
                             {
-                                values[i] = (i == activeIndex) ? 400000 : 0;
+                                values[i] = (i == activeIndex) ? 400000 : 1000;
                             }
                             break;
                         }
@@ -707,7 +714,7 @@ namespace fingerPressure
                                 if (i == activeIndex || i == activeIndex + 1)
                                     values[i] = 400000;
                                 else
-                                    values[i] = 0;
+                                    values[i] = 1000;
                             }
                             break;
                         }
@@ -722,10 +729,35 @@ namespace fingerPressure
                             }
                             break;
                         }
-                }
+                }*/
 
-                // 更新热力图
+/*                // 更新热力图
                 panel_finger1_cloud.Values = values;
+                var result = Fit(values);
+                if (panel_finger1_cloud == null || panel_finger1_cloud.DotRectss == null) return;
+
+                Rectangle[] dots = panel_finger1_cloud.DotRectss;
+
+                // 假设你已经有物理坐标
+                double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
+                double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
+
+                double xMins = sensorX.Min();
+                double xMaxs = sensorX.Max();
+                double yMins = sensorY.Min();
+                double yMaxs = sensorY.Max();
+
+                float pxMin = dots.Min(r => r.X);
+                float pxMax = dots.Max(r => r.Right);
+                float pyMin = dots.Min(r => r.Y);
+                float pyMax = dots.Max(r => r.Bottom);
+
+                panel_finger1_cloud.CenterX = (float)((result.X - xMins) / (xMaxs - xMins) * (pxMax - pxMin) + pxMin);
+                panel_finger1_cloud.CenterY = (float)(pyMax - (result.Y - yMins) / (yMaxs - yMins) * (pyMax - pyMin));
+
+                panel_finger1_cloud.Amplitude = result.Amp;
+                panel_finger1_cloud.Sigma = result.Sigma;
+                panel_finger1_cloud.Invalidate();*/
 
                 counter++;
             }
@@ -1665,7 +1697,8 @@ namespace fingerPressure
                             if (!channelData2.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+
+                                var curve = pane.AddCurve($"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel - graphUpdate.SensorIndex*8 + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
                                 channelData2[graphUpdate.Channel] = list;
                                 channelCurves2[graphUpdate.Channel] = curve;
                             }
@@ -1695,7 +1728,7 @@ namespace fingerPressure
                             if (!channelData_temp.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                var curve = pane_temp.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                var curve = pane_temp.AddCurve($"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
                                 channelData_temp[graphUpdate.Channel] = list;
                                 channelCurves_temp[graphUpdate.Channel] = curve;
                             }
@@ -1766,15 +1799,41 @@ namespace fingerPressure
                         //Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
                         //panelCloud.Invalidate();
                         // 更新最大最小值标签
-                        if (panelCloud.Values.Length > 0)
-                        {
-                            double maxVal = panelCloud.Values.Max();
-                            double minVal = panelCloud.Values.Min();
-                            if (labelMax != null)
-                                labelMax.Text = $"Max: {maxVal:F0}";
-                            if (labelMin != null)
-                                labelMin.Text = $"Min: {minVal:F0}";
-                        }
+                        //if (panelCloud.Values.Length > 0)
+                        //{
+                        //    double maxVal = panelCloud.Values.Max();
+                        //    double minVal = panelCloud.Values.Min();
+                        //    if (labelMax != null)
+                        //        labelMax.Text = $"Max: {maxVal:F0}";
+                        //    if (labelMin != null)
+                        //        labelMin.Text = $"Min: {minVal:F0}";
+                        //}
+
+                        var result = Fit(panelValuesPerSensor[sensorIndex]);
+                        if (panelCloud == null || panelCloud.DotRectss == null) return;
+
+                        Rectangle[] dots = panelCloud.DotRectss;
+
+                        // 假设你已经有物理坐标
+                        double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
+                        double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
+
+                        double xMins = sensorX.Min();
+                        double xMaxs = sensorX.Max();
+                        double yMins = sensorY.Min();
+                        double yMaxs = sensorY.Max();
+
+                        float pxMin = dots.Min(r => r.X);
+                        float pxMax = dots.Max(r => r.Right);
+                        float pyMin = dots.Min(r => r.Y);
+                        float pyMax = dots.Max(r => r.Bottom);
+
+                        panelCloud.CenterX = (float)((result.X - xMins) / (xMaxs - xMins) * (pxMax - pxMin) + pxMin);
+                        panelCloud.CenterY = (float)(pyMax - (result.Y - yMins) / (yMaxs - yMins) * (pyMax - pyMin));
+
+                        panelCloud.Amplitude = result.Amp;
+                        panelCloud.Sigma = result.Sigma;
+                        panelCloud.Invalidate();
                     }
 
                     // --- 温度点图 ---
@@ -3610,12 +3669,15 @@ namespace fingerPressure
                 var pane = zedGraphControl1.GraphPane;
                 pane.CurveList.Clear();
 
-                for (int ch = 0; ch < 8; ch++)
+                for (int s = 0; s < 5; s++)
                 {
-                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                    var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                    channelData2[ch] = list;
-                    channelCurves2[ch] = curve;
+                    for (int ch = 0; ch < 8; ch++)
+                    {
+                        var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                        var curve = pane.AddCurve($"CH{s+1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
+                        channelData2[ch] = list;
+                        channelCurves2[ch] = curve;
+                    }
                 }
 
                 // 重绘主图
@@ -4062,23 +4124,30 @@ namespace fingerPressure
             var pane1 = zedGraphControl1.GraphPane;
             pane1.CurveList.Clear();
 
-            for (int ch = 0; ch < 8; ch++)
+            for (int s = 0; s < 5; s++)
             {
-                var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane1.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                channelData2[ch] = list;
-                channelCurves2[ch] = curve;
+                for (int ch = 0; ch < 8; ch++)
+                {
+                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                    var curve = pane1.AddCurve($"CH{s+1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
+                    channelData2[ch] = list;
+                    channelCurves2[ch] = curve;
+                }
             }
 
             // 获取选中的通道文本，例如 "CH1", "CH2" ...
             List<string> selected = uCheckComboBox4.GetSelectedTexts();
+            for (int i = 0; i < selected.Count; i++)
+            {
+                selected[i] = selected[i].Replace("CH", $"CH{choosedFinger1 + 1}-");
+            }
 
             foreach (var kv in channelCurves2)
             {
                 int channel = kv.Key;
                 LineItem curve = kv.Value;
 
-                string curveName = $"CH{channel + 1}";
+                string curveName = $"CH{choosedFinger1 + 1}-{channel + 1}";
 
                 // 如果当前曲线在选中列表里显示，否则隐藏
                 curve.IsVisible = selected.Contains(curveName);
@@ -4500,50 +4569,57 @@ namespace fingerPressure
 
         public static (double Amp, double X, double Y, double Sigma) Fit(double[] zReal)
         {
-            if (zReal == null || zReal.Length != 8)
-                throw new ArgumentException("必须输入8个通道的读数。");
-
-            // 添加虚拟传感器
-            var virtualPositions = AddVirtualSensors(sensorPositions, spacing: 2.0, border: 4.0);
-            double[] zVirtual = new double[virtualPositions.GetLength(0)]; // 全0
-
-            // 合并真实+虚拟点
-            double[,] allPositions = ConcatPositions(sensorPositions, virtualPositions);
-            double[] allReadings = zReal.Concat(zVirtual).ToArray();
-
-            // 改善初始猜测：幅值用最大读数，x0/y0用加权平均位置
-            double maxAmp = zReal.Max();
-            double sumWeights = zReal.Sum();
-            double initX0 = 0, initY0 = 0;
-            for (int i = 0; i < 8; i++)
+            try
             {
-                initX0 += sensorPositions[i, 0] * zReal[i] / sumWeights;
-                initY0 += sensorPositions[i, 1] * zReal[i] / sumWeights;
-            }
-            var initialGuess = Vector<double>.Build.DenseOfArray(new[] { maxAmp, initX0, initY0, 2.0 });
+                if (zReal == null || zReal.Length != 8)
+                    throw new ArgumentException("必须输入8个通道的读数。");
 
-            // 定义目标函数（最小二乘误差）
-            var objectiveFunction = ObjectiveFunction.Value(x =>
-            {
-                double amp = x[0], x0 = x[1], y0 = x[2], sigma = x[3];
-                double error = 0.0;
-                for (int i = 0; i < allReadings.Length; i++)
+                // 添加虚拟传感器
+                var virtualPositions = AddVirtualSensors(sensorPositions, spacing: 2.0, border: 4.0);
+                double[] zVirtual = new double[virtualPositions.GetLength(0)]; // 全0
+
+                // 合并真实+虚拟点
+                double[,] allPositions = ConcatPositions(sensorPositions, virtualPositions);
+                double[] allReadings = zReal.Concat(zVirtual).ToArray();
+
+                // 改善初始猜测：幅值用最大读数，x0/y0用加权平均位置
+                double maxAmp = zReal.Max();
+                double sumWeights = zReal.Sum();
+                double initX0 = 0, initY0 = 0;
+                for (int i = 0; i < 8; i++)
                 {
-                    double gx = allPositions[i, 0];
-                    double gy = allPositions[i, 1];
-                    double pred = Gaussian2D(new[] { gx, gy }, amp, x0, y0, sigma);
-                    error += Math.Pow(pred - allReadings[i], 2);
+                    initX0 += sensorPositions[i, 0] * zReal[i] / sumWeights;
+                    initY0 += sensorPositions[i, 1] * zReal[i] / sumWeights;
                 }
-                return error;
-            });
+                var initialGuess = Vector<double>.Build.DenseOfArray(new[] { maxAmp, initX0, initY0, 2.0 });
 
-            // 使用Nelder-Mead优化，增加迭代上限和最小尺度
-            var minimizer = new NelderMeadSimplex(1e-8, 20000);
-            var result = minimizer.FindMinimum(objectiveFunction, initialGuess);
-            double[] popt = result.MinimizingPoint.ToArray();
+                // 定义目标函数（最小二乘误差）
+                var objectiveFunction = ObjectiveFunction.Value(x =>
+                {
+                    double amp = x[0], x0 = x[1], y0 = x[2], sigma = x[3];
+                    double error = 0.0;
+                    for (int i = 0; i < allReadings.Length; i++)
+                    {
+                        double gx = allPositions[i, 0];
+                        double gy = allPositions[i, 1];
+                        double pred = Gaussian2D(new[] { gx, gy }, amp, x0, y0, sigma);
+                        error += Math.Pow(pred - allReadings[i], 2);
+                    }
+                    return error;
+                });
 
-            // === 7️⃣ 输出 ===
-            return (popt[0], popt[1], popt[2], popt[3]);
+                // 使用Nelder-Mead优化，增加迭代上限和最小尺度
+                var minimizer = new NelderMeadSimplex(1e-8, 20000);
+                var result = minimizer.FindMinimum(objectiveFunction, initialGuess);
+                double[] popt = result.MinimizingPoint.ToArray();
+
+                // === 7️⃣ 输出 ===
+                return (popt[0], popt[1], popt[2], popt[3]);
+            }catch(Exception ex)
+            {
+                return (0, 0, 0, 0);
+            }
+
         }
 
         // ---------------------------------------------
@@ -4552,7 +4628,7 @@ namespace fingerPressure
 
         private void button7_Click(object sender, EventArgs e)
         {
-            double[] z = { 3510, 5835, 7109, 3106, 6301, 6917, 5146, 7557 };
+/*            double[] z = { 3510, 5835, 7109, 3106, 6301, 6917, 5146, 7557 };
             var result = Fit(z);
 
             var panelCloud = this.Controls.Find("panel_finger1_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
@@ -4579,7 +4655,7 @@ namespace fingerPressure
 
             panelCloud.Amplitude = result.Amp;
             panelCloud.Sigma = result.Sigma;
-            panelCloud.Invalidate();
+            panelCloud.Invalidate();*/
         }
     }
 

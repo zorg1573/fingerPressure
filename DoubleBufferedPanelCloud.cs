@@ -276,8 +276,8 @@ namespace fingerPressure
             }
         }
     }
-}
-*/
+}*/
+
 
 using System;
 using System.Drawing;
@@ -297,9 +297,9 @@ namespace fingerPressure
 
         // 新增属性：由高斯拟合结果提供
         public double CenterX { get; set; } = 100;
-        public double CenterY { get; set; } = 200;
-        public double Sigma { get; set; } = 40;     // 扩散半径
-        public double Amplitude { get; set; } = 500; // 最大值
+        public double CenterY { get; set; } = 100;
+        public double Sigma { get; set; } = 0;     // 扩散半径
+        public double Amplitude { get; set; } = 0; // 最大值
         public bool Guiyihua { get; set; } = false;
 
         public DoubleBufferedPanelCloud()
@@ -384,38 +384,44 @@ namespace fingerPressure
         {
             // 禁止默认背景清除
         }
-
         private Color GetColorFromValue(double value)
         {
-            double maxAbs = Guiyihua ? 500 : 500000;
-            if (value < 0) value = 0;
-            if (value > maxAbs) value = maxAbs;
-            double ratio = value / maxAbs;
-            int r = 0, g = 0, b = 0;
-
-            if (ratio < 0.33)
+            //double ratio = value / Amplitude;
+            if (value > 0)
             {
-                double t = ratio / 0.33;
-                r = 0;
-                g = (int)(255 * t);
-                b = (int)(255 * (1 - t));
-            }
-            else if (ratio < 0.66)
-            {
-                double t = (ratio - 0.33) / 0.33;
-                r = (int)(255 * t);
-                g = 255;
-                b = 0;
+                double ratio = value;
+                if (ratio > 1) ratio = 1;
+                if (ratio < 0) ratio = 0;
+                int r = 0, g = 0, b = 0;
+                if (ratio < 0.33)
+                {
+                    double t = ratio / 0.33;
+                    r = 0;
+                    g = (int)(255 * t);
+                    b = (int)(255 * (1 - t));
+                }
+                else if (ratio < 0.66)
+                {
+                    double t = (ratio - 0.33) / 0.33;
+                    r = (int)(255 * t);
+                    g = 255;
+                    b = 0;
+                }
+                else
+                {
+                    double t = (ratio - 0.66) / 0.34;
+                    r = 255;
+                    g = (int)(255 * (1 - t));
+                    b = 0;
+                }
+                int a = (int)(255 * ratio);
+                return Color.FromArgb(a, r, g, b);
             }
             else
             {
-                double t = (ratio - 0.66) / 0.34;
-                r = 255;
-                g = (int)(255 * (1 - t));
-                b = 0;
+                return Color.Empty;
             }
-            int a = (int)(255 * ratio);
-            return Color.FromArgb(a, r, g, b);
+
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -423,43 +429,43 @@ namespace fingerPressure
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            if (cacheInvalid || backgroundCache == null || heatmapCache == null)
+            //if (cacheInvalid || backgroundCache == null || heatmapCache == null)
+            //{
+            GenerateBackground();
+
+            // 生成单点高斯热力图
+            heatmapCache?.Dispose();
+            heatmapCache = new Bitmap(this.Width, this.Height);
+
+            var bmpData = heatmapCache.LockBits(new Rectangle(0, 0, Width, Height),
+                System.Drawing.Imaging.ImageLockMode.WriteOnly,
+                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            unsafe
             {
-                GenerateBackground();
+                byte* ptr = (byte*)bmpData.Scan0.ToPointer();
+                int bytesPerPixel = 4;
 
-                // 生成单点高斯热力图
-                heatmapCache?.Dispose();
-                heatmapCache = new Bitmap(this.Width, this.Height);
-
-                var bmpData = heatmapCache.LockBits(new Rectangle(0, 0, Width, Height),
-                    System.Drawing.Imaging.ImageLockMode.WriteOnly,
-                    System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-                unsafe
+                for (int y = 0; y < this.Height; y++)
                 {
-                    byte* ptr = (byte*)bmpData.Scan0.ToPointer();
-                    int bytesPerPixel = 4;
-
-                    for (int y = 0; y < this.Height; y++)
+                    for (int x = 0; x < this.Width; x++)
                     {
-                        for (int x = 0; x < this.Width; x++)
-                        {
-                            double dx = x - CenterX;
-                            double dy = y - CenterY;
-                            double dist2 = dx * dx + dy * dy;
+                        double dx = x - CenterX;
+                        double dy = y - CenterY;
+                        double dist2 = dx * dx + dy * dy;
 
-                            // 高斯函数
-                            double val = Amplitude * Math.Exp(-dist2 / (2 * Sigma * Sigma));
-                            Color color = GetColorFromValue(val);
+                        // 高斯函数
+                        double val = Amplitude * Math.Exp(-dist2 / (2 * Sigma * Sigma));
+                        Color color = GetColorFromValue(val);
 
-                            int offset = y * bmpData.Stride + x * bytesPerPixel;
-                            ptr[offset + 0] = color.B;
-                            ptr[offset + 1] = color.G;
-                            ptr[offset + 2] = color.R;
-                            ptr[offset + 3] = color.A;
-                        }
+                        int offset = y * bmpData.Stride + x * bytesPerPixel;
+                        ptr[offset + 0] = color.B;
+                        ptr[offset + 1] = color.G;
+                        ptr[offset + 2] = color.R;
+                        ptr[offset + 3] = color.A;
                     }
                 }
+                //  }
                 heatmapCache.UnlockBits(bmpData);
                 cacheInvalid = false;
             }
@@ -483,6 +489,19 @@ namespace fingerPressure
             using (Pen pen = new Pen(Color.White, 2))
             {
                 g.DrawEllipse(pen, (float)(CenterX - 5), (float)(CenterY - 5), 10, 10);
+            }
+            for (int i = 0; i < values.Length && i < dotRects.Length; i++)
+            {
+                var rect = dotRects[i];
+                double value = values[i];
+                //using (Brush brush = new SolidBrush(GetColorFromValue(value)))
+                //    g.FillEllipse(brush, rect);
+
+                string text = value.ToString("F0");
+                SizeF ts = g.MeasureString(text, this.Font);
+                g.DrawString(text, this.Font, Brushes.Black,
+                    rect.X + (rect.Width - ts.Width) / 2,
+                    rect.Y + (rect.Height - ts.Height) / 2);
             }
         }
     }
