@@ -1697,8 +1697,7 @@ namespace fingerPressure
                             if (!channelData2.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-
-                                var curve = pane.AddCurve($"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel - graphUpdate.SensorIndex*8 + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                var curve = pane.AddCurve($"CH{chuanganqiIndex + 1}-{graphUpdate.Channel - chuanganqiIndex * 8 + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
                                 channelData2[graphUpdate.Channel] = list;
                                 channelCurves2[graphUpdate.Channel] = curve;
                             }
@@ -1728,7 +1727,7 @@ namespace fingerPressure
                             if (!channelData_temp.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                var curve = pane_temp.AddCurve($"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                var curve = pane.AddCurve($"CH{chuanganqiIndex + 1}-{graphUpdate.Channel - chuanganqiIndex * 8 + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
                                 channelData_temp[graphUpdate.Channel] = list;
                                 channelCurves_temp[graphUpdate.Channel] = curve;
                             }
@@ -2471,7 +2470,7 @@ namespace fingerPressure
                     if (packet.Length < 10) return;
 
                     int length = packet[2];
-                    int addr = packet[3];
+                    byte addr = packet[3];
                     byte type = packet[4];
 
                     // 复用数组
@@ -2486,7 +2485,6 @@ namespace fingerPressure
                         {
                             if (dataOffset + i * 2 + 1 >= packet.Length) break;
                             double v = BinaryPrimitives.ReadInt16LittleEndian(packet.AsSpan(dataOffset + i * 2, 2));
-
                             values[7 - i] = v / 10;
                         }
 
@@ -2541,43 +2539,20 @@ namespace fingerPressure
 
                     lastValidPacket = packet;
 
+                    // 获取 List<string> 对象池
+                    var uiData = uiDataPool.Rent();
+                    uiData.Clear();
+                    uiData.Add("S" + addr.ToString());
+                    uiData.Add(type.ToString("X2"));
+                    for (int i = 0; i < 8; i++)
+                        uiData.Add(values[i].ToString());
+
+                    while (uiQueue.Count > 0) uiQueue.TryTake(out _);
+                    uiQueue.Add(uiData);
+
                     // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
                     if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
                     {
-                        /*                        Task.Run(() =>
-                                                {
-                                                    try
-                                                    {
-                                                        // 复制压力数据以避免线程安全问题
-                                                        if (addrDataDict[addr].PressureData.Count == 8)
-                                                        {*/
-                        //double[] pressureDataBuffer = FitGaussian2D(addrDataDict[addr].PressureData.ToArray());
-                        //double[] pressureDataBuffer = addrDataDict[addr].PressureData.ToArray();
-                        // 获取 List<string> 对象池
-                        var uiData = uiDataPool.Rent();
-                        uiData.Clear();
-                        uiData.Add("S" + addr.ToString());
-                        uiData.Add(type.ToString("X2"));
-                        if (type == 0xF5)
-                        {
-                            for (int i = 0; i < 8; i++)
-                            {
-                                uiData.Add(addrDataDict[addr].PressureData[i].ToString());
-                            }
-                        }
-                        else if (type == 0xF4)
-                        {
-                            for (int i = 0; i < 8; i++)
-                            {
-                                uiData.Add(addrDataDict[addr].TemperatureData[i].ToString());
-                            }
-                        }
-
-
-                        while (uiQueue.Count > 100) uiQueue.TryTake(out _);
-                        uiQueue.Add(uiData);
-
-
                         // 当数据满足条件时，加入 fileRawQueue
                         var fileData = uiDataPool.Rent();
                         fileData.Clear();
@@ -2592,30 +2567,18 @@ namespace fingerPressure
                         {
                             fileData.Add(value.ToString());
                         }
-                        if (isSaving)
+
+                        // 保存数据到 fileRawQueue
+                        var now = HighResDateTime.Now;
+                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
                         {
-                            // 保存数据到 fileRawQueue
-                            var now = HighResDateTime.Now;
-                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
-                            {
-                                lastSaveTime = now;
-                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                                fileRawQueue.Add(fileData);
-                            }
+                            lastSaveTime = now;
+                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                            fileRawQueue.Add(fileData);
                         }
 
                         // 清除该 addr 的数据（温度和压力都清除）
-                        addrDataDict[addr].TemperatureData.Clear();
-                        addrDataDict[addr].PressureData.Clear();
-                        /*                                }
-
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            LogToConsole($"FitGaussian2D 处理失败: {ex.Message}");
-                                        }
-
-                                    });*/
+                        addrDataDict[addr] = new SensorData();
                     }
 
                     long newCount = Interlocked.Increment(ref totalPacketCount);
@@ -2747,95 +2710,6 @@ namespace fingerPressure
                 {
                     LogToConsole("EnqueuePacket 异常: " + ex.Message);
                 }
-
-                /*                try
-                                {
-                                    if (packet.Length != 343)
-                                    {
-                                        LogToConsole($"无效包长度: {packet.Length}");
-                                        return;
-                                    }
-
-                                    if (!(packet[0] == 0xAA && packet[1] == 0xAA && packet[2] == 0xAA && packet[3] == 0xAA &&
-                                          packet[339] == 0xBB && packet[340] == 0xBB && packet[341] == 0xBB && packet[342] == 0xBB))
-                                    {
-                                        LogToConsole("包头或包尾错误，丢弃数据包");
-                                        return;
-                                    }
-
-                                    lastValidPacket = packet;
-
-                                    int dataOffset = 4;
-                                    int sensorCount = 5;
-                                    int pressureCount = 27;
-                                    float[] pressureValues = new float[sensorCount * pressureCount];
-
-                                    // 使用 stackalloc + Span 避免 new
-                                    Span<short> pressureBuffer = stackalloc short[pressureCount];
-                                    Span<short> gyroBuffer = stackalloc short[6];
-
-                                    // 获取 List<string> 对象池
-                                    var uiData = uiDataPool.Rent();
-                                    uiData.Clear();
-
-                                    for (int s = 0; s < sensorCount; s++)
-                                    {
-                                        uiData.Add($"S{s + 1}");
-
-                                        // 压力值
-                                        int sensorOffset = s * (pressureCount * 2 + 1 + 12);
-                                        for (int i = 0; i < pressureCount; i++)
-                                        {
-                                            int pos = dataOffset + sensorOffset + i * 2;
-                                            pressureBuffer[i] = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(pos, 2));
-                                            uiData.Add(pressureBuffer[i].ToString());
-                                            pressureValues[s * pressureCount + i] = pressureBuffer[i];
-                                        }
-
-                                        // 温度值
-                                        byte temp = packet[dataOffset + sensorOffset + pressureCount * 2];
-                                        uiData.Add(temp.ToString());
-
-                                        // 陀螺仪
-                                        int gyroOffset = dataOffset + sensorOffset + pressureCount * 2 + 1;
-                                        for (int i = 0; i < 6; i++)
-                                        {
-                                            int pos = gyroOffset + i * 2;
-                                            gyroBuffer[i] = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(pos, 2));
-                                            uiData.Add(gyroBuffer[i].ToString());
-                                        }
-                                    }
-
-                                    inferenceQueue.Add(pressureValues);
-
-                                    while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                                    uiQueue.Add(uiData);
-
-                                    var now = HighResDateTime.Now;
-                                    if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
-                                    {
-                                        lastSaveTime = now;
-                                        if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                                        fileRawQueue.Add(uiData);
-                                    }
-
-                                    long newCount = Interlocked.Increment(ref totalPacketCount);
-                                    if (packetCountLabel.InvokeRequired)
-                                    {
-                                        packetCountLabel.BeginInvoke(new Action(() =>
-                                        {
-                                            packetCountLabel.Text = $"接收包数: {newCount}";
-                                        }));
-                                    }
-                                    else
-                                    {
-                                        packetCountLabel.Text = $"接收包数: {newCount}";
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    LogToConsole("EnqueuePacket 异常: " + ex.Message);
-                                }*/
             }
         }
         //原始值 得到 微应变和电阻
@@ -4067,40 +3941,16 @@ namespace fingerPressure
             }
             refreshTimer.Interval = refreshMs;
 
-            LoadMeasureSetJson();
-
-            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
-                MaxVisiblePackets = maxVisible;
-            else
-            {
-                MaxVisiblePackets = -1; // 显示全部
-                LogToConsole_NotLog("未设置或输入无效，显示全部数据");
-            }
-
-            // 清空图表数据并重建曲线
-            channelData2.Clear();
-            channelCurves2.Clear();
-            var pane1 = zedGraphControl1.GraphPane;
-            pane1.CurveList.Clear();
-
-            for (int ch = 0; ch < 8; ch++)
-            {
-                var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane1.AddCurve($"CH{choosedFinger1 + 1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
-                channelData2[ch] = list;
-                channelCurves2[ch] = curve;
-            }
-
             // 获取选中的通道文本，例如 "CH1", "CH2" ...
             List<string> selected = uCheckComboBox4.GetSelectedTexts();
             for (int i = 0; i < selected.Count; i++)
             {
-                selected[i] = selected[i].Replace("CH", $"CH{choosedFinger1 + 1}-");
+                selected[i] = $"CH{choosedFinger1 + 1}-" + selected[i].Replace("CH", "");
             }
 
             foreach (var kv in channelCurves2)
             {
-                int channel = kv.Key;
+                int channel = kv.Key - choosedFinger1 * 8;
                 LineItem curve = kv.Value;
 
                 string curveName = $"CH{choosedFinger1 + 1}-{channel + 1}";
@@ -4433,41 +4283,19 @@ namespace fingerPressure
             }
             refreshTimer.Interval = refreshMs;
 
-            LoadMeasureSetJson();
-
-            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
-            {
-                MaxVisiblePackets = maxVisible;
-            }
-            else
-            {
-                MaxVisiblePackets = -1; // 显示全部
-                LogToConsole_NotLog("未设置或输入无效，显示全部数据");
-            }
-
-            // 清空图表数据并重建曲线
-            channelData_temp.Clear();
-            channelCurves_temp.Clear();
-            var pane = zedGraphControl19.GraphPane;
-            pane.CurveList.Clear();
-
-            for (int ch = 0; ch < 8; ch++)
-            {
-                var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                channelData_temp[ch] = list;
-                channelCurves_temp[ch] = curve;
-            }
-
             // 获取选中的通道文本，例如 "CH1", "CH2" ...
             List<string> selected = uCheckComboBox5.GetSelectedTexts();
+            for (int i = 0; i < selected.Count; i++)
+            {
+                selected[i] = $"CH{choosedFinger1 + 1}-" + selected[i].Replace("CH", "");
+            }
 
             foreach (var kv in channelCurves_temp)
             {
-                int channel = kv.Key;
+                int channel = kv.Key - choosedFinger1 * 8;
                 LineItem curve = kv.Value;
 
-                string curveName = $"CH{channel + 1}";
+                string curveName = $"CH{choosedFinger1 + 1}-{channel + 1}";
 
                 // 如果当前曲线在选中列表里显示，否则隐藏
                 curve.IsVisible = selected.Contains(curveName);
