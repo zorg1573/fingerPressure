@@ -1530,7 +1530,7 @@ namespace fingerPressure
                             if (!channelData2.ContainsKey(graphUpdate.Channel))
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                                var curve = pane.AddCurve($"CH{graphUpdate.Channel + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
+                                var curve = pane.AddCurve($"CH{chuanganqiIndex + 1}-{graphUpdate.Channel - chuanganqiIndex*8 + 1}", list, GetColor(graphUpdate.Channel), SymbolType.None);
                                 channelData2[graphUpdate.Channel] = list;
                                 channelCurves2[graphUpdate.Channel] = curve;
                             }
@@ -1538,11 +1538,25 @@ namespace fingerPressure
                             {
                                 channelData2[graphUpdate.Channel].Add(graphUpdate.Index, graphUpdate.Pressure);
                             }
+
                         }
                     }
                 }
                 if (needRefresh)
                 {
+ /*                   List<string> selected = uCheckComboBox3.GetSelectedTexts();
+
+                    foreach (var kv in channelCurves2)
+                    {
+                        int channel = kv.Key - choosedFinger1*8;
+                        LineItem curve = kv.Value;
+
+                        string curveName = $"CH{choosedFinger1 + 1}-{channel + 1}";
+
+                        // 如果当前曲线在选中列表里显示，否则隐藏
+                        curve.IsVisible = selected.Contains(curveName);
+                    }*/
+
                     zedGraphControl1.AxisChange();
                     zedGraphControl1.Invalidate();
                 }
@@ -3618,7 +3632,7 @@ namespace fingerPressure
 
             LoadMeasureSetJson();
 
-            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
+/*            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
                 MaxVisiblePackets = maxVisible;
             else
             {
@@ -3635,20 +3649,24 @@ namespace fingerPressure
             for (int ch = 0; ch < 8; ch++)
             {
                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane1.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                channelData2[ch] = list;
-                channelCurves2[ch] = curve;
-            }
+                var curve = pane1.AddCurve($"CH{choosedFinger1 + 1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
+                channelData2[choosedFinger1 * 8 + ch] = list;
+                channelCurves2[choosedFinger1*8+ch] = curve;
+            }*/
 
             // 获取选中的通道文本，例如 "CH1", "CH2" ...
             List<string> selected = uCheckComboBox3.GetSelectedTexts();
+            for(int i = 0; i < selected.Count; i++)
+            {
+                selected[i] = $"CH{choosedFinger1 + 1}-" + selected[i].Replace("CH","");
+            }
 
             foreach (var kv in channelCurves2)
             {
-                int channel = kv.Key;
+                int channel = kv.Key - choosedFinger1*8;
                 LineItem curve = kv.Value;
 
-                string curveName = $"CH{channel + 1}";
+                string curveName = $"CH{choosedFinger1 + 1}-{channel + 1}";
 
                 // 如果当前曲线在选中列表里显示，否则隐藏
                 curve.IsVisible = selected.Contains(curveName);
