@@ -4056,47 +4056,6 @@ namespace fingerPressure
 
         private void button4_Click(object sender, EventArgs e)
         {
-            /*            choosedFinger1 = comboBox3.SelectedIndex;
-
-                        // 设置刷新间隔
-                        if (textBox2.Text == "" || !int.TryParse(textBox2.Text, out int refreshMs) || refreshMs <= 0)
-                        {
-                            MessageBox.Show("刷新时间必须为正整数", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                        refreshTimer.Interval = refreshMs;
-
-                        LoadMeasureSetJson();
-
-                        if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
-                        {
-                            MaxVisiblePackets = maxVisible;
-                        }
-                        else
-                        {
-                            MaxVisiblePackets = -1; // 显示全部
-                            LogToConsole_NotLog("未设置或输入无效，显示全部数据");
-                        }
-
-                        // 清空图表数据并重建曲线
-                        channelData2.Clear();
-                        channelCurves2.Clear();
-                        var pane = zedGraphControl1.GraphPane;
-                        pane.CurveList.Clear();
-
-                        for (int ch = 0; ch < 40; ch++)
-                        {
-                            var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                            var curve = pane.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                            channelData2[ch] = list;
-                            channelCurves2[ch] = curve;
-                        }
-
-                        packetIndex = 0;
-
-                        // 重绘主图
-                        zedGraphControl1.AxisChange();
-                        zedGraphControl1.Invalidate();*/
             choosedFinger1 = comboBox3.SelectedIndex;
 
             // 设置刷新间隔
@@ -4124,15 +4083,12 @@ namespace fingerPressure
             var pane1 = zedGraphControl1.GraphPane;
             pane1.CurveList.Clear();
 
-            for (int s = 0; s < 5; s++)
+            for (int ch = 0; ch < 8; ch++)
             {
-                for (int ch = 0; ch < 8; ch++)
-                {
-                    var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                    var curve = pane1.AddCurve($"CH{s+1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
-                    channelData2[ch] = list;
-                    channelCurves2[ch] = curve;
-                }
+                var list = new RollingPointPairList(MaxVisiblePackets + 100);
+                var curve = pane1.AddCurve($"CH{choosedFinger1 + 1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
+                channelData2[ch] = list;
+                channelCurves2[ch] = curve;
             }
 
             // 获取选中的通道文本，例如 "CH1", "CH2" ...
