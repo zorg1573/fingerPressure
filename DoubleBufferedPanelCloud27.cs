@@ -634,7 +634,7 @@ namespace fingerPressure
         private Color GetColorFromValue(double value)
         {
             double maxAbs = 200;
-            if (danwei == 1) maxAbs = 0.25;
+            if (danwei == 1) maxAbs = 2;
             if (danwei == 2) maxAbs = 400;
             if (value < 0) value = 0;
             if (value > maxAbs) value = maxAbs;

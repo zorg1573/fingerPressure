@@ -2717,9 +2717,9 @@ namespace fingerPressure
         {
             if (type == 0 || type == 3) return raw;
             double r1 = 120;
-            double r2 = 2200;
+            double r2 = 510;
             double z = 512;
-            double v = 2.18;
+            double v = 1.6;
             /*            double dV = raw * 2.8 / (8192.0 * z) / v; 
                         double fenzi = (r1 + r2) * dV; 
                         double fenmu = 1 - dV - r1 / (r1 + r2); 
