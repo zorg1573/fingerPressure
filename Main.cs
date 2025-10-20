@@ -24,6 +24,7 @@ namespace fingerPressure
 {
     public partial class Main : MetroForm
     {
+        #region 变量
         private SerialPort serialPort = new SerialPort();
         //private Dictionary<int, RollingPointPairList> channelData = new();
         //private Dictionary<int, PointPairList> channelData = new();
@@ -268,83 +269,7 @@ namespace fingerPressure
 
         HandHeatmapControl handHeatmapControlLeft = new HandHeatmapControl();
         HandHeatmapControl handHeatmapControlRight = new HandHeatmapControl();
-
-        //private CancellationTokenSource memsPollingCts;
-
-        /*        private void StartMemsPolling()
-                {
-                    memsPollingCts?.Cancel();
-                    memsPollingCts = new CancellationTokenSource();
-                    var token = memsPollingCts.Token;
-
-                    Thread pollingThread = new Thread(() =>
-                    {
-                        int sensorCount = memsCommands.Length;
-                        long targetIntervalMs = 10; // 100Hz
-                        long[] nextSendTime = new long[sensorCount]; // 每个传感器下次发包时间
-                        Stopwatch sw = Stopwatch.StartNew();
-
-                        while (!token.IsCancellationRequested && serialPort.IsOpen)
-                        {
-                            long now = sw.ElapsedMilliseconds;
-
-                            for (int i = 0; i < sensorCount; i++)
-                            {
-                                if (now >= nextSendTime[i])
-                                {
-                                    try
-                                    {
-                                        serialPort.Write(memsCommands[i], 0, memsCommands[i].Length);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        LogToConsole("发送异常: " + ex.Message);
-                                    }
-
-                                    nextSendTime[i] = now + targetIntervalMs; // 单独计算每个传感器下一次发包
-                                }
-                            }
-
-                            Thread.Sleep(1); // 避免空转
-                        }
-                    });
-
-                    pollingThread.IsBackground = true;
-                    pollingThread.Start();
-                }*/
-
-
-
-        private void InitializeDotUpdates()
-        {
-            for (int i = 0; i < 5; i++)
-            {
-                dotUpdatesTemp[i] = new DotMatrixUpdate_Temp
-                {
-                    SensorIndex = i,
-                    TempValues = new double[40] // 可按实际通道数修改
-                };
-                dotUpdatesPres[i] = new DotMatrixUpdate_Pres
-                {
-                    SensorIndex = i,
-                    PressureValues = new double[40]
-                };
-            }
-            for (int i = 0; i < 5; i++)
-            {
-                dotUpdatesTemp27[i] = new DotMatrixUpdate_Temp
-                {
-                    SensorIndex = i,
-                    TempValues = new double[5] // 可按实际通道数修改
-                };
-                dotUpdatesPres27[i] = new DotMatrixUpdate_Pres27
-                {
-                    SensorIndex = i,
-                    PressureValues = new double[27],
-                    GyroValues = new double[6]
-                };
-            }
-        }
+        #endregion
 
         public Main()
         {
@@ -478,12 +403,7 @@ namespace fingerPressure
                 StartPacketProcessingThread();
                 StartInferenceThread();
 
-
-                /*                fileWriterThread = new Thread(FileWriterLoop);
-                                fileWriterThread.IsBackground = true;
-                                fileWriterThread.Start();*/
-
-                TestDraw();
+                //TestDraw();
 
                 /*                // 打开监控日志文件
                                 monitorWriter = new StreamWriter("monitor_log.txt", append: true, Encoding.UTF8) { AutoFlush = true };
@@ -549,6 +469,36 @@ namespace fingerPressure
                 MessageBox.Show("加载模型失败: " + ex.Message);
             }
 
+        }
+        private void InitializeDotUpdates()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                dotUpdatesTemp[i] = new DotMatrixUpdate_Temp
+                {
+                    SensorIndex = i,
+                    TempValues = new double[40] // 可按实际通道数修改
+                };
+                dotUpdatesPres[i] = new DotMatrixUpdate_Pres
+                {
+                    SensorIndex = i,
+                    PressureValues = new double[40]
+                };
+            }
+            for (int i = 0; i < 5; i++)
+            {
+                dotUpdatesTemp27[i] = new DotMatrixUpdate_Temp
+                {
+                    SensorIndex = i,
+                    TempValues = new double[5] // 可按实际通道数修改
+                };
+                dotUpdatesPres27[i] = new DotMatrixUpdate_Pres27
+                {
+                    SensorIndex = i,
+                    PressureValues = new double[27],
+                    GyroValues = new double[6]
+                };
+            }
         }
 
         private void UpdateTabPages()
@@ -1616,7 +1566,7 @@ namespace fingerPressure
                                 var graphUpdate = new GraphUpdate
                                 {
                                     SensorIndex = s,
-                                    Channel = p,
+                                    Channel = channelIndex,
                                     Index = packetIndex,
                                     Pressure = correctedPressure,
                                     //GyroValues = dotUpdate_Pres27.GyroValues
@@ -1892,7 +1842,7 @@ namespace fingerPressure
                             {
                                 var list = new RollingPointPairList(MaxVisiblePackets + 100);
                                 var curve = pane3.AddCurve(
-                                    $"CH{graphUpdate.SensorIndex + 1}-{graphUpdate.Channel + 1}",
+                                    $"CH{chuanganqiIndex + 1}-{graphUpdate.Channel - chuanganqiIndex * 8 + 1}",
                                     list,
                                     GetColor(graphUpdate.Channel),
                                     SymbolType.None);
@@ -2717,9 +2667,9 @@ namespace fingerPressure
         {
             if (type == 0 || type == 3) return raw;
             double r1 = 120;
-            double r2 = 510;
+            double r2 = 120;
             double z = 512;
-            double v = 1.6;
+            double v = 0.71;
             /*            double dV = raw * 2.8 / (8192.0 * z) / v; 
                         double fenzi = (r1 + r2) * dV; 
                         double fenmu = 1 - dV - r1 / (r1 + r2); 
@@ -4225,39 +4175,19 @@ namespace fingerPressure
             }
             refreshTimer.Interval = refreshMs;
 
-            LoadMeasureSetJson();
-
-            if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
-                MaxVisiblePackets = maxVisible;
-            else
-            {
-                MaxVisiblePackets = -1; // 显示全部
-                LogToConsole_NotLog("未设置或输入无效，显示全部数据");
-            }
-
-            // 清空图表数据并重建曲线
-            channelData2.Clear();
-            channelCurves2.Clear();
-            var pane3 = zedGraphControl3.GraphPane;
-            pane3.CurveList.Clear();
-
-            for (int ch = 0; ch < 27; ch++)
-            {
-                var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                var curve = pane3.AddCurve($"CH{ch + 1}", list, GetColor(ch), SymbolType.None);
-                channelData2[ch] = list;
-                channelCurves2[ch] = curve;
-            }
-
             // 获取选中的通道文本，例如 "CH1", "CH2" ...
             List<string> selected = uCheckComboBox3.GetSelectedTexts();
+            for (int i = 0; i < selected.Count; i++)
+            {
+                selected[i] = $"CH{choosedFinger3 + 1}-" + selected[i].Replace("CH", "");
+            }
 
             foreach (var kv in channelCurves2)
             {
-                int channel = kv.Key;
+                int channel = kv.Key - choosedFinger3 * 8;
                 LineItem curve = kv.Value;
 
-                string curveName = $"CH{channel + 1}";
+                string curveName = $"CH{choosedFinger3 + 1}-{channel + 1}";
 
                 // 如果当前曲线在选中列表里显示，否则隐藏
                 curve.IsVisible = selected.Contains(curveName);

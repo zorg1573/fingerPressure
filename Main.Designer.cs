@@ -445,6 +445,7 @@ namespace fingerPressure
             button7.TabIndex = 71;
             button7.Text = "button7";
             button7.UseVisualStyleBackColor = true;
+            button7.Visible = false;
             button7.Click += button7_Click;
             // 
             // checkBox5
@@ -953,12 +954,16 @@ namespace fingerPressure
             // 
             // panel_finger1_cloud
             // 
+            panel_finger1_cloud.Amplitude = 0D;
+            panel_finger1_cloud.CenterX = 100D;
+            panel_finger1_cloud.CenterY = 100D;
             panel_finger1_cloud.Controls.Add(label_finger1_max);
             panel_finger1_cloud.Controls.Add(label_finger1_min);
             panel_finger1_cloud.Dock = DockStyle.Fill;
             panel_finger1_cloud.Guiyihua = false;
             panel_finger1_cloud.Location = new Point(3, 23);
             panel_finger1_cloud.Name = "panel_finger1_cloud";
+            panel_finger1_cloud.Sigma = 0D;
             panel_finger1_cloud.Size = new Size(217, 136);
             panel_finger1_cloud.TabIndex = 4;
             panel_finger1_cloud.Values = new double[]
@@ -1018,12 +1023,16 @@ namespace fingerPressure
             // 
             // panel_finger2_cloud
             // 
+            panel_finger2_cloud.Amplitude = 0D;
+            panel_finger2_cloud.CenterX = 100D;
+            panel_finger2_cloud.CenterY = 100D;
             panel_finger2_cloud.Controls.Add(label_finger2_max);
             panel_finger2_cloud.Controls.Add(label_finger2_min);
             panel_finger2_cloud.Dock = DockStyle.Fill;
             panel_finger2_cloud.Guiyihua = false;
             panel_finger2_cloud.Location = new Point(226, 23);
             panel_finger2_cloud.Name = "panel_finger2_cloud";
+            panel_finger2_cloud.Sigma = 0D;
             panel_finger2_cloud.Size = new Size(217, 136);
             panel_finger2_cloud.TabIndex = 5;
             panel_finger2_cloud.Values = new double[]
@@ -1062,12 +1071,16 @@ namespace fingerPressure
             // 
             // panel_finger3_cloud
             // 
+            panel_finger3_cloud.Amplitude = 0D;
+            panel_finger3_cloud.CenterX = 100D;
+            panel_finger3_cloud.CenterY = 100D;
             panel_finger3_cloud.Controls.Add(label_finger3_max);
             panel_finger3_cloud.Controls.Add(label_finger3_min);
             panel_finger3_cloud.Dock = DockStyle.Fill;
             panel_finger3_cloud.Guiyihua = false;
             panel_finger3_cloud.Location = new Point(449, 23);
             panel_finger3_cloud.Name = "panel_finger3_cloud";
+            panel_finger3_cloud.Sigma = 0D;
             panel_finger3_cloud.Size = new Size(217, 136);
             panel_finger3_cloud.TabIndex = 6;
             panel_finger3_cloud.Values = new double[]
@@ -1127,12 +1140,16 @@ namespace fingerPressure
             // 
             // panel_finger4_cloud
             // 
+            panel_finger4_cloud.Amplitude = 0D;
+            panel_finger4_cloud.CenterX = 100D;
+            panel_finger4_cloud.CenterY = 100D;
             panel_finger4_cloud.Controls.Add(label_finger4_max);
             panel_finger4_cloud.Controls.Add(label_finger4_min);
             panel_finger4_cloud.Dock = DockStyle.Fill;
             panel_finger4_cloud.Guiyihua = false;
             panel_finger4_cloud.Location = new Point(672, 23);
             panel_finger4_cloud.Name = "panel_finger4_cloud";
+            panel_finger4_cloud.Sigma = 0D;
             panel_finger4_cloud.Size = new Size(217, 136);
             panel_finger4_cloud.TabIndex = 7;
             panel_finger4_cloud.Values = new double[]
@@ -1192,12 +1209,16 @@ namespace fingerPressure
             // 
             // panel_finger5_cloud
             // 
+            panel_finger5_cloud.Amplitude = 0D;
+            panel_finger5_cloud.CenterX = 100D;
+            panel_finger5_cloud.CenterY = 100D;
             panel_finger5_cloud.Controls.Add(label_finger5_max);
             panel_finger5_cloud.Controls.Add(label_finger5_min);
             panel_finger5_cloud.Dock = DockStyle.Fill;
             panel_finger5_cloud.Guiyihua = false;
             panel_finger5_cloud.Location = new Point(895, 23);
             panel_finger5_cloud.Name = "panel_finger5_cloud";
+            panel_finger5_cloud.Sigma = 0D;
             panel_finger5_cloud.Size = new Size(221, 136);
             panel_finger5_cloud.TabIndex = 8;
             panel_finger5_cloud.Values = new double[]
@@ -2306,12 +2327,16 @@ namespace fingerPressure
             // 
             // panel_finger1_cloud_temp
             // 
+            panel_finger1_cloud_temp.Amplitude = 0D;
+            panel_finger1_cloud_temp.CenterX = 100D;
+            panel_finger1_cloud_temp.CenterY = 100D;
             panel_finger1_cloud_temp.Controls.Add(label_finger1_min_temp);
             panel_finger1_cloud_temp.Controls.Add(label_finger1_max_temp);
             panel_finger1_cloud_temp.Dock = DockStyle.Fill;
             panel_finger1_cloud_temp.Guiyihua = false;
             panel_finger1_cloud_temp.Location = new Point(3, 23);
             panel_finger1_cloud_temp.Name = "panel_finger1_cloud_temp";
+            panel_finger1_cloud_temp.Sigma = 0D;
             panel_finger1_cloud_temp.Size = new Size(242, 136);
             panel_finger1_cloud_temp.TabIndex = 4;
             panel_finger1_cloud_temp.Values = new double[]
@@ -2372,12 +2397,16 @@ namespace fingerPressure
             // 
             // panel_finger2_cloud_temp
             // 
+            panel_finger2_cloud_temp.Amplitude = 0D;
+            panel_finger2_cloud_temp.CenterX = 100D;
+            panel_finger2_cloud_temp.CenterY = 100D;
             panel_finger2_cloud_temp.Controls.Add(label_finger2_min_temp);
             panel_finger2_cloud_temp.Controls.Add(label_finger2_max_temp);
             panel_finger2_cloud_temp.Dock = DockStyle.Fill;
             panel_finger2_cloud_temp.Guiyihua = false;
             panel_finger2_cloud_temp.Location = new Point(251, 23);
             panel_finger2_cloud_temp.Name = "panel_finger2_cloud_temp";
+            panel_finger2_cloud_temp.Sigma = 0D;
             panel_finger2_cloud_temp.Size = new Size(242, 136);
             panel_finger2_cloud_temp.TabIndex = 5;
             panel_finger2_cloud_temp.Values = new double[]
@@ -2418,12 +2447,16 @@ namespace fingerPressure
             // 
             // panel_finger3_cloud_temp
             // 
+            panel_finger3_cloud_temp.Amplitude = 0D;
+            panel_finger3_cloud_temp.CenterX = 100D;
+            panel_finger3_cloud_temp.CenterY = 100D;
             panel_finger3_cloud_temp.Controls.Add(label_finger3_min_temp);
             panel_finger3_cloud_temp.Controls.Add(label_finger3_max_temp);
             panel_finger3_cloud_temp.Dock = DockStyle.Fill;
             panel_finger3_cloud_temp.Guiyihua = false;
             panel_finger3_cloud_temp.Location = new Point(499, 23);
             panel_finger3_cloud_temp.Name = "panel_finger3_cloud_temp";
+            panel_finger3_cloud_temp.Sigma = 0D;
             panel_finger3_cloud_temp.Size = new Size(242, 136);
             panel_finger3_cloud_temp.TabIndex = 6;
             panel_finger3_cloud_temp.Values = new double[]
@@ -2484,12 +2517,16 @@ namespace fingerPressure
             // 
             // panel_finger4_cloud_temp
             // 
+            panel_finger4_cloud_temp.Amplitude = 0D;
+            panel_finger4_cloud_temp.CenterX = 100D;
+            panel_finger4_cloud_temp.CenterY = 100D;
             panel_finger4_cloud_temp.Controls.Add(label_finger4_min_temp);
             panel_finger4_cloud_temp.Controls.Add(label_finger4_max_temp);
             panel_finger4_cloud_temp.Dock = DockStyle.Fill;
             panel_finger4_cloud_temp.Guiyihua = false;
             panel_finger4_cloud_temp.Location = new Point(747, 23);
             panel_finger4_cloud_temp.Name = "panel_finger4_cloud_temp";
+            panel_finger4_cloud_temp.Sigma = 0D;
             panel_finger4_cloud_temp.Size = new Size(242, 136);
             panel_finger4_cloud_temp.TabIndex = 7;
             panel_finger4_cloud_temp.Values = new double[]
@@ -2550,12 +2587,16 @@ namespace fingerPressure
             // 
             // panel_finger5_cloud_temp
             // 
+            panel_finger5_cloud_temp.Amplitude = 0D;
+            panel_finger5_cloud_temp.CenterX = 100D;
+            panel_finger5_cloud_temp.CenterY = 100D;
             panel_finger5_cloud_temp.Controls.Add(label_finger5_min_temp);
             panel_finger5_cloud_temp.Controls.Add(label_finger5_max_temp);
             panel_finger5_cloud_temp.Dock = DockStyle.Fill;
             panel_finger5_cloud_temp.Guiyihua = false;
             panel_finger5_cloud_temp.Location = new Point(995, 23);
             panel_finger5_cloud_temp.Name = "panel_finger5_cloud_temp";
+            panel_finger5_cloud_temp.Sigma = 0D;
             panel_finger5_cloud_temp.Size = new Size(242, 136);
             panel_finger5_cloud_temp.TabIndex = 8;
             panel_finger5_cloud_temp.Values = new double[]
