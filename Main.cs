@@ -70,6 +70,7 @@ namespace fingerPressure
         private bool yalitu = false;
         private bool wendutu = false;
         private bool diantu = false;
+        private bool yuntu = false;
 
         private readonly object serialLock = new object(); // 锁，保证线程安全
         //private BlockingCollection<List<string>> packetQueue;
@@ -644,70 +645,70 @@ namespace fingerPressure
                 6917,
                 5146,
                 7557];
-/*                switch (mode)
-                {
-                    case 0: // 单点按压（循环每个通道）
-                        {
-                            int activeIndex = (counter / 20) % 8;
-                            for (int i = 0; i < 8; i++)
-                            {
-                                values[i] = (i == activeIndex) ? 400000 : 1000;
-                            }
-                            break;
-                        }
+                /*                switch (mode)
+                                {
+                                    case 0: // 单点按压（循环每个通道）
+                                        {
+                                            int activeIndex = (counter / 20) % 8;
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                values[i] = (i == activeIndex) ? 400000 : 1000;
+                                            }
+                                            break;
+                                        }
 
-                    case 1: // 相邻双点按压（观察中间是否变深）
-                        {
-                            int activeIndex = (counter / 40) % 7; // 相邻点对
-                            for (int i = 0; i < 8; i++)
-                            {
-                                if (i == activeIndex || i == activeIndex + 1)
-                                    values[i] = 400000;
-                                else
-                                    values[i] = 1000;
-                            }
-                            break;
-                        }
+                                    case 1: // 相邻双点按压（观察中间是否变深）
+                                        {
+                                            int activeIndex = (counter / 40) % 7; // 相邻点对
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                if (i == activeIndex || i == activeIndex + 1)
+                                                    values[i] = 400000;
+                                                else
+                                                    values[i] = 1000;
+                                            }
+                                            break;
+                                        }
 
-                    case 2: // 平滑的波动模式（整体起伏）
-                        {
-                            for (int i = 0; i < 8; i++)
-                            {
-                                double phaseShift = (i / 8.0) * Math.PI * 2;
-                                double ratio = (Math.Sin(counter * Math.PI / 60 + phaseShift) + 1) / 2.0;
-                                values[i] = ratio * 400000;
-                            }
-                            break;
-                        }
-                }*/
+                                    case 2: // 平滑的波动模式（整体起伏）
+                                        {
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                double phaseShift = (i / 8.0) * Math.PI * 2;
+                                                double ratio = (Math.Sin(counter * Math.PI / 60 + phaseShift) + 1) / 2.0;
+                                                values[i] = ratio * 400000;
+                                            }
+                                            break;
+                                        }
+                                }*/
 
-/*                // 更新热力图
-                panel_finger1_cloud.Values = values;
-                var result = Fit(values);
-                if (panel_finger1_cloud == null || panel_finger1_cloud.DotRectss == null) return;
+                /*                // 更新热力图
+                                panel_finger1_cloud.Values = values;
+                                var result = Fit(values);
+                                if (panel_finger1_cloud == null || panel_finger1_cloud.DotRectss == null) return;
 
-                Rectangle[] dots = panel_finger1_cloud.DotRectss;
+                                Rectangle[] dots = panel_finger1_cloud.DotRectss;
 
-                // 假设你已经有物理坐标
-                double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
-                double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
+                                // 假设你已经有物理坐标
+                                double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
+                                double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
 
-                double xMins = sensorX.Min();
-                double xMaxs = sensorX.Max();
-                double yMins = sensorY.Min();
-                double yMaxs = sensorY.Max();
+                                double xMins = sensorX.Min();
+                                double xMaxs = sensorX.Max();
+                                double yMins = sensorY.Min();
+                                double yMaxs = sensorY.Max();
 
-                float pxMin = dots.Min(r => r.X);
-                float pxMax = dots.Max(r => r.Right);
-                float pyMin = dots.Min(r => r.Y);
-                float pyMax = dots.Max(r => r.Bottom);
+                                float pxMin = dots.Min(r => r.X);
+                                float pxMax = dots.Max(r => r.Right);
+                                float pyMin = dots.Min(r => r.Y);
+                                float pyMax = dots.Max(r => r.Bottom);
 
-                panel_finger1_cloud.CenterX = (float)((result.X - xMins) / (xMaxs - xMins) * (pxMax - pxMin) + pxMin);
-                panel_finger1_cloud.CenterY = (float)(pyMax - (result.Y - yMins) / (yMaxs - yMins) * (pyMax - pyMin));
+                                panel_finger1_cloud.CenterX = (float)((result.X - xMins) / (xMaxs - xMins) * (pxMax - pxMin) + pxMin);
+                                panel_finger1_cloud.CenterY = (float)(pyMax - (result.Y - yMins) / (yMaxs - yMins) * (pyMax - pyMin));
 
-                panel_finger1_cloud.Amplitude = result.Amp;
-                panel_finger1_cloud.Sigma = result.Sigma;
-                panel_finger1_cloud.Invalidate();*/
+                                panel_finger1_cloud.Amplitude = result.Amp;
+                                panel_finger1_cloud.Sigma = result.Sigma;
+                                panel_finger1_cloud.Invalidate();*/
 
                 counter++;
             }
@@ -745,7 +746,7 @@ namespace fingerPressure
                 List<int> fingerNum = uCheckComboBox1.GetSelectedValues();
                 for (int i = 0; i < fingerNum.Count; i++)
                 {
-                    memsCommands[i] = new byte[] { 0xA5, 0x5A, (byte)(fingerNum[i]) };
+                    memsCommands[i] = new byte[] { 0x7B, 0xB7, (byte)(fingerNum[i]) };
                 }
 
                 // 启动后台读取线程
@@ -1737,53 +1738,78 @@ namespace fingerPressure
                         panelPoint.Invalidate();
                     }
 
-                    // --- 压力云图 ---
-                    var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                    var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
-                    var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
-                    if (panelCloud != null)
+                    if (yuntu)
                     {
-                        panelCloud.Guiyihua = guiyihua;
-                        panelCloud.Values = panelValuesPerSensor[sensorIndex];
-                        //Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
-                        //panelCloud.Invalidate();
-                        // 更新最大最小值标签
-                        //if (panelCloud.Values.Length > 0)
-                        //{
-                        //    double maxVal = panelCloud.Values.Max();
-                        //    double minVal = panelCloud.Values.Min();
-                        //    if (labelMax != null)
-                        //        labelMax.Text = $"Max: {maxVal:F0}";
-                        //    if (labelMin != null)
-                        //        labelMin.Text = $"Min: {minVal:F0}";
-                        //}
+                        // --- 压力云图 ---
+                        var panelCloud = this.Controls.Find($"panel_finger{addr}_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                        var labelMax = this.Controls.Find($"label_finger{addr}_max", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        var labelMin = this.Controls.Find($"label_finger{addr}_min", true).FirstOrDefault() as System.Windows.Forms.Label;
+                        if (panelCloud != null)
+                        {
+                            panelCloud.Guiyihua = guiyihua;
+                            panelCloud.Values = panelValuesPerSensor[sensorIndex];
+                            //Array.Copy(panelValuesPerSensor[sensorIndex], panelCloud.Values, 8);
+                            //panelCloud.Invalidate();
+                            // 更新最大最小值标签
+                            //if (panelCloud.Values.Length > 0)
+                            //{
+                            //    double maxVal = panelCloud.Values.Max();
+                            //    double minVal = panelCloud.Values.Min();
+                            //    if (labelMax != null)
+                            //        labelMax.Text = $"Max: {maxVal:F0}";
+                            //    if (labelMin != null)
+                            //        labelMin.Text = $"Min: {minVal:F0}";
+                            //}
 
-                        var result = Fit(panelValuesPerSensor[sensorIndex]);
-                        if (panelCloud == null || panelCloud.DotRectss == null) return;
+                            var result = Fit(panelValuesPerSensor[sensorIndex]);
+                            if (panelCloud == null || panelCloud.DotRectss == null) return;
 
-                        Rectangle[] dots = panelCloud.DotRectss;
+                            Rectangle[] dots = panelCloud.DotRectss;
 
-                        // 假设你已经有物理坐标
-                        double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
-                        double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
+                            // 假设你已经有物理坐标
+                            double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
+                            double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
 
-                        double xMins = sensorX.Min();
-                        double xMaxs = sensorX.Max();
-                        double yMins = sensorY.Min();
-                        double yMaxs = sensorY.Max();
+                            double xMins = sensorX.Min();
+                            double xMaxs = sensorX.Max();
+                            double yMins = sensorY.Min();
+                            double yMaxs = sensorY.Max();
 
-                        float pxMin = dots.Min(r => r.X);
-                        float pxMax = dots.Max(r => r.Right);
-                        float pyMin = dots.Min(r => r.Y);
-                        float pyMax = dots.Max(r => r.Bottom);
+                            float pxMin = dots.Min(r => r.X);
+                            float pxMax = dots.Max(r => r.Right);
+                            float pyMin = dots.Min(r => r.Y);
+                            float pyMax = dots.Max(r => r.Bottom);
 
-                        panelCloud.CenterX = (float)((result.X - xMins) / (xMaxs - xMins) * (pxMax - pxMin) + pxMin);
-                        panelCloud.CenterY = (float)(pyMax - (result.Y - yMins) / (yMaxs - yMins) * (pyMax - pyMin));
+                            panelCloud.CenterX = (float)((result.X - xMins) / (xMaxs - xMins) * (pxMax - pxMin) + pxMin);
+                            panelCloud.CenterY = (float)(pyMax - (result.Y - yMins) / (yMaxs - yMins) * (pyMax - pyMin));
 
-                        panelCloud.Amplitude = result.Amp;
-                        panelCloud.Sigma = result.Sigma;
-                        panelCloud.Invalidate();
+                            panelCloud.Amplitude = result.Amp;
+                            panelCloud.Sigma = result.Sigma;
+                            panelCloud.Invalidate();
+
+
+                            // --- 温度云图 ---
+                            var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                            var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
+                            var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
+                            if (panelCloud2 != null)
+                            {
+                                Array.Copy(cloudValuesPerSensor[sensorIndex], panelCloud2.Values, 8);
+                                panelCloud2.Invalidate();
+                                // 更新最大最小值标签
+                                if (panelCloud2.Values.Length > 0)
+                                {
+                                    double maxVal = panelCloud2.Values.Max();
+                                    double minVal = panelCloud2.Values.Min();
+                                    if (labelMax_temp != null)
+                                        labelMax_temp.Text = $"Max: {maxVal:F1}";
+                                    if (labelMin_temp != null)
+                                        labelMin_temp.Text = $"Min: {minVal:F1}";
+                                }
+                            }
+                        }
                     }
+
 
                     // --- 温度点图 ---
                     var panelPoint2 = this.Controls.Find($"panel_finger{addr}_point_temp", true).FirstOrDefault() as DoubleBufferedPanel_Temp;
@@ -1793,25 +1819,7 @@ namespace fingerPressure
                         panelPoint2.Invalidate();
                     }
 
-                    // --- 温度云图 ---
-                    var panelCloud2 = this.Controls.Find($"panel_finger{addr}_cloud_temp", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-                    var labelMax_temp = this.Controls.Find($"label_finger{addr}_max_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
-                    var labelMin_temp = this.Controls.Find($"label_finger{addr}_min_temp", true).FirstOrDefault() as System.Windows.Forms.Label;
-                    if (panelCloud2 != null)
-                    {
-                        Array.Copy(cloudValuesPerSensor[sensorIndex], panelCloud2.Values, 8);
-                        panelCloud2.Invalidate();
-                        // 更新最大最小值标签
-                        if (panelCloud2.Values.Length > 0)
-                        {
-                            double maxVal = panelCloud2.Values.Max();
-                            double minVal = panelCloud2.Values.Min();
-                            if (labelMax_temp != null)
-                                labelMax_temp.Text = $"Max: {maxVal:F1}";
-                            if (labelMin_temp != null)
-                                labelMin_temp.Text = $"Min: {minVal:F1}";
-                        }
-                    }
+
                 }
             }
             else if (chuanGanQiType == "Yingbianhua")
@@ -1934,35 +1942,39 @@ namespace fingerPressure
                             panelPoint.Invalidate();
                         }
 
-                        // --- 压力云图 ---
-                        var panelCloud = this.Controls.Find($"panel_finger{s + 1}_cloud27", true).FirstOrDefault() as DoubleBufferedPanelCloud27;
-                        var labelMax = this.Controls.Find($"label_finger{s + 1}_max27", true).FirstOrDefault() as System.Windows.Forms.Label;
-                        var labelMin = this.Controls.Find($"label_finger{s + 1}_min27", true).FirstOrDefault() as System.Windows.Forms.Label;
-
-                        if (panelCloud != null)
+                        if (yuntu)
                         {
-                            panelCloud.Danwei = danwei;
-                            panelCloud.Values = cloud27ValuesPerSensor[s];
-                            //Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
-                            //panelCloud.Invalidate(); // 只Invalidate有更新的
+                            // --- 压力云图 ---
+                            var panelCloud = this.Controls.Find($"panel_finger{s + 1}_cloud27", true).FirstOrDefault() as DoubleBufferedPanelCloud27;
+                            var labelMax = this.Controls.Find($"label_finger{s + 1}_max27", true).FirstOrDefault() as System.Windows.Forms.Label;
+                            var labelMin = this.Controls.Find($"label_finger{s + 1}_min27", true).FirstOrDefault() as System.Windows.Forms.Label;
 
-                            if (portName == "COMPort_left")
+                            if (panelCloud != null)
                             {
-                                handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
-                            }
-                            else if (portName == "COMPort_right")
-                            {
-                                handHeatmapControlRight.SetFingerValues(s, panelCloud.Values);
-                            }
+                                panelCloud.Danwei = danwei;
+                                panelCloud.Values = cloud27ValuesPerSensor[s];
+                                //Array.Copy(cloudValuesBuffer, s * 9, panelCloud.Values, 0, 9);
+                                //panelCloud.Invalidate(); // 只Invalidate有更新的
 
-                            if (panelCloud.Values.Length > 0)
-                            {
-                                if (labelMax != null)
-                                    labelMax.Text = $"Max: {panelCloud.Values.Max():F1}";
-                                if (labelMin != null)
-                                    labelMin.Text = $"Min: {panelCloud.Values.Min():F1}";
+                                if (portName == "COMPort_left")
+                                {
+                                    handHeatmapControlLeft.SetFingerValues(s, panelCloud.Values);
+                                }
+                                else if (portName == "COMPort_right")
+                                {
+                                    handHeatmapControlRight.SetFingerValues(s, panelCloud.Values);
+                                }
+
+                                if (panelCloud.Values.Length > 0)
+                                {
+                                    if (labelMax != null)
+                                        labelMax.Text = $"Max: {panelCloud.Values.Max():F1}";
+                                    if (labelMin != null)
+                                        labelMin.Text = $"Min: {panelCloud.Values.Min():F1}";
+                                }
                             }
                         }
+                        
                     }
                 }
             }
@@ -3498,7 +3510,7 @@ namespace fingerPressure
                     for (int ch = 0; ch < 8; ch++)
                     {
                         var list = new RollingPointPairList(MaxVisiblePackets + 100);
-                        var curve = pane.AddCurve($"CH{s+1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
+                        var curve = pane.AddCurve($"CH{s + 1}-{ch + 1}", list, GetColor(ch), SymbolType.None);
                         channelData2[ch] = list;
                         channelCurves2[ch] = curve;
                     }
@@ -4329,7 +4341,8 @@ namespace fingerPressure
 
                 // === 7️⃣ 输出 ===
                 return (popt[0], popt[1], popt[2], popt[3]);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 return (0, 0, 0, 0);
             }
@@ -4342,34 +4355,46 @@ namespace fingerPressure
 
         private void button7_Click(object sender, EventArgs e)
         {
-/*            double[] z = { 3510, 5835, 7109, 3106, 6301, 6917, 5146, 7557 };
-            var result = Fit(z);
+            /*            double[] z = { 3510, 5835, 7109, 3106, 6301, 6917, 5146, 7557 };
+                        var result = Fit(z);
 
-            var panelCloud = this.Controls.Find("panel_finger1_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
-            if (panelCloud == null || panelCloud.DotRectss == null) return;
+                        var panelCloud = this.Controls.Find("panel_finger1_cloud", true).FirstOrDefault() as DoubleBufferedPanelCloud;
+                        if (panelCloud == null || panelCloud.DotRectss == null) return;
 
-            Rectangle[] dots = panelCloud.DotRectss;
+                        Rectangle[] dots = panelCloud.DotRectss;
 
-            // 假设你已经有物理坐标
-            double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
-            double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
+                        // 假设你已经有物理坐标
+                        double[] sensorX = { 9.527, 5.528, 10.528, 7.531, 4.523, 11.033, 7.533, 4.033 };
+                        double[] sensorY = { 13.919, 13.915, 9.919, 9.921, 9.919, 5.920, 5.913, 5.920 };
 
-            double xMin = sensorX.Min();
-            double xMax = sensorX.Max();
-            double yMin = sensorY.Min();
-            double yMax = sensorY.Max();
+                        double xMin = sensorX.Min();
+                        double xMax = sensorX.Max();
+                        double yMin = sensorY.Min();
+                        double yMax = sensorY.Max();
 
-            float pxMin = dots.Min(r => r.X);
-            float pxMax = dots.Max(r => r.Right);
-            float pyMin = dots.Min(r => r.Y);
-            float pyMax = dots.Max(r => r.Bottom);
+                        float pxMin = dots.Min(r => r.X);
+                        float pxMax = dots.Max(r => r.Right);
+                        float pyMin = dots.Min(r => r.Y);
+                        float pyMax = dots.Max(r => r.Bottom);
 
-            panelCloud.CenterX = (float)((result.X - xMin) / (xMax - xMin) * (pxMax - pxMin) + pxMin);
-            panelCloud.CenterY = (float)(pyMax - (result.Y - yMin) / (yMax - yMin) * (pyMax - pyMin));
+                        panelCloud.CenterX = (float)((result.X - xMin) / (xMax - xMin) * (pxMax - pxMin) + pxMin);
+                        panelCloud.CenterY = (float)(pyMax - (result.Y - yMin) / (yMax - yMin) * (pyMax - pyMin));
 
-            panelCloud.Amplitude = result.Amp;
-            panelCloud.Sigma = result.Sigma;
-            panelCloud.Invalidate();*/
+                        panelCloud.Amplitude = result.Amp;
+                        panelCloud.Sigma = result.Sigma;
+                        panelCloud.Invalidate();*/
+        }
+
+        private void checkBox6_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox6.Checked)
+            {
+                yuntu = true;
+            }
+            else
+            {
+                yuntu = false;
+            }
         }
     }
 

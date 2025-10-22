@@ -42,6 +42,7 @@ namespace fingerPressure
             splitContainer1 = new SplitContainer();
             splitContainer2 = new SplitContainer();
             panel2 = new Panel();
+            checkBox6 = new CheckBox();
             button7 = new Button();
             checkBox5 = new CheckBox();
             comboBox8 = new ComboBox();
@@ -402,6 +403,7 @@ namespace fingerPressure
             // panel2
             // 
             panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel2.Controls.Add(checkBox6);
             panel2.Controls.Add(button7);
             panel2.Controls.Add(checkBox5);
             panel2.Controls.Add(comboBox8);
@@ -436,6 +438,17 @@ namespace fingerPressure
             panel2.Name = "panel2";
             panel2.Size = new Size(1533, 129);
             panel2.TabIndex = 31;
+            // 
+            // checkBox6
+            // 
+            checkBox6.AutoSize = true;
+            checkBox6.Location = new Point(153, 73);
+            checkBox6.Name = "checkBox6";
+            checkBox6.Size = new Size(51, 21);
+            checkBox6.TabIndex = 72;
+            checkBox6.Text = "云图";
+            checkBox6.UseVisualStyleBackColor = true;
+            checkBox6.CheckedChanged += checkBox6_CheckedChanged;
             // 
             // button7
             // 
@@ -502,7 +515,7 @@ namespace fingerPressure
             // checkBox4
             // 
             checkBox4.AutoSize = true;
-            checkBox4.Location = new Point(243, 73);
+            checkBox4.Location = new Point(291, 73);
             checkBox4.Name = "checkBox4";
             checkBox4.Size = new Size(87, 21);
             checkBox4.TabIndex = 65;
@@ -513,7 +526,7 @@ namespace fingerPressure
             // checkBox1
             // 
             checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(162, 73);
+            checkBox1.Location = new Point(210, 73);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(75, 21);
             checkBox1.TabIndex = 64;
@@ -635,9 +648,9 @@ namespace fingerPressure
             checkBox3.AutoSize = true;
             checkBox3.Location = new Point(84, 73);
             checkBox3.Name = "checkBox3";
-            checkBox3.Size = new Size(75, 21);
+            checkBox3.Size = new Size(63, 21);
             checkBox3.TabIndex = 44;
-            checkBox3.Text = "点图云图";
+            checkBox3.Text = "点阵图";
             checkBox3.UseVisualStyleBackColor = true;
             checkBox3.CheckedChanged += checkBox3_CheckedChanged;
             // 
@@ -3226,5 +3239,6 @@ namespace fingerPressure
         private UCheckComboBox uCheckComboBox4;
         private UCheckComboBox uCheckComboBox5;
         private Button button7;
+        private CheckBox checkBox6;
     }
 }
