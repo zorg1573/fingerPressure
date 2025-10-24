@@ -313,7 +313,7 @@ namespace fingerPressure
             this.ControlBox = false;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            LoadMeasureSetJson();
+            //LoadMeasureSetJson();
 
             // 生成 8 通道数据源
             var data = new List<object>();
@@ -746,7 +746,7 @@ namespace fingerPressure
                 List<int> fingerNum = uCheckComboBox1.GetSelectedValues();
                 for (int i = 0; i < fingerNum.Count; i++)
                 {
-                    memsCommands[i] = new byte[] { 0x7B, 0xB7, (byte)(fingerNum[i]) };
+                    memsCommands[i] = new byte[] { 0xA5, 0x5A, (byte)(fingerNum[i]) };
                 }
 
                 // 启动后台读取线程
@@ -2525,20 +2525,24 @@ namespace fingerPressure
                         {
                             fileData.Add(value.ToString());
                         }
-                        foreach (var value in addrDataDict[addr].PressureData)
+                        for(int i = 0; i < 8; i++)
                         {
-                            fileData.Add(value.ToString());
+                            double rawV = addrDataDict[addr].PressureData[i];
+                            int channelIndex = (addr - 1) * 8 + i;
+                            double zeroedV = rawV - channelZeroOffsets[channelIndex];
+                            fileData.Add(zeroedV.ToString("F3"));
                         }
-
-                        // 保存数据到 fileRawQueue
-                        var now = HighResDateTime.Now;
-                        if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                        if (isSaving)
                         {
-                            lastSaveTime = now;
-                            if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                            fileRawQueue.Add(fileData);
+                            // 保存数据到 fileRawQueue
+                            var now = HighResDateTime.Now;
+                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                            {
+                                lastSaveTime = now;
+                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                fileRawQueue.Add(fileData);
+                            }
                         }
-
                         // 清除该 addr 的数据（温度和压力都清除）
                         addrDataDict[addr] = new SensorData();
                     }
@@ -3295,7 +3299,7 @@ namespace fingerPressure
             pane3.YAxis.Scale.MaxAuto = true;
             //强制 X 轴显示为整数
             pane3.XAxis.Type = AxisType.Linear;
-            pane3.XAxis.Scale.MajorStep = 1;
+            //pane3.XAxis.Scale.MajorStep = 1;
             pane3.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
             zedGraphControl3.AxisChange(); // 应用更改
 
@@ -3307,7 +3311,7 @@ namespace fingerPressure
             pane1.YAxis.Scale.MaxAuto = true;
             //强制 X 轴显示为整数
             pane1.XAxis.Type = AxisType.Linear;
-            pane1.XAxis.Scale.MajorStep = 1;
+            //pane1.XAxis.Scale.MajorStep = 1;
             pane1.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
             zedGraphControl1.AxisChange(); // 应用更改
 
@@ -3319,7 +3323,7 @@ namespace fingerPressure
             pane19.YAxis.Scale.MaxAuto = true;
             //强制 X 轴显示为整数
             pane19.XAxis.Type = AxisType.Linear;
-            pane19.XAxis.Scale.MajorStep = 1;
+            //pane19.XAxis.Scale.MajorStep = 1;
             pane19.XAxis.Scale.Format = "0";  // 只显示整数，无小数点
             zedGraphControl19.AxisChange(); // 应用更改
         }
@@ -3479,7 +3483,7 @@ namespace fingerPressure
             flashTime = refreshMs;
             refreshTimer.Interval = refreshMs;
 
-            LoadMeasureSetJson();
+            //LoadMeasureSetJson();
 
             if (int.TryParse(textBox1.Text, out int maxVisible) && maxVisible > 0)
             {
