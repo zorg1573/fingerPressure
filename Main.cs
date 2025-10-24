@@ -112,6 +112,8 @@ namespace fingerPressure
         private Dictionary<int, List<double>> pressureCalibBuffers27 = new();
 
         private Dictionary<int, Queue<double>> channelBuffers = new Dictionary<int, Queue<double>>();
+        private Dictionary<int, Queue<double>> channelBuffers_filedata = new Dictionary<int, Queue<double>>();
+        private Dictionary<int, Queue<double>> channelBuffers_temp = new Dictionary<int, Queue<double>>();
 
         private DateTime lastSaveTime = DateTime.Now;
         private object saveLock = new object();
@@ -1223,12 +1225,225 @@ namespace fingerPressure
                 catch (InvalidOperationException) { break; }
                 catch (Exception ex)
                 {
-                    LogToConsole("串口读取异常：" + ex.Message);
+                    LogToConsole("串口读取异常：" + ex.ToString());
                     break;
                 }
             }
         }
+        /*        private void SerialReadLoop(CancellationToken token)
+                {
+                    byte[] buffer = new byte[4096];
+                    const int MaxBufferSize = 65536;
+                    byte[] recvBuffer = new byte[MaxBufferSize];
+                    int recvHead = 0;
+                    int recvTail = 0;
 
+                    ArrayPool<byte> pool = ArrayPool<byte>.Shared;
+
+                    // 监控文件路径
+                    string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SerialDebug.log");
+                    int loopCount = 0;
+
+                    while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
+                    {
+                        loopCount++;
+                        try
+                        {
+                            int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                            if (bytesRead <= 0) continue;
+
+                            lock (serialLock)
+                            {
+                                LogToFile(logPath, $"[Loop {loopCount}] 读取到 {bytesRead} 字节, recvHead={recvHead}, recvTail={recvTail}");
+
+                                // 写入环形缓冲区
+                                for (int i = 0; i < bytesRead; i++)
+                                {
+                                    recvBuffer[recvTail] = buffer[i];
+                                    recvTail = (recvTail + 1) % MaxBufferSize;
+
+                                    if (recvTail == recvHead)
+                                        recvHead = (recvHead + 1) % MaxBufferSize;
+                                }
+
+                                LogToFile(logPath, $"[Loop {loopCount}] 写入后 recvHead={recvHead}, recvTail={recvTail}, 可用字节={GetAvailableBytes(recvHead, recvTail, MaxBufferSize)}");
+
+                                if (chuanGanQiType == "MEMS")
+                                {
+                                    int packetProcessCount = 0;
+                                    while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
+                                    {
+                                        packetProcessCount++;
+                                        LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 开始处理包, recvHead={recvHead}, recvTail={recvTail}");
+
+                                        // 监控点1：检查PeekByte调用
+                                        try
+                                        {
+                                            byte byte0 = PeekByte(recvBuffer, recvHead, 0, MaxBufferSize);
+                                            byte byte1 = PeekByte(recvBuffer, recvHead, 1, MaxBufferSize);
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 帧头检查: 0x{byte0:X2} 0x{byte1:X2}");
+
+                                            if (!(byte0 == 0x42 && byte1 == 0x54))
+                                            {
+                                                recvHead = (recvHead + 1) % MaxBufferSize;
+                                                LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 帧头不匹配，跳过");
+                                                continue;
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] ERROR: PeekByte帧头检查异常 - {ex.Message}");
+                                            throw;
+                                        }
+
+                                        // 监控点2：获取长度
+                                        int length = 0;
+                                        try
+                                        {
+                                            length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 数据包长度: {length}");
+
+                                            // 检查长度是否合理
+                                            if (length < 6 || length > 256)
+                                            {
+                                                LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] WARNING: 长度异常 {length}，跳过此包");
+                                                recvHead = (recvHead + 1) % MaxBufferSize;
+                                                continue;
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] ERROR: 获取长度异常 - {ex.Message}");
+                                            throw;
+                                        }
+
+                                        // 监控点3：检查数据是否足够
+                                        int availableBytes = GetAvailableBytes(recvHead, recvTail, MaxBufferSize);
+                                        LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 需要 {length} 字节，实际可用 {availableBytes} 字节");
+
+                                        if (availableBytes < length)
+                                        {
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 数据不足，跳出循环");
+                                            break;
+                                        }
+
+                                        // 监控点4：数据拷贝
+                                        byte[] packet = null;
+                                        try
+                                        {
+                                            packet = pool.Rent(length);
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 开始拷贝数据，从 recvHead={recvHead} 拷贝 {length} 字节");
+
+                                            CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
+
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 拷贝完成，准备移动recvHead");
+
+                                            recvHead = (recvHead + length) % MaxBufferSize;
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] recvHead移动到: {recvHead}");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] ERROR: 数据拷贝异常 - {ex.Message}");
+                                            if (packet != null) pool.Return(packet);
+                                            throw;
+                                        }
+
+                                        // 校验
+                                        byte checksum = 0;
+                                        for (int i = 2; i < length - 1; i++)
+                                            checksum += packet[i];
+
+                                        if (checksum == packet[length - 1])
+                                        {
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 校验成功，加入队列");
+                                            EnqueuePacket(packet);
+                                        }
+                                        else
+                                        {
+                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 校验失败，期望 0x{checksum:X2} 实际 0x{packet[length - 1]:X2}");
+                                            pool.Return(packet);
+                                        }
+                                    }
+
+                                    if (packetProcessCount == 0)
+                                    {
+                                        LogToFile(logPath, $"[Loop {loopCount}] 未处理任何数据包");
+                                    }
+                                }
+                            }
+                        }
+                        catch (TimeoutException)
+                        {
+                            LogToFile(logPath, $"[Loop {loopCount}] TimeoutException");
+                        }
+                        catch (IOException ex)
+                        {
+                            LogToFile(logPath, $"[Loop {loopCount}] IOException: {ex.Message}");
+                            break;
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            LogToFile(logPath, $"[Loop {loopCount}] InvalidOperationException: {ex.Message}");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            LogToFile(logPath, $"[Loop {loopCount}] 异常: {ex.GetType().Name} - {ex.Message}");
+                            LogToFile(logPath, $"[Loop {loopCount}] 堆栈: {ex.StackTrace}");
+                            LogToConsole("串口读取异常：" + ex.Message);
+                            break;
+                        }
+                    }
+
+                    LogToFile(logPath, $"串口读取循环结束，loopCount={loopCount}");
+                }
+
+                // 辅助方法：记录到文件
+                private void LogToFile(string filePath, string message)
+                {
+                    try
+                    {
+                        string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {message}";
+                        File.AppendAllText(filePath, logMessage + Environment.NewLine);
+                    }
+                    catch
+                    {
+                        // 忽略日志写入错误
+                    }
+                }
+
+                // 确保这些辅助方法有边界检查
+                private byte PeekByte(byte[] buffer, int head, int offset, int maxSize)
+                {
+                    int index = (head + offset) % maxSize;
+                    // 添加边界检查
+                    if (index < 0 || index >= maxSize)
+                    {
+                        throw new IndexOutOfRangeException($"PeekByte索引越界: head={head}, offset={offset}, index={index}, maxSize={maxSize}");
+                    }
+                    return buffer[index];
+                }
+
+                private void CopyFromRingBuffer(byte[] source, int head, byte[] dest, int length, int maxSize)
+                {
+                    for (int i = 0; i < length; i++)
+                    {
+                        int sourceIndex = (head + i) % maxSize;
+                        if (sourceIndex < 0 || sourceIndex >= maxSize)
+                        {
+                            throw new IndexOutOfRangeException($"CopyFromRingBuffer索引越界: head={head}, i={i}, sourceIndex={sourceIndex}, maxSize={maxSize}");
+                        }
+                        dest[i] = source[sourceIndex];
+                    }
+                }
+
+                private int GetAvailableBytes(int head, int tail, int maxSize)
+                {
+                    if (tail >= head)
+                        return tail - head;
+                    else
+                        return maxSize - head + tail;
+                }*/
 
 
         // 背景线程解包
@@ -1390,10 +1605,6 @@ namespace fingerPressure
                         else if (type == "F5") // 压力
                         {
                             double correctedPressure = value - channelZeroOffsets[channelIndex];
-                            if (correctedPressure > 1000000)
-                            {
-                                Console.Write("");
-                            }
                             double pressureDenoised = DenoiseByMedian(channelIndex, correctedPressure);
 
                             dotUpdate_Pres.PressureValues[channelIndex] = pressureDenoised;
@@ -2434,7 +2645,7 @@ namespace fingerPressure
                     int length = packet[2];
                     byte addr = packet[3];
                     byte type = packet[4];
-
+                    if(addr > 5 || addr < 0) return;
                     // 复用数组
                     Span<double> values = stackalloc double[8];
 
@@ -2521,16 +2732,20 @@ namespace fingerPressure
                         fileData.Add("S" + addr.ToString());
 
                         // 将温度数据和压力数据一起添加到 uiData
-                        foreach (var value in addrDataDict[addr].TemperatureData)
+                        for (int i = 0; i < 8; i++)
                         {
-                            fileData.Add(value.ToString());
+                            double rawV = addrDataDict[addr].TemperatureData[i];
+                            int channelIndex = (addr - 1) * 8 + i;
+                            double filedV = DenoiseByMedian_temp(channelIndex, rawV);
+                            fileData.Add(filedV.ToString("F2"));
                         }
-                        for(int i = 0; i < 8; i++)
+                        for (int i = 0; i < 8; i++)
                         {
                             double rawV = addrDataDict[addr].PressureData[i];
                             int channelIndex = (addr - 1) * 8 + i;
                             double zeroedV = rawV - channelZeroOffsets[channelIndex];
-                            fileData.Add(zeroedV.ToString("F3"));
+                            double filedV = DenoiseByMedian_filedata(channelIndex, zeroedV);
+                            fileData.Add(filedV.ToString("F3"));
                         }
                         if (isSaving)
                         {
@@ -2562,7 +2777,7 @@ namespace fingerPressure
                 }
                 catch (Exception ex)
                 {
-                    LogToConsole("EnqueuePacket 异常: " + ex.Message);
+                    LogToConsole("EnqueuePacket 异常: " + ex.ToString());
                 }
             }
             else if (chuanGanQiType == "Yingbianhua")
@@ -3230,6 +3445,68 @@ namespace fingerPressure
                 channelBuffers[channelIndex] = new Queue<double>();
 
             var buffer = channelBuffers[channelIndex];
+
+            // 添加新值
+            buffer.Enqueue(newValue);
+            if (buffer.Count > 4)
+                buffer.Dequeue();
+
+            // 数据量不足直接返回
+            if (buffer.Count < 3)
+                return newValue;
+
+            // 转数组排序
+            double[] arr = buffer.ToArray();
+            double[] sorted = arr.OrderBy(v => v).ToArray();
+            double median = sorted[sorted.Length / 2];
+
+            // 计算中位绝对偏差 (MAD)
+            double mad = sorted.Select(v => Math.Abs(v - median)).OrderBy(d => d).ElementAt(sorted.Length / 2);
+            double threshold = Math.Max(20, 5 * mad); // 动态阈值, 保证极小MAD也有最小阈值
+
+            // 如果新值偏离中位数过大，视为异常，用中位数替代
+            if (Math.Abs(newValue - median) > threshold)
+                newValue = median;
+
+            return newValue;
+        }
+        private double DenoiseByMedian_filedata(int channelIndex, double newValue)
+        {
+            if (!channelBuffers_filedata.ContainsKey(channelIndex))
+                channelBuffers_filedata[channelIndex] = new Queue<double>();
+
+            var buffer = channelBuffers_filedata[channelIndex];
+
+            // 添加新值
+            buffer.Enqueue(newValue);
+            if (buffer.Count > 4)
+                buffer.Dequeue();
+
+            // 数据量不足直接返回
+            if (buffer.Count < 3)
+                return newValue;
+
+            // 转数组排序
+            double[] arr = buffer.ToArray();
+            double[] sorted = arr.OrderBy(v => v).ToArray();
+            double median = sorted[sorted.Length / 2];
+
+            // 计算中位绝对偏差 (MAD)
+            double mad = sorted.Select(v => Math.Abs(v - median)).OrderBy(d => d).ElementAt(sorted.Length / 2);
+            double threshold = Math.Max(20, 5 * mad); // 动态阈值, 保证极小MAD也有最小阈值
+
+            // 如果新值偏离中位数过大，视为异常，用中位数替代
+            if (Math.Abs(newValue - median) > threshold)
+                newValue = median;
+
+            return newValue;
+        }
+        private double DenoiseByMedian_temp(int channelIndex, double newValue)
+        {
+            if (!channelBuffers_temp.ContainsKey(channelIndex))
+                channelBuffers_temp[channelIndex] = new Queue<double>();
+
+            var buffer = channelBuffers_temp[channelIndex];
 
             // 添加新值
             buffer.Enqueue(newValue);
