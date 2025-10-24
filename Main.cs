@@ -1115,15 +1115,15 @@ namespace fingerPressure
             }
         }
 
-
-
         private void SerialReadLoop(CancellationToken token)
         {
-            byte[] buffer = new byte[4096];
+            const int BufferSize = 4096;
             const int MaxBufferSize = 65536;
+
+            byte[] buffer = new byte[BufferSize];
             byte[] recvBuffer = new byte[MaxBufferSize];
-            int recvHead = 0; // 有效数据起始
-            int recvTail = 0; // 有效数据末尾
+            int recvHead = 0;
+            int recvTail = 0;
 
             ArrayPool<byte> pool = ArrayPool<byte>.Shared;
 
@@ -1131,23 +1131,29 @@ namespace fingerPressure
             {
                 try
                 {
-
-                    // === 串口接收 ===
                     int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
-                    if (bytesRead <= 0) continue;
+
+                    if (bytesRead <= 0 || bytesRead > buffer.Length)
+                        continue; // 保护性检查
 
                     lock (serialLock)
                     {
-                        // 写入环形缓冲区
+                        // 写入环形缓冲区（带边界检查）
                         for (int i = 0; i < bytesRead; i++)
                         {
+                            if (recvTail < 0 || recvTail >= MaxBufferSize)
+                                recvTail = 0;
+
                             recvBuffer[recvTail] = buffer[i];
                             recvTail = (recvTail + 1) % MaxBufferSize;
 
-                            if (recvTail == recvHead) // 覆盖模式
-                                recvHead = (recvHead + 1) % MaxBufferSize;
+                            if (recvTail == recvHead)
+                                recvHead = (recvHead + 1) % MaxBufferSize; // 覆盖旧数据
                         }
 
+                        // ===============================
+                        // ===== MEMS 设备解析 =====
+                        // ===============================
                         if (chuanGanQiType == "MEMS")
                         {
                             while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
@@ -1160,6 +1166,7 @@ namespace fingerPressure
                                 }
 
                                 int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
+                                if (length <= 0 || length > MaxBufferSize) break;
                                 if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
                                     break;
 
@@ -1167,22 +1174,19 @@ namespace fingerPressure
                                 CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
                                 recvHead = (recvHead + length) % MaxBufferSize;
 
-                                // 校验
                                 byte checksum = 0;
                                 for (int i = 2; i < length - 1; i++)
                                     checksum += packet[i];
 
                                 if (checksum == packet[length - 1])
-                                {
                                     EnqueuePacket(packet);
-                                }
                                 else
-                                {
-                                    //LogToConsole("MEMS 校验失败");
                                     pool.Return(packet);
-                                }
                             }
                         }
+                        // ===============================
+                        // ===== 应变花传感器解析 =====
+                        // ===============================
                         else if (chuanGanQiType == "Yingbianhua")
                         {
                             const int PACKET_LENGTH = 348;
@@ -1213,140 +1217,92 @@ namespace fingerPressure
                                 }
                                 else
                                 {
-                                    //LogToConsole("Yingbianhua 包尾错误");
                                     pool.Return(packet);
                                 }
                             }
                         }
-                    }
+                    } // lock 结束
                 }
-                catch (TimeoutException) { }
-                catch (IOException) { break; }
-                catch (InvalidOperationException) { break; }
+                catch (TimeoutException)
+                {
+                    // 正常超时不处理
+                }
+                catch (IOException ioEx)
+                {
+                    LogToConsole("串口 IO 异常：" + ioEx.Message);
+                    break;
+                }
+                catch (InvalidOperationException)
+                {
+                    LogToConsole("串口已关闭或被释放。");
+                    break;
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
                 catch (Exception ex)
                 {
                     LogToConsole("串口读取异常：" + ex.ToString());
-                    break;
+                    // 恢复机制，防止缓冲溢出
+                    recvHead = 0;
+                    recvTail = 0;
+                    Array.Clear(recvBuffer, 0, recvBuffer.Length);
                 }
             }
+
+            LogToConsole("串口读取线程已安全退出。");
         }
+
         /*        private void SerialReadLoop(CancellationToken token)
                 {
                     byte[] buffer = new byte[4096];
                     const int MaxBufferSize = 65536;
                     byte[] recvBuffer = new byte[MaxBufferSize];
-                    int recvHead = 0;
-                    int recvTail = 0;
+                    int recvHead = 0; // 有效数据起始
+                    int recvTail = 0; // 有效数据末尾
 
                     ArrayPool<byte> pool = ArrayPool<byte>.Shared;
 
-                    // 监控文件路径
-                    string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SerialDebug.log");
-                    int loopCount = 0;
-
                     while (!token.IsCancellationRequested && serialPort != null && serialPort.IsOpen)
                     {
-                        loopCount++;
                         try
                         {
+
+                            // === 串口接收 ===
                             int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
                             if (bytesRead <= 0) continue;
 
                             lock (serialLock)
                             {
-                                LogToFile(logPath, $"[Loop {loopCount}] 读取到 {bytesRead} 字节, recvHead={recvHead}, recvTail={recvTail}");
-
                                 // 写入环形缓冲区
                                 for (int i = 0; i < bytesRead; i++)
                                 {
                                     recvBuffer[recvTail] = buffer[i];
                                     recvTail = (recvTail + 1) % MaxBufferSize;
 
-                                    if (recvTail == recvHead)
+                                    if (recvTail == recvHead) // 覆盖模式
                                         recvHead = (recvHead + 1) % MaxBufferSize;
                                 }
 
-                                LogToFile(logPath, $"[Loop {loopCount}] 写入后 recvHead={recvHead}, recvTail={recvTail}, 可用字节={GetAvailableBytes(recvHead, recvTail, MaxBufferSize)}");
-
                                 if (chuanGanQiType == "MEMS")
                                 {
-                                    int packetProcessCount = 0;
                                     while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= 6)
                                     {
-                                        packetProcessCount++;
-                                        LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 开始处理包, recvHead={recvHead}, recvTail={recvTail}");
-
-                                        // 监控点1：检查PeekByte调用
-                                        try
+                                        if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0x42 &&
+                                              PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0x54))
                                         {
-                                            byte byte0 = PeekByte(recvBuffer, recvHead, 0, MaxBufferSize);
-                                            byte byte1 = PeekByte(recvBuffer, recvHead, 1, MaxBufferSize);
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 帧头检查: 0x{byte0:X2} 0x{byte1:X2}");
-
-                                            if (!(byte0 == 0x42 && byte1 == 0x54))
-                                            {
-                                                recvHead = (recvHead + 1) % MaxBufferSize;
-                                                LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 帧头不匹配，跳过");
-                                                continue;
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] ERROR: PeekByte帧头检查异常 - {ex.Message}");
-                                            throw;
+                                            recvHead = (recvHead + 1) % MaxBufferSize;
+                                            continue;
                                         }
 
-                                        // 监控点2：获取长度
-                                        int length = 0;
-                                        try
-                                        {
-                                            length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 数据包长度: {length}");
-
-                                            // 检查长度是否合理
-                                            if (length < 6 || length > 256)
-                                            {
-                                                LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] WARNING: 长度异常 {length}，跳过此包");
-                                                recvHead = (recvHead + 1) % MaxBufferSize;
-                                                continue;
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] ERROR: 获取长度异常 - {ex.Message}");
-                                            throw;
-                                        }
-
-                                        // 监控点3：检查数据是否足够
-                                        int availableBytes = GetAvailableBytes(recvHead, recvTail, MaxBufferSize);
-                                        LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 需要 {length} 字节，实际可用 {availableBytes} 字节");
-
-                                        if (availableBytes < length)
-                                        {
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 数据不足，跳出循环");
+                                        int length = PeekByte(recvBuffer, recvHead, 2, MaxBufferSize);
+                                        if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < length)
                                             break;
-                                        }
 
-                                        // 监控点4：数据拷贝
-                                        byte[] packet = null;
-                                        try
-                                        {
-                                            packet = pool.Rent(length);
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 开始拷贝数据，从 recvHead={recvHead} 拷贝 {length} 字节");
-
-                                            CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
-
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 拷贝完成，准备移动recvHead");
-
-                                            recvHead = (recvHead + length) % MaxBufferSize;
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] recvHead移动到: {recvHead}");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] ERROR: 数据拷贝异常 - {ex.Message}");
-                                            if (packet != null) pool.Return(packet);
-                                            throw;
-                                        }
+                                        byte[] packet = pool.Rent(length);
+                                        CopyFromRingBuffer(recvBuffer, recvHead, packet, length, MaxBufferSize);
+                                        recvHead = (recvHead + length) % MaxBufferSize;
 
                                         // 校验
                                         byte checksum = 0;
@@ -1355,96 +1311,62 @@ namespace fingerPressure
 
                                         if (checksum == packet[length - 1])
                                         {
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 校验成功，加入队列");
                                             EnqueuePacket(packet);
                                         }
                                         else
                                         {
-                                            LogToFile(logPath, $"[Loop {loopCount}-Packet{packetProcessCount}] 校验失败，期望 0x{checksum:X2} 实际 0x{packet[length - 1]:X2}");
+                                            //LogToConsole("MEMS 校验失败");
                                             pool.Return(packet);
                                         }
                                     }
-
-                                    if (packetProcessCount == 0)
+                                }
+                                else if (chuanGanQiType == "Yingbianhua")
+                                {
+                                    const int PACKET_LENGTH = 348;
+                                    while (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) >= PACKET_LENGTH)
                                     {
-                                        LogToFile(logPath, $"[Loop {loopCount}] 未处理任何数据包");
+                                        if (!(PeekByte(recvBuffer, recvHead, 0, MaxBufferSize) == 0xAA &&
+                                              PeekByte(recvBuffer, recvHead, 1, MaxBufferSize) == 0xAA &&
+                                              PeekByte(recvBuffer, recvHead, 2, MaxBufferSize) == 0xAA &&
+                                              PeekByte(recvBuffer, recvHead, 3, MaxBufferSize) == 0xAA))
+                                        {
+                                            recvHead = (recvHead + 1) % MaxBufferSize;
+                                            continue;
+                                        }
+
+                                        if (GetAvailableBytes(recvHead, recvTail, MaxBufferSize) < PACKET_LENGTH)
+                                            break;
+
+                                        byte[] packet = pool.Rent(PACKET_LENGTH);
+                                        CopyFromRingBuffer(recvBuffer, recvHead, packet, PACKET_LENGTH, MaxBufferSize);
+                                        recvHead = (recvHead + PACKET_LENGTH) % MaxBufferSize;
+
+                                        if (packet[PACKET_LENGTH - 4] == 0xBB &&
+                                            packet[PACKET_LENGTH - 3] == 0xBB &&
+                                            packet[PACKET_LENGTH - 2] == 0xBB &&
+                                            packet[PACKET_LENGTH - 1] == 0xBB)
+                                        {
+                                            EnqueuePacket(packet.AsSpan(0, PACKET_LENGTH).ToArray());
+                                        }
+                                        else
+                                        {
+                                            //LogToConsole("Yingbianhua 包尾错误");
+                                            pool.Return(packet);
+                                        }
                                     }
                                 }
                             }
-                        }
-                        catch (TimeoutException)
-                        {
-                            LogToFile(logPath, $"[Loop {loopCount}] TimeoutException");
-                        }
-                        catch (IOException ex)
-                        {
-                            LogToFile(logPath, $"[Loop {loopCount}] IOException: {ex.Message}");
-                            break;
-                        }
-                        catch (InvalidOperationException ex)
-                        {
-                            LogToFile(logPath, $"[Loop {loopCount}] InvalidOperationException: {ex.Message}");
-                            break;
-                        }
+                    }
+                        catch (TimeoutException) { }
+                        catch (IOException) { break; }
+                        catch (InvalidOperationException) { break; }
                         catch (Exception ex)
                         {
-                            LogToFile(logPath, $"[Loop {loopCount}] 异常: {ex.GetType().Name} - {ex.Message}");
-                            LogToFile(logPath, $"[Loop {loopCount}] 堆栈: {ex.StackTrace}");
-                            LogToConsole("串口读取异常：" + ex.Message);
-                            break;
-                        }
-                    }
-
-                    LogToFile(logPath, $"串口读取循环结束，loopCount={loopCount}");
-                }
-
-                // 辅助方法：记录到文件
-                private void LogToFile(string filePath, string message)
-                {
-                    try
-                    {
-                        string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {message}";
-                        File.AppendAllText(filePath, logMessage + Environment.NewLine);
-                    }
-                    catch
-                    {
-                        // 忽略日志写入错误
+                        LogToConsole("串口读取异常：" + ex.ToString());
+                        break;
                     }
                 }
-
-                // 确保这些辅助方法有边界检查
-                private byte PeekByte(byte[] buffer, int head, int offset, int maxSize)
-                {
-                    int index = (head + offset) % maxSize;
-                    // 添加边界检查
-                    if (index < 0 || index >= maxSize)
-                    {
-                        throw new IndexOutOfRangeException($"PeekByte索引越界: head={head}, offset={offset}, index={index}, maxSize={maxSize}");
-                    }
-                    return buffer[index];
-                }
-
-                private void CopyFromRingBuffer(byte[] source, int head, byte[] dest, int length, int maxSize)
-                {
-                    for (int i = 0; i < length; i++)
-                    {
-                        int sourceIndex = (head + i) % maxSize;
-                        if (sourceIndex < 0 || sourceIndex >= maxSize)
-                        {
-                            throw new IndexOutOfRangeException($"CopyFromRingBuffer索引越界: head={head}, i={i}, sourceIndex={sourceIndex}, maxSize={maxSize}");
-                        }
-                        dest[i] = source[sourceIndex];
-                    }
-                }
-
-                private int GetAvailableBytes(int head, int tail, int maxSize)
-                {
-                    if (tail >= head)
-                        return tail - head;
-                    else
-                        return maxSize - head + tail;
                 }*/
-
 
         // 背景线程解包
         private void StartPacketProcessingThread()
