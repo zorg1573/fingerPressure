@@ -743,27 +743,11 @@ namespace fingerPressure
                 serialPort.WriteTimeout = 500;
                 serialPort.Open();
 
-                // === MEMS 指令预生成（5 个地址） ===
-                memsCommands = new byte[5][];
-                List<int> fingerNum = uCheckComboBox1.GetSelectedValues();
-                for (int i = 0; i < fingerNum.Count; i++)
-                {
-                    memsCommands[i] = new byte[] { 0xA5, 0x5A, (byte)(fingerNum[i]) };
-                }
-
                 // 启动后台读取线程
                 cts = new CancellationTokenSource();
                 serialThread = new Thread(() => SerialReadLoop(cts.Token));
                 serialThread.IsBackground = true;
                 serialThread.Start();
-                if (chuanGanQiType == "MEMS")
-                {
-                    serialSendThread = new Thread(() => SerialSendLoop(cts.Token, fingerNum.Count));
-                    serialSendThread.IsBackground = true;
-                    serialSendThread.Start();
-                    LoadFromSettingJson();
-                    //LoadParameters();
-                }
 
                 // 生成文件路径
                 string fileSavePath = System.IO.Path.Combine(excelSavePath,
@@ -1435,7 +1419,8 @@ namespace fingerPressure
 
                     // 地址解析
                     if (!int.TryParse(uiData[0].Replace("S", ""), out int addr)) return;
-                    int sensorIndex = addr - 1;
+                    //int sensorIndex = addr - 1;
+                    int sensorIndex = addr;
                     if (sensorIndex < 0 || sensorIndex >= 5) return;
 
                     string type = uiData[1];
@@ -1528,6 +1513,18 @@ namespace fingerPressure
                         {
                             double correctedPressure = value - channelZeroOffsets[channelIndex];
                             double pressureDenoised = DenoiseByMedian(channelIndex, correctedPressure);
+                            if (channelIndex == 5)
+                            {
+                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.2 * 1e6;
+                            }
+                            if (channelIndex == 6)
+                            {
+                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.2 / 96 * 1e6;
+                            }
+                            if (channelIndex == 7)
+                            {
+                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.2 / 12 * 1e6;
+                            }
 
                             dotUpdate_Pres.PressureValues[channelIndex] = pressureDenoised;
 
@@ -2669,8 +2666,7 @@ namespace fingerPressure
                             double filedV = DenoiseByMedian_filedata(channelIndex, zeroedV);
                             fileData.Add(filedV.ToString("F3"));
                         }
-                        if (isSaving)
-                        {
+
                             // 保存数据到 fileRawQueue
                             var now = HighResDateTime.Now;
                             if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
@@ -2679,7 +2675,7 @@ namespace fingerPressure
                                 if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
                                 fileRawQueue.Add(fileData);
                             }
-                        }
+                        
                         // 清除该 addr 的数据（温度和压力都清除）
                         addrDataDict[addr] = new SensorData();
                     }
