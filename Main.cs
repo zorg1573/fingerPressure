@@ -1515,15 +1515,15 @@ namespace fingerPressure
                             double pressureDenoised = DenoiseByMedian(channelIndex, correctedPressure);
                             if (channelIndex == 5)
                             {
-                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.2 * 1e6;
+                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.35 * 1e6;
                             }
                             if (channelIndex == 6)
                             {
-                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.2 / 96 * 1e6;
+                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.35 / 192 * 1e6;
                             }
                             if (channelIndex == 7)
                             {
-                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.2 / 12 * 1e6;
+                                pressureDenoised = pressureDenoised / Math.Pow(2, 23) * 2.35 / 16 * 1e6;
                             }
 
                             dotUpdate_Pres.PressureValues[channelIndex] = pressureDenoised;
