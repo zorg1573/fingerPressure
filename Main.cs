@@ -1,4 +1,5 @@
-﻿using fingerPressure.MODEL;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
+using fingerPressure.MODEL;
 using fingerPressure.Properties;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Optimization;
@@ -163,7 +164,7 @@ namespace fingerPressure
                 private Thread monitorThread;
                 private bool monitorRunning = true;*/
         private List<string> biaoTouName = new List<string> { "LogTime", "Sensor1", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp1", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor2", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp2", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor3", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp3", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor4", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp4", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor5", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp5", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", };
-        private List<string> biaoTouNameMEMS = new List<string> { "LogTime", "Sensor", "Temp1", "Temp2", "Temp3", "Temp4", "Temp5", "Temp6", "Temp7", "Temp8", "Press1", "Press2", "Press3", "Press4", "Press5", "Press6", "Press7", "Press8" };
+        private List<string> biaoTouNameMEMS = new List<string> { "LogTime", "Sensor", "Press1", "Press2", "Press3", "Press4", "Press5", "Press6", "Press7", "Press8" };
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
         private string[] danweiNames = { "原始值", "电阻值", "应变值", "压力值" };
         private int danwei = 0; //电阻 应变 压力
@@ -2642,43 +2643,53 @@ namespace fingerPressure
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
                     uiQueue.Add(uiData);
 
-                    // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
-                    if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
+
+                    // 保存数据到 fileRawQueue
+                    var now = HighResDateTime.Now;
+                    if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
                     {
-                        // 当数据满足条件时，加入 fileRawQueue
-                        var fileData = uiDataPool.Rent();
-                        fileData.Clear();
-                        fileData.Add("S" + addr.ToString());
-
-                        // 将温度数据和压力数据一起添加到 uiData
-                        for (int i = 0; i < 8; i++)
-                        {
-                            double rawV = addrDataDict[addr].TemperatureData[i];
-                            int channelIndex = (addr - 1) * 8 + i;
-                            double filedV = DenoiseByMedian_temp(channelIndex, rawV);
-                            fileData.Add(filedV.ToString("F2"));
-                        }
-                        for (int i = 0; i < 8; i++)
-                        {
-                            double rawV = addrDataDict[addr].PressureData[i];
-                            int channelIndex = (addr - 1) * 8 + i;
-                            double zeroedV = rawV - channelZeroOffsets[channelIndex];
-                            double filedV = DenoiseByMedian_filedata(channelIndex, zeroedV);
-                            fileData.Add(filedV.ToString("F3"));
-                        }
-
-                            // 保存数据到 fileRawQueue
-                            var now = HighResDateTime.Now;
-                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
-                            {
-                                lastSaveTime = now;
-                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                                fileRawQueue.Add(fileData);
-                            }
-                        
-                        // 清除该 addr 的数据（温度和压力都清除）
-                        addrDataDict[addr] = new SensorData();
+                        lastSaveTime = now;
+                        if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                        fileRawQueue.Add(uiData);
                     }
+
+                    /*                    // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
+                                        if (addrDataDict[addr].TemperatureData.Count >= 8 && addrDataDict[addr].PressureData.Count >= 8)
+                                        {
+                                            // 当数据满足条件时，加入 fileRawQueue
+                                            var fileData = uiDataPool.Rent();
+                                            fileData.Clear();
+                                            fileData.Add("S" + addr.ToString());
+
+                                            // 将温度数据和压力数据一起添加到 uiData
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                double rawV = addrDataDict[addr].TemperatureData[i];
+                                                int channelIndex = (addr - 1) * 8 + i;
+                                                double filedV = DenoiseByMedian_temp(channelIndex, rawV);
+                                                fileData.Add(filedV.ToString("F2"));
+                                            }
+                                            for (int i = 0; i < 8; i++)
+                                            {
+                                                double rawV = addrDataDict[addr].PressureData[i];
+                                                int channelIndex = (addr - 1) * 8 + i;
+                                                double zeroedV = rawV - channelZeroOffsets[channelIndex];
+                                                double filedV = DenoiseByMedian_filedata(channelIndex, zeroedV);
+                                                fileData.Add(filedV.ToString("F3"));
+                                            }
+
+                                            // 保存数据到 fileRawQueue
+                                            var now = HighResDateTime.Now;
+                                            if ((now - lastSaveTime).TotalMilliseconds >= saveRate)
+                                            {
+                                                lastSaveTime = now;
+                                                if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
+                                                fileRawQueue.Add(fileData);
+                                            }
+
+                                            // 清除该 addr 的数据（温度和压力都清除）
+                                            addrDataDict[addr] = new SensorData();
+                                        }*/
 
                     long newCount = Interlocked.Increment(ref totalPacketCount);
                     if (packetCountLabel.InvokeRequired)
@@ -3207,7 +3218,7 @@ namespace fingerPressure
             _sbCache.Append(HighResDateTime.Now.ToString("yy:MM:dd:HH:mm:ss.fff"));
 
 
-            for (int i = 0; i < 17; i++)
+            for (int i = 0; i < 10; i++)
             {
                 _sbCache.Append(',');
                 _sbCache.Append(packet[i]);
