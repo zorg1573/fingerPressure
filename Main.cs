@@ -2647,7 +2647,7 @@ namespace fingerPressure
                     }
 
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                    uiQueue.Add(fileData);
+                    uiQueue.Add(uiData);
 
 
                     // 保存数据到 fileRawQueue
@@ -2656,7 +2656,7 @@ namespace fingerPressure
                     {
                         lastSaveTime = now;
                         if (fileRawQueue.Count >= 20000) fileRawQueue.TryTake(out _);
-                        fileRawQueue.Add(uiData);
+                        fileRawQueue.Add(fileData);
                     }
 
                     /*                    // 检查该 addr 是否有足够的数据（温度和压力数据各 8 个）
