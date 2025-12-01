@@ -163,7 +163,7 @@ namespace fingerPressure
                 private Thread monitorThread;
                 private bool monitorRunning = true;*/
         private List<string> biaoTouName = new List<string> { "LogTime", "Sensor1", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp1", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor2", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp2", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor3", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp3", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor4", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp4", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", "Sensor5", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7", "CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23", "CH24", "CH25", "CH26", "CH27", "Temp5", "GyroAx", "GyroAy", "GyroAz", "GyroGx", "GyroGy", "GyroGz", };
-        private List<string> biaoTouNameMEMS = new List<string> { "LogTime", "Sensor", "Press1", "Press2", "Press3", "Press4", "Press5", "Press6", "Press7", "Press8" };
+        private List<string> biaoTouNameMEMS = new List<string> { "LogTime", "Sensor", "Type", "Press1", "Press2", "Press3", "Press4", "Press5", "Press6", "Press7", "Press8" };
         private string[] fingerNames = { "大拇指", "食指", "中指", "无名指", "小拇指" };
         private string[] danweiNames = { "原始值", "电阻值", "应变值", "压力值" };
         private int danwei = 0; //电阻 应变 压力
@@ -2636,11 +2636,18 @@ namespace fingerPressure
                     uiData.Clear();
                     uiData.Add("S" + addr.ToString());
                     uiData.Add(type.ToString("X2"));
+                    var fileData = uiDataPool.Rent();
+                    fileData.Clear();
+                    fileData.Add("S" + addr.ToString());
+                    fileData.Add(type.ToString("X2"));
                     for (int i = 0; i < 8; i++)
-                        uiData.Add(values[i].ToString());
+                    {
+                        values[i] = values[i] - channelZeroOffsets[i];
+                        fileData.Add(values[i].ToString());
+                    }
 
                     while (uiQueue.Count > 0) uiQueue.TryTake(out _);
-                    uiQueue.Add(uiData);
+                    uiQueue.Add(fileData);
 
 
                     // 保存数据到 fileRawQueue
