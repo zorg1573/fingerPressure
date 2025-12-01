@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
-using fingerPressure.MODEL;
+﻿using fingerPressure.MODEL;
 using fingerPressure.Properties;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Optimization;
