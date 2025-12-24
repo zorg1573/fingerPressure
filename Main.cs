@@ -2636,12 +2636,13 @@ namespace fingerPressure
                     uiData.Clear();
                     uiData.Add("S" + addr.ToString());
                     uiData.Add(type.ToString("X2"));
-                    var fileData = uiDataPool.Rent();
+                    var fileData = fileDataPool.Rent();
                     fileData.Clear();
                     fileData.Add("S" + addr.ToString());
                     fileData.Add(type.ToString("X2"));
                     for (int i = 0; i < 8; i++)
                     {
+                        uiData.Add(values[i].ToString());
                         values[i] = values[i] - channelZeroOffsets[i];
                         fileData.Add(values[i].ToString());
                     }
